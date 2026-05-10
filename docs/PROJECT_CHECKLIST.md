@@ -41,7 +41,7 @@
 
 ### Tooling
 - [x] Node.js 22 LTS
-- [x] **Pest 4.7** installé + 8 fichiers de tests services (69 tests / 155 assertions, tous au vert) — couverture XpService (6) / DailyLoginService (8) / GachaService (12) / MissionService (8) / AffinityService (7) / AchievementService (8) / ShopService (6) / BattlePassService (14)
+- [x] **Pest 4.7** installé + **10 fichiers de tests services (95 tests / 215 assertions, tous au vert)** — couverture 100% des services métier : XpService (6) / DailyLoginService (8) / GachaService (12) / MissionService (8) / AffinityService (7) / AchievementService (8) / ShopService (6) / BattlePassService (14) / **LeaderboardService (13 — Redis DB 15 isolée)** / **ReferralService (12)**
 - [x] Vitest (déps installées)
 - [ ] Storybook 8 (config `.storybook/`)
 - [x] Code versionné GitHub
