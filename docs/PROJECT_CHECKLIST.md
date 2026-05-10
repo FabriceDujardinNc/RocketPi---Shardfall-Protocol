@@ -93,6 +93,7 @@
 - [x] `scheduler` (artisan schedule:run)
 - [x] (dev) `mailpit` capture emails
 - [x] (dev) `vite` HMR sur :5173
+- [x] (dev) `installer` (one-shot : composer + npm + APP_KEY + migrate au boot)
 
 ### Extensions PHP (laravel-app)
 - [x] pdo_mysql

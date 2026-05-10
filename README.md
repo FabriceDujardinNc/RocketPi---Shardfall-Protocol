@@ -39,17 +39,31 @@ Réseau interne uniquement — DB et Redis jamais exposés à internet.
 Prérequis : Docker Desktop + WSL2 (Ubuntu).
 
 ```bash
-cp .env.example .env
 docker compose up -d --build
-docker compose exec laravel-app php artisan key:generate
-docker compose exec laravel-app php artisan migrate --seed
 ```
 
-- App : http://localhost (via NPM ou direct selon ton setup)
-- Mailpit : http://localhost:8025
-- Vite HMR : http://localhost:5173 (auto)
-- MySQL : `127.0.0.1:3307`
-- Redis : `127.0.0.1:6380`
+C'est tout. Au premier démarrage le service `installer` :
+1. Lance `composer install` si `vendor/` manque
+2. Copie `.env.example` → `.env` si manquant
+3. Génère `APP_KEY` si manquant
+4. Lance `npm install` si `node_modules/` manque
+5. Lance `php artisan migrate` (idempotent)
+
+Les autres services attendent que l'installer ait terminé (`service_completed_successfully`).
+
+Pour seed les données de démo (admin, opérateurs, bannières) :
+
+```bash
+docker compose exec laravel-app php artisan db:seed
+```
+
+| Endpoint | URL |
+|---|---|
+| App | http://localhost (via Nginx Proxy Manager ou expose port nginx) |
+| Mailpit (capture emails) | http://localhost:8025 |
+| Vite HMR | http://localhost:5173 (auto) |
+| MySQL | `127.0.0.1:3307` |
+| Redis | `127.0.0.1:6380` |
 
 ---
 
