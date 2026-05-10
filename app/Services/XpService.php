@@ -20,7 +20,10 @@ class XpService
 {
     public const MAX_LEVEL = 99;
 
-    public function __construct(private readonly ReferralService $referrals) {}
+    public function __construct(
+        private readonly ReferralService $referrals,
+        private readonly BattlePassService $battlePass,
+    ) {}
 
     public function award(User $user, int $xp): array
     {
@@ -47,6 +50,13 @@ class XpService
             } catch (\Throwable $e) {
                 \Log::warning('Referral milestone check failed', ['user' => $user->id, 'error' => $e->getMessage()]);
             }
+        }
+
+        // Hook battle pass : chaque XP gagnée alimente le BP actif
+        try {
+            $this->battlePass->addXp($user, $xp);
+        } catch (\Throwable $e) {
+            \Log::warning('Battle pass XP add failed', ['user' => $user->id, 'error' => $e->getMessage()]);
         }
 
         return [

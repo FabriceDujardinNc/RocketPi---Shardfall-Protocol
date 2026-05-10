@@ -128,7 +128,7 @@ Free-to-play, **jamais pay-to-win**. Monnaie premium (gacha), skins cosmétiques
 |---|---|---|
 | **1** | ✅ | Fondations Laravel + Auth (login/register/email verify/reset) + dev quick login + Design System (32 composants) + modèles DB (15 tables) |
 | **2** | ✅ | Gacha 100% serveur (taux 60/30/8/2, pity 80/10 + soft pity, rate-up, animation Framer Motion), fidélisation (daily login, missions, XP 1-99, fragments doublons), classements Redis Sorted Sets (top 100 + voisins + reset auto), parrainage complet (paliers parrain niv 5/15/30, anti-abuse), pages admin (logs gacha filtrables + leaderboards + referrals), Pest 34/34 tests, ESLint+Stylelint enforcement |
-| **3** *(à venir)* | ⏳ | Méta-jeu : inventaire visuel, boutique, profil public, amis, achievements visibles, Battle Pass saisonnier (50 paliers, 8 sem), affinité opérateurs |
+| **3** *(en cours)* | 🟡 | Méta-jeu : Battle Pass saisonnier (50 paliers free + premium 1000 shards, 8 sem, paliers milestones 5/10/25/50, hook XP auto), Affinité opérateurs (0-10, 25 XP/pull + 10 XP doublon, formule 100×N+1), Achievements (10 seedés, 5 catégories, hooks gacha auto), Collection avec affinity bar par opérateur, profil public ; reste : boutique fonctionnelle, lore débloqué progressif, skins/voicelines, système amis (Phase 5) |
 | **4** | ⏳ | Intégration Unity 6 WebGL + événements limités + classement compétitif saisonnier |
 | **5** | ⏳ | Multijoueur Photon · Stripe (Cashier) · guildes · co-op PvE · Hall of Fame annuel |
 
@@ -143,6 +143,9 @@ Free-to-play, **jamais pay-to-win**. Monnaie premium (gacha), skins cosmétiques
 | `MissionService` | progressFor / claim avec rewards + XP |
 | `LeaderboardService` | Redis ZSET (addPoints / topN / neighbors), snapshot MySQL, distribution rewards par paliers % |
 | `ReferralService` | Parrainage avec anti-abuse (max 50, IP detection), milestones niv 5/15/30 |
+| `BattlePassService` | Saison active + addXp + purchase premium + claim tier (free + premium si payé) |
+| `AffinityService` | XP affinité par opérateur (0-10), level-up cascade |
+| `AchievementService` | track événement → progress, claim avec rewards, listForUser |
 
 ## Tests & qualité
 

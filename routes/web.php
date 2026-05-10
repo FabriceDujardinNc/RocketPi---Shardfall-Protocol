@@ -85,8 +85,9 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
     Route::get('/shop', [ShopController::class, 'index'])->name('shop');
 
     // Battle Pass
-    Route::get('/battlepass', [BattlePassController::class, 'index'])->name('battlepass');
-    Route::post('/battlepass/{tier}/claim', [BattlePassController::class, 'claim'])->name('battlepass.claim');
+    Route::get('/battlepass',                            [BattlePassController::class, 'index'])->name('battlepass');
+    Route::post('/battlepass/{battlePass}/purchase',     [BattlePassController::class, 'purchase'])->name('battlepass.purchase');
+    Route::post('/battlepass/tier/{tier}/claim',         [BattlePassController::class, 'claim'])->name('battlepass.claim');
 
     // Profil
     Route::get('/profile',         [ProfileController::class, 'index'])->name('profile');

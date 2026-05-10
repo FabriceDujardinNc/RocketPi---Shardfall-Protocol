@@ -21,6 +21,7 @@ interface OwnedOperator {
         portrait_url: string | null;
         lore: string | null;
     };
+    affinity: { level: number; xp_current: number; next_xp: number };
 }
 
 interface Props {
@@ -62,20 +63,34 @@ export default function Collection({ operators, totalCount }: Props) {
             ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {operators.map(po => (
-                        <div key={po.id} className="relative">
-                            <OperatorCard
-                                name={po.operator.name}
-                                role={po.operator.role}
-                                rarity={po.operator.rarity}
-                                faction={po.operator.faction.toLowerCase() as Faction}
-                                portraitUrl={po.operator.portrait_url ?? undefined}
-                                level={po.constellation}
-                            />
-                            {po.duplicate_count > 0 && (
-                                <span className="absolute top-2 left-2 z-overlay font-mono text-[10px] px-1.5 py-0.5 rounded bg-bg-base/90 text-shard-400 border border-shard-500/40">
-                                    +{po.duplicate_count}
-                                </span>
-                            )}
+                        <div key={po.id} className="flex flex-col gap-2">
+                            <div className="relative">
+                                <OperatorCard
+                                    name={po.operator.name}
+                                    role={po.operator.role}
+                                    rarity={po.operator.rarity}
+                                    faction={po.operator.faction.toLowerCase() as Faction}
+                                    portraitUrl={po.operator.portrait_url ?? undefined}
+                                    level={po.constellation}
+                                />
+                                {po.duplicate_count > 0 && (
+                                    <span className="absolute top-2 left-2 z-overlay font-mono text-xs px-1.5 py-0.5 rounded bg-bg-base/90 text-shard-400 border border-shard-500/40">
+                                        +{po.duplicate_count}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="px-2">
+                                <div className="flex justify-between font-display text-xs uppercase tracking-wide">
+                                    <span className="text-text-medium">Affinité</span>
+                                    <span className="text-shard-400 font-mono">Niv. {po.affinity.level}/10</span>
+                                </div>
+                                <div className="h-1.5 mt-1 rounded-full bg-bg-elev2 overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-shard-400 to-shard-600 transition-all duration-normal"
+                                        style={{ width: `${Math.min(100, (po.affinity.xp_current / po.affinity.next_xp) * 100)}%` }}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>

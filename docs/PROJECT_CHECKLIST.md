@@ -502,14 +502,17 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] **Classement collection** (saison active, points via gacha pulls — 1 pt par opérateur unique)
 - [x] **Classement par faction** (3 saisons ORBIT/FERRO/VEIL — pts par opérateur faction-matching)
 
-### Services métier créés
-- [x] `App\Services\GachaService` — pull atomique avec pity/rate-up/XP/missions/fragments + leaderboard hooks
+### Services métier créés (10 services + 1 commande)
+- [x] `App\Services\GachaService` — pull atomique avec pity/rate-up/XP/missions/fragments + leaderboard + affinité + achievements hooks
 - [x] `App\Services\RewardService` — applique tableau de rewards (currencies + log Transaction)
-- [x] `App\Services\XpService` — award + level-up cascade + hook référral milestones
+- [x] `App\Services\XpService` — award + level-up cascade + hooks référral milestones + battle pass XP
 - [x] `App\Services\DailyLoginService` — record + streak + claim
 - [x] `App\Services\MissionService` — progressFor / claim / listForUser + leaderboard hooks
 - [x] `App\Services\LeaderboardService` — Redis ZSET addPoints/topN/rankOf/scoreOf/neighborsOf, snapshot MySQL, distributeRewards par paliers
 - [x] `App\Services\ReferralService` — createForNewUser (avec anti-abuse), validateOnEmailVerified, checkLevelMilestones, claim, pendingRewardsFor
+- [x] `App\Services\BattlePassService` — addXp / purchase (1000 shards) / claim (free + premium si activé)
+- [x] `App\Services\AffinityService` — award XP affinité par opérateur (0-10), formule 100×(N+1)
+- [x] `App\Services\AchievementService` — track événements, claim avec rewards, listForUser (cache hidden non débloqués)
 - [x] `App\Console\Commands\LeaderboardReset` (artisan `leaderboard:reset`) — snapshot + distribution post-reset
 
 ### Pages joueur réelles (avec data live)
@@ -518,16 +521,18 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] **Missions** — page dédiée avec tabs daily/weekly et claim
 - [x] **Gacha** + **GachaBanner** (déjà fait phase précédente)
 
-### Phase 3 — Méta-jeu
-- [ ] Inventaire visuel
-- [ ] Boutique
-- [ ] Profil public
-- [ ] Système amis
-- [ ] Achievements visibles
-- [ ] Battle Pass saisonnier (gratuit + premium ~10€, 50 paliers, 8 sem)
-- [ ] Affinité Opérateurs (0-10, lore, skins gratuits, voicelines)
-- [ ] Classements par faction
-- [ ] MCP Design System custom
+### Phase 3 — Méta-jeu *(en cours — fondations posées)*
+- [x] **Inventaire visuel** — page Collection avec OperatorCard, badge duplicate +N, affinity bar par opérateur
+- [ ] Boutique (route + page stub présents — à câbler avec packs achetables)
+- [x] **Profil public** (page `Player/ProfilePublic.tsx` fonctionnelle, lien depuis ProfileController.show)
+- [ ] Système amis (Phase 5)
+- [x] **Achievements visibles** — `Achievement` model + `AchievementService::track/claim/listForUser`, 10 achievements seedés (collection × 5, progression × 3, special × 1, social × 1), tracking auto via GachaService (first_pull, pulled_10/100, first_epic, first_legendary)
+- [x] **Battle Pass saisonnier** — `BattlePass` + `BattlePassTier` × 50 + `BattlePassProgress` models, `BattlePassService` (addXp/purchase/claim), saison 1 seedée (8 semaines, 1000 shards premium, paliers milestones 5/10/25/50), page `/battlepass` avec roadmap horizontale + progression XP, hook XpService alimente automatiquement le BP actif
+- [x] **Affinité Opérateurs** — `OperatorAffinity` model 0-10 levels, `AffinityService::award` avec formule 100×(N+1) XP par level, hook GachaService (25 XP/pull + 10 XP doublon), affinity bar par opérateur dans Collection
+- [x] **Classements par faction** (déjà actifs depuis Phase 2 — 3 saisons ORBIT/FERRO/VEIL avec hook gacha)
+- [ ] Lore débloqué progressivement par niveau d'affinité (UI à câbler — modèle prêt avec `unlocked_rewards` JSON)
+- [ ] Skins gratuits / voicelines par level affinité (assets pas en BDD)
+- [ ] MCP Design System custom (Phase 3+ ou plus tard)
 
 ### Phase 4 — Intégration Unity + compétitif
 - [ ] Page `/play` Unity 6 WebGL

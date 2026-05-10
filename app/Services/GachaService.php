@@ -51,6 +51,8 @@ class GachaService
         private readonly XpService $xp,
         private readonly MissionService $missions,
         private readonly LeaderboardService $leaderboard,
+        private readonly AffinityService $affinity,
+        private readonly AchievementService $achievements,
     ) {}
 
     /**
@@ -130,6 +132,31 @@ class GachaService
                 $this->xp->award($user, $totalXp);
             }
             $this->missions->progressFor($user, 'pull', $count);
+
+            // Affinité opérateur
+            foreach ($results as $r) {
+                $xpAff = $r['is_new']
+                    ? AffinityService::XP_PER_PULL
+                    : AffinityService::XP_PER_PULL + AffinityService::XP_PER_DUPLICATE;
+                $this->affinity->award($user, $r['operator'], $xpAff);
+            }
+
+            // Achievements
+            try {
+                $this->achievements->track($user, 'first_pull');
+                $this->achievements->track($user, 'pulled_10', $count, 10);
+                $this->achievements->track($user, 'pulled_100', $count, 100);
+                foreach ($results as $r) {
+                    if ($r['operator']->rarity === 'legendary' && $r['is_new']) {
+                        $this->achievements->track($user, 'first_legendary');
+                    }
+                    if ($r['operator']->rarity === 'epic' && $r['is_new']) {
+                        $this->achievements->track($user, 'first_epic');
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Achievement track failed', ['user' => $user->id, 'error' => $e->getMessage()]);
+            }
 
             // Leaderboard collection : 1 point par opérateur unique nouvellement obtenu
             $newCount = count(array_filter($results, fn ($r) => $r['is_new']));
