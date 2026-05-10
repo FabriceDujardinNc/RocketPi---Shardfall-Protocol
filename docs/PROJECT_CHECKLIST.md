@@ -344,7 +344,8 @@
 - [x] Missions.tsx (stub avec sections daily/weekly)
 - [x] BattlePass.tsx (stub)
 - [x] Referral.tsx (avec copie du lien fonctionnelle)
-- [x] Profile.tsx (formulaire d'édition fonctionnel) + ProfilePublic.tsx
+- [x] Profile.tsx (formulaire d'édition fonctionnel) + **ProfilePublic.tsx** (header avatar + niveau/XP/date d'inscription, stats grid niveau/collection/honneurs/classements, top 4 opérateurs favoris par affinité, table des meilleurs classements actifs)
+- [x] **PlayerLayout** : lien `Parrainage` ajouté dans la nav principale (la page `/referral` était déjà câblée mais inaccessible depuis le menu)
 - [x] Play.tsx (placeholder Unity)
 
 ### Admin — `resources/js/Pages/Admin/`

@@ -9,6 +9,7 @@ const NAV = [
     { href: '/battlepass',   label: 'Battle Pass' },
     { href: '/achievements', label: 'Honneurs' },
     { href: '/leaderboard',  label: 'Classement' },
+    { href: '/referral',     label: 'Parrainage' },
     { href: '/shop',         label: 'Shop' },
     { href: '/play',         label: 'Jouer' },
 ];
