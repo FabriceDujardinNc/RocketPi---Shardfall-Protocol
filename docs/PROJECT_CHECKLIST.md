@@ -440,7 +440,7 @@
 - [x] **Snapshots MySQL post-reset** — `snapshotToMysql(season)` archive + del Redis ZSET
 - [x] **Distribution auto récompenses post-reset** — `distributeRewards(season)` parcourt entries archivées et matche les paliers
 - [x] **Commande artisan `leaderboard:reset`** — flags `--season=`, `--type=`, `--expired-only`, prête pour le scheduler
-- [ ] Schedule Laravel (`schedule:list` à câbler dans `routes/console.php` : weekly lundi 00h UTC, monthly 1er 00h UTC)
+- [x] Schedule Laravel câblé dans `routes/console.php` — weekly lundi 00h UTC + monthly 1er 00h UTC + filet de sécurité quotidien 03h UTC, tous avec `--expired-only`, `withoutOverlapping`, `runInBackground` et log dans `storage/logs/leaderboard-reset.log`
 - [ ] Worker Redis dédié pour batching de gros volumes (pas nécessaire avant gros traffic)
 
 ### Pages
