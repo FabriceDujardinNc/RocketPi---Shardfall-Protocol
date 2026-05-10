@@ -73,10 +73,13 @@ class AuthController extends Controller
     public function register(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:80',
+            'name'     => 'required|string|max:80|unique:users,name',
             'email'    => 'required|string|email|max:255|unique:users,email',
             'password' => ['required', 'confirmed', PasswordRule::defaults()],
             'referral_code' => 'nullable|string|max:32',
+        ], [
+            'name.unique'  => 'Ce pseudo est déjà pris, choisis-en un autre.',
+            'email.unique' => 'Un compte existe déjà avec cet email.',
         ]);
 
         $referrer = ! empty($validated['referral_code'])

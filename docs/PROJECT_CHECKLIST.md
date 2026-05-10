@@ -315,6 +315,7 @@
 ### Génération auto
 - [x] Code parrainage `XXX-XXXX-XXXX` à l'inscription (booted hook sur User model)
 - [x] **Slug d'URL profil** depuis `display_name` → `Str::slug(...)` avec collision suffix `-2`/`-3` (booted hook `saving`). Route `/profile/{user:slug}` (scoped binding, n'impacte pas les routes admin par ID). Le slug est régénéré quand le `display_name` change ; les anciens liens partagés deviennent caducs (trade-off explicité dans la page d'édition).
+- [x] **Pseudo unique** : contrainte DB `unique` sur `users.name` (à l'inscription) **et** `users.display_name` (à l'édition profil). Validation Laravel renvoie un message FR si le pseudo est déjà pris.
 
 ### Redirections post-auth
 - [x] **`/login`, `/register`, `/forgot-password`, `/reset-password`** : si user connecté, redirige vers `/admin` (admin) ou `/dashboard` (joueur) via `redirectUsersTo` configuré dans `bootstrap/app.php`
@@ -398,7 +399,7 @@
 - [x] Bouton flag manuel dans `/admin/referrals` pour les cas suspects
 
 ### Pages
-- [x] **Joueur `/referral`** — code visible, lien copiable, stats filleuls, rewards en attente avec claim, table filleuls avec niveau/statut/email vérifié
+- [x] **Joueur `/referral`** — code visible, **bouton Copier le code** + **bouton Copier le lien** + **bouton Partager** (Web Share API natif avec fallback copy) + **liens directs WhatsApp / Telegram / X / Email**, stats filleuls, rewards en attente avec claim, table filleuls avec niveau/statut/email vérifié
 - [x] **Admin `/admin/referrals`** — table filtrable (statut + recherche email), stats (6 KPIs), bouton flag manuel avec raison, badge "Même IP"
 
 ---

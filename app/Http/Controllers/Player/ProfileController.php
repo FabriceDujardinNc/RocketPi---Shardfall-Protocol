@@ -13,6 +13,7 @@ use App\Models\UserAchievement;
 use App\Services\LeaderboardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -91,8 +92,13 @@ class ProfileController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'display_name' => 'nullable|string|max:50',
+            'display_name' => [
+                'nullable', 'string', 'max:50',
+                Rule::unique('users', 'display_name')->ignore($request->user()->id),
+            ],
             'avatar_url'   => 'nullable|url|max:255',
+        ], [
+            'display_name.unique' => 'Ce pseudo est déjà pris, choisis-en un autre.',
         ]);
 
         $request->user()->update($validated);

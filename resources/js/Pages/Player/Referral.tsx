@@ -56,12 +56,49 @@ const STATUS_LABEL: Record<RefereeSummary['status'], { label: string; color: str
 export default function Referral({ referralCode, referralLink, referredCount, validatedCount, pendingRewards, referrals }: Props) {
     const { props } = usePage<PageProps>();
     const [copied, setCopied] = useState(false);
+    const [codeCopied, setCodeCopied] = useState(false);
 
     const copy = async () => {
         await navigator.clipboard.writeText(referralLink);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
+
+    const copyCode = async () => {
+        await navigator.clipboard.writeText(referralCode);
+        setCodeCopied(true);
+        setTimeout(() => setCodeCopied(false), 2000);
+    };
+
+    const shareText = `Rejoins-moi sur RocketPi — Shardfall Protocol avec mon code ${referralCode} et débloque tes récompenses de filleul.`;
+
+    const share = async () => {
+        // Web Share API : ouvre le menu de partage natif (mobile + Edge desktop).
+        // Fallback : copie le lien dans le presse-papier.
+        if (typeof navigator.share === 'function') {
+            try {
+                await navigator.share({
+                    title: 'RocketPi — Shardfall Protocol',
+                    text:  shareText,
+                    url:   referralLink,
+                });
+                return;
+            } catch (err) {
+                // L'utilisateur a annulé le partage — on n'enchaîne pas sur le copy.
+                if (err instanceof DOMException && err.name === 'AbortError') return;
+            }
+        }
+        await copy();
+    };
+
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl  = encodeURIComponent(referralLink);
+    const socialLinks = [
+        { label: 'WhatsApp', href: `https://wa.me/?text=${encodedText}%20${encodedUrl}` },
+        { label: 'Telegram', href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}` },
+        { label: 'X / Twitter', href: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}` },
+        { label: 'Email', href: `mailto:?subject=${encodeURIComponent('RocketPi — viens jouer')}&body=${encodedText}%20${encodedUrl}` },
+    ];
 
     const claim = (id: number) => router.post(`/referral/${id}/claim`, {}, { preserveScroll: true });
 
@@ -79,11 +116,43 @@ export default function Referral({ referralCode, referralLink, referredCount, va
 
             <section className="rounded-lg bg-bg-elev1 border border-shard-500/30 p-6 mb-6">
                 <p className="font-display text-xs uppercase tracking-wide text-text-low">Ton code</p>
-                <p className="font-mono text-2xl text-shard-400 tracking-widest mt-2">{referralCode}</p>
+                <div className="flex items-center gap-3 flex-wrap mt-2">
+                    <p className="font-mono text-2xl text-shard-400 tracking-widest">{referralCode}</p>
+                    <button
+                        type="button"
+                        onClick={copyCode}
+                        className="font-display text-xs uppercase tracking-wide text-text-medium hover:text-shard-400 transition"
+                    >
+                        {codeCopied ? 'Code copié !' : 'Copier le code'}
+                    </button>
+                </div>
                 <p className="font-mono text-sm text-text-medium mt-4 break-all">{referralLink}</p>
-                <Button onClick={copy} variant="secondary" size="sm" className="mt-4">
-                    {copied ? 'Copié !' : 'Copier le lien'}
-                </Button>
+
+                <div className="mt-4 flex gap-2 flex-wrap">
+                    <Button onClick={share} variant="shard" size="sm">
+                        Partager
+                    </Button>
+                    <Button onClick={copy} variant="secondary" size="sm">
+                        {copied ? 'Lien copié !' : 'Copier le lien'}
+                    </Button>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-border-default/50">
+                    <p className="font-display text-xs uppercase tracking-wide text-text-low mb-2">Partager via</p>
+                    <div className="flex gap-2 flex-wrap">
+                        {socialLinks.map(s => (
+                            <a
+                                key={s.label}
+                                href={s.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center h-8 px-3 rounded-md bg-bg-elev2 hover:bg-bg-elev1 border border-border-default font-display text-xs uppercase tracking-wide text-text-medium hover:text-text-high transition"
+                            >
+                                {s.label}
+                            </a>
+                        ))}
+                    </div>
+                </div>
             </section>
 
             <section className="grid md:grid-cols-3 gap-4 mb-6">
