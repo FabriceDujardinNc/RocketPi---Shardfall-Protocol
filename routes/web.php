@@ -26,8 +26,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => inertia('Public/Landing'))->name('home');
 
-// Page de parrainage publique (avant inscription)
-Route::get('/r/{code}', fn($code) => inertia('Public/Referral', ['code' => $code]))->name('referral.public');
+// Page de parrainage publique : stocke le code en session puis redirige vers /register
+Route::get('/r/{code}', function (string $code, \Illuminate\Http\Request $request) {
+    $request->session()->put('referral_code', $code);
+    return redirect()->route('register');
+})->name('referral.public');
 
 // Auth
 Route::middleware('guest')->group(function () {

@@ -161,41 +161,41 @@
 
 ## 5. Bibliothèque de composants
 
-### UI de base — `resources/js/Components/UI/` (1/20)
-- [x] Button
-- [ ] Input
-- [ ] Select
-- [ ] Checkbox
-- [ ] Radio
-- [ ] Toggle
-- [ ] Modal
-- [ ] Drawer
-- [ ] Tooltip
-- [ ] Toast
-- [ ] Tabs
-- [ ] Card
-- [ ] Badge
-- [ ] Avatar
-- [ ] Table
-- [ ] Pagination
-- [ ] Skeleton
-- [ ] Spinner
-- [ ] Progress
-- [ ] Alert
+### UI de base — `resources/js/Components/UI/` (20/20 stubs)
+- [x] Button (CVA, 5 variantes, 3 tailles, loading state)
+- [x] Input (CVA, 3 tailles, état invalid)
+- [x] Select (native + design tokens)
+- [x] Checkbox (native + design tokens)
+- [x] Radio (native + design tokens)
+- [x] Toggle (custom switch UI)
+- [x] Modal (Radix Dialog)
+- [x] Drawer (Radix Dialog, side right/left)
+- [x] Tooltip (Radix Tooltip)
+- [x] Toast (stub Phase 1, à compléter Phase 2)
+- [x] Tabs (Radix Tabs)
+- [x] Card (CVA, 3 variantes, padding configurable)
+- [x] Badge (6 variantes sémantiques)
+- [x] Avatar (avec fallback initiales)
+- [x] Table (composants Table.Thead/Tbody/Tr/Th/Td)
+- [x] Pagination (links Inertia)
+- [x] Skeleton (animate-pulse)
+- [x] Spinner (Loader2 Lucide)
+- [x] Progress (4 variantes)
+- [x] Alert (4 variantes avec icônes Lucide)
 
-### Game spécifiques — `resources/js/Components/Game/` (0/12)
-- [ ] OperatorCard (variantes par rareté)
-- [ ] BannerCard
-- [ ] GachaPullAnimation
-- [ ] PityCounter
-- [ ] RarityBadge
-- [ ] FactionBadge
-- [ ] LeaderboardRow
-- [ ] RankBadge
-- [ ] MissionCard
-- [ ] BattlePassNode
-- [ ] AffinityMeter
-- [ ] CurrencyDisplay
+### Game spécifiques — `resources/js/Components/Game/` (12/12 stubs)
+- [x] OperatorCard (variantes par rareté avec glow)
+- [x] BannerCard (avec mode featured)
+- [x] GachaPullAnimation (Framer Motion, reveal séquentiel)
+- [x] PityCounter (avec soft pity highlight)
+- [x] RarityBadge (4 raretés)
+- [x] FactionBadge (3 factions)
+- [x] LeaderboardRow (mise en avant currentUser)
+- [x] RankBadge (top 1/2/3 stylisés)
+- [x] MissionCard (progress + claim button)
+- [x] BattlePassNode (free/premium, claimed states)
+- [x] AffinityMeter (gradient shard)
+- [x] CurrencyDisplay (3 monnaies avec icônes)
 
 ### Storybook
 - [ ] Configuration `.storybook/`
@@ -250,9 +250,10 @@
 ## 8. Routes
 
 ### Web — `routes/web.php`
-- [x] Public : `/`, `/r/{code}`, login, register
+- [x] Public : `/`, `/r/{code}` (stocke en session), login, register
 - [x] Joueur (auth+verified+not.banned) : /dashboard, /collection, /gacha, /shop, /leaderboard, /missions, /battlepass, /referral, /profile, /play
 - [x] Admin (auth+admin) : /admin/*
+- [x] Tous les controllers Player (10) et Admin (9) créés (stubs fonctionnels)
 
 ### API — `routes/api.php`
 - [x] `/health`
@@ -269,29 +270,25 @@
 ## 9. Authentification (Phase 1)
 
 ### Controllers (à créer)
-- [ ] `Auth\LoginController`
-- [ ] `Auth\RegisterController`
-- [ ] `Auth\ForgotPasswordController`
-- [ ] `Auth\ResetPasswordController`
-- [ ] `Auth\VerifyEmailController`
-- [ ] `Auth\LogoutController`
+- [x] `Auth\AuthController` (login, register, reset, verify, logout — unifié)
 - [ ] Passkey (optionnel)
 
 ### Pages Inertia — `resources/js/Pages/Auth/`
-- [ ] Login.tsx
-- [ ] Register.tsx
-- [ ] ForgotPassword.tsx
-- [ ] ResetPassword.tsx
-- [ ] VerifyEmail.tsx
+- [x] Login.tsx
+- [x] Register.tsx
+- [x] ForgotPassword.tsx
+- [x] ResetPassword.tsx
+- [x] VerifyEmail.tsx
 
 ### Système de rôles
 - [x] Migration `role` (user / admin / super_admin)
 - [x] Middleware `admin`
+- [x] Constantes + helpers (`isAdmin`, `isSuperAdmin`) sur User
 - [ ] Policies + Gates
 - [ ] 2FA admin (recommandée)
 
 ### Génération auto
-- [ ] Code parrainage `XXX-XXXX-XXXX` à l'inscription (Observer ou hook User)
+- [x] Code parrainage `XXX-XXXX-XXXX` à l'inscription (booted hook sur User model)
 
 ---
 
@@ -299,36 +296,37 @@
 
 ### Public — `resources/js/Pages/Public/`
 - [x] Landing.tsx
-- [ ] Referral.tsx (`/r/{code}`)
+- [x] Referral.tsx (`/r/{code}` — stocke code en session puis redirige vers register)
 
 ### Player — `resources/js/Pages/Player/`
-- [ ] Dashboard.tsx
-- [ ] Collection.tsx
-- [ ] Gacha.tsx
-- [ ] Shop.tsx
-- [ ] Leaderboard.tsx
-- [ ] Missions.tsx
-- [ ] BattlePass.tsx
-- [ ] Referral.tsx
-- [ ] Profile.tsx
-- [ ] Play.tsx (Unity embed phase 4)
+- [x] Dashboard.tsx (stub avec stats grid)
+- [x] Collection.tsx (stub)
+- [x] Gacha.tsx + GachaBanner.tsx (stubs)
+- [x] Shop.tsx (stub)
+- [x] Leaderboard.tsx (stub)
+- [x] Missions.tsx (stub avec sections daily/weekly)
+- [x] BattlePass.tsx (stub)
+- [x] Referral.tsx (avec copie du lien fonctionnelle)
+- [x] Profile.tsx (formulaire d'édition fonctionnel) + ProfilePublic.tsx
+- [x] Play.tsx (placeholder Unity)
 
 ### Admin — `resources/js/Pages/Admin/`
-- [ ] Dashboard.tsx (stats globales)
-- [ ] Operators (Index, Create, Edit)
-- [ ] Banners (Index, Create, Edit)
-- [ ] Players (Index, Show, recherche/ban/monnaie/historique)
-- [ ] GachaLogs.tsx (audit légal, filtrable)
-- [ ] Referrals.tsx (détection patterns suspects)
-- [ ] Missions / Events / BattlePass
-- [ ] Leaderboards.tsx (saisons, suspects, distribution forcée)
-- [ ] Moderation.tsx (signalements, sanctions)
-- [ ] Config.tsx (configuration globale)
+- [x] Dashboard.tsx (stats globales)
+- [x] Operators (Index, Create, Show, Edit)
+- [x] Banners (Index, Create, Show, Edit)
+- [x] Players (Index avec recherche fonctionnelle, Show avec ban/unban)
+- [x] GachaLogs.tsx (audit légal, filtrable)
+- [x] Referrals.tsx (détection patterns suspects)
+- [x] Missions (Index, Create, Show, Edit)
+- [x] Leaderboards (Index, Show, reset)
+- [x] Settings.tsx (configuration globale)
+- [ ] Moderation.tsx (signalements, sanctions) — Phase 5
+- [ ] Events / BattlePass admin pages — Phase 3
 
 ### Layouts — `resources/js/Layouts/`
-- [ ] GuestLayout
-- [ ] PlayerLayout
-- [ ] AdminLayout
+- [x] GuestLayout
+- [x] PlayerLayout
+- [x] AdminLayout
 
 ---
 
@@ -429,17 +427,18 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 
 ## 14. Roadmap par phases
 
-### Phase 1 — Fondations *(en cours)*
+### Phase 1 — Fondations *(quasi-terminée)*
 - [x] Squelette Laravel 13 + Inertia 3 + React 19 + TS + Tailwind 4
 - [x] Design System initial (tokens)
-- [~] 10 composants de base (1/20 → Button)
-- [ ] Auth complète (inscription, login, reset, vérif email)
+- [x] 20 composants UI de base (stubs fonctionnels)
+- [x] 12 composants Game (stubs fonctionnels)
+- [x] Auth complète (inscription, login, reset, vérif email — AuthController)
 - [ ] Passkey (optionnel)
-- [x] Système rôles via middleware
+- [x] Système rôles via middleware + helpers User
 - [x] Modèles : User, Operator, Banner, GachaPull, PlayerOperator, Currency, Transaction, Referral, ReferralReward
-- [ ] Génération auto code parrainage
-- [ ] Dashboard joueur basique
-- [ ] Premiers écrans admin
+- [x] Génération auto code parrainage (booted hook sur User)
+- [x] Dashboard joueur basique (stub avec stats grid)
+- [x] Premiers écrans admin (Dashboard + Players index/show fonctionnels)
 - [x] Tables additionnelles : DailyLogin, Mission, MissionProgress, BattlePass, BattlePassProgress, OperatorAffinity, Achievement, UserAchievement, Event, Guild, GuildMember, LeaderboardSeason, LeaderboardEntry, LeaderboardReward
 
 ### Phase 2 — Gacha + fidélisation court terme

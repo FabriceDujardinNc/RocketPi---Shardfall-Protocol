@@ -1,0 +1,77 @@
+import { Head, useForm } from '@inertiajs/react';
+import PlayerLayout from '@/Layouts/PlayerLayout';
+import Button from '@ui/Button';
+import { type FormEventHandler } from 'react';
+
+interface Props {
+    user: {
+        id: number;
+        name: string;
+        email: string;
+        display_name: string | null;
+        avatar_url: string | null;
+        account_level: number;
+        account_xp: number;
+        referral_code: string;
+    };
+}
+
+export default function Profile({ user }: Props) {
+    const { data, setData, patch, processing, errors } = useForm({
+        display_name: user.display_name ?? '',
+        avatar_url: user.avatar_url ?? '',
+    });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        patch('/profile');
+    };
+
+    return (
+        <>
+            <Head title="Profil" />
+            <h1 className="font-display font-bold text-3xl uppercase tracking-wide mb-8">Profil</h1>
+
+            <section className="rounded-lg bg-bg-elev1 border border-border-default p-6 mb-6">
+                <p className="font-display text-xs uppercase tracking-wide text-text-low">Identifiants</p>
+                <dl className="mt-4 grid grid-cols-2 gap-4 font-mono text-sm">
+                    <dt className="text-text-low">Email</dt><dd className="text-text-high">{user.email}</dd>
+                    <dt className="text-text-low">Niveau</dt><dd className="text-text-high">{user.account_level}</dd>
+                    <dt className="text-text-low">XP</dt><dd className="text-text-high">{user.account_xp}</dd>
+                    <dt className="text-text-low">Code parrainage</dt><dd className="text-shard-400">{user.referral_code}</dd>
+                </dl>
+            </section>
+
+            <form onSubmit={submit} className="rounded-lg bg-bg-elev1 border border-border-default p-6 flex flex-col gap-4">
+                <p className="font-display text-xs uppercase tracking-wide text-text-low">Personnalisation</p>
+
+                <label className="flex flex-col gap-1">
+                    <span className="font-display text-xs uppercase tracking-wide text-text-medium">Pseudo affiché</span>
+                    <input
+                        type="text"
+                        maxLength={50}
+                        value={data.display_name}
+                        onChange={(e) => setData('display_name', e.target.value)}
+                        className="h-10 px-3 rounded-md bg-bg-elev2 border border-border-default text-text-high focus:outline-none focus:ring-2 focus:ring-shard-500"
+                    />
+                    {errors.display_name && <span className="text-danger text-xs">{errors.display_name}</span>}
+                </label>
+
+                <label className="flex flex-col gap-1">
+                    <span className="font-display text-xs uppercase tracking-wide text-text-medium">URL Avatar</span>
+                    <input
+                        type="url"
+                        value={data.avatar_url}
+                        onChange={(e) => setData('avatar_url', e.target.value)}
+                        className="h-10 px-3 rounded-md bg-bg-elev2 border border-border-default text-text-high focus:outline-none focus:ring-2 focus:ring-shard-500"
+                    />
+                    {errors.avatar_url && <span className="text-danger text-xs">{errors.avatar_url}</span>}
+                </label>
+
+                <Button type="submit" loading={processing}>Enregistrer</Button>
+            </form>
+        </>
+    );
+}
+
+Profile.layout = (page: React.ReactNode) => <PlayerLayout>{page}</PlayerLayout>;
