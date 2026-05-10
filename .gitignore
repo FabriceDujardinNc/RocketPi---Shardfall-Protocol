@@ -1,0 +1,62 @@
+# ── Laravel ─────────────────────────────────────────────────────────
+/vendor/
+/node_modules/
+/public/build/
+/public/hot
+/public/storage
+/storage/*.key
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+/database/database.sqlite
+.env
+.env.backup
+.env.production
+.env.testing
+
+# ── PHP ──────────────────────────────────────────────────────────────
+*.log
+*.cache
+
+# ── OS ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDEs ─────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*.code-workspace
+
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
+
+# ── Docker ───────────────────────────────────────────────────────────
+# docker-compose.override.yml EST committé : c'est le compose dev standard
+# (auto-mergé par `docker compose up`). Ne pas l'ignorer.
+.docker-secrets/
+
+# ── Build outputs ────────────────────────────────────────────────────
+/public/game/     # Unity WebGL build — généré, pas versionné
+*.br              # Brotli compressed (Unity build)
+*.gz              # Gzip (Unity build, sauf exceptions)
+
+# ── Tests ────────────────────────────────────────────────────────────
+.phpunit.result.cache
+/coverage/
+/storybook-static/
+
+# ── Temp ─────────────────────────────────────────────────────────────
+*.tmp
+*.temp
+/tmp/
+
+# ── Secrets ──────────────────────────────────────────────────────────
+*.pem
+*.key
+*.cert
+*.p12
+secrets.json
