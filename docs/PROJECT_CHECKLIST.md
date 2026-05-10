@@ -315,6 +315,11 @@
 ### Génération auto
 - [x] Code parrainage `XXX-XXXX-XXXX` à l'inscription (booted hook sur User model)
 
+### Redirections post-auth
+- [x] **`/login`, `/register`, `/forgot-password`, `/reset-password`** : si user connecté, redirige vers `/admin` (admin) ou `/dashboard` (joueur) via `redirectUsersTo` configuré dans `bootstrap/app.php`
+- [x] **`/`** (landing) : redirige vers `/admin` ou `/dashboard` si user connecté
+- [x] `redirectGuestsTo('/login')` configuré globalement
+
 ### Dev quick login (mode local uniquement)
 - [x] Section "⚡ Mode dev — connexion rapide" sur la page `/login`
 - [x] Liste les comptes existants avec rôle visuel (super_admin/admin/banned)

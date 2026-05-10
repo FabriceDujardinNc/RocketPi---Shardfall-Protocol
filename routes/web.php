@@ -27,7 +27,12 @@ use Illuminate\Support\Facades\Route;
 
 // ── Public routes ───────────────────────────────────────────────────
 
-Route::get('/', fn() => inertia('Public/Landing'))->name('home');
+Route::get('/', function (\Illuminate\Http\Request $request) {
+    if ($user = $request->user()) {
+        return redirect($user->isAdmin() ? '/admin' : '/dashboard');
+    }
+    return inertia('Public/Landing');
+})->name('home');
 
 // Page de parrainage publique : stocke le code en session puis redirige vers /register
 Route::get('/r/{code}', function (string $code, \Illuminate\Http\Request $request) {
