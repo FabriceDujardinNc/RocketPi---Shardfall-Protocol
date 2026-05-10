@@ -54,17 +54,17 @@
 
 ## 2. Infrastructure VPS
 
-- [ ] VPS Hostinger provisionné
-- [ ] Domaine `rocketpi.pro` (DNS → VPS)
-- [ ] Domaine `rocketpi-test.pro` (DNS → VPS)
+- [x] VPS provisionné (`187.77.144.82`)
+- [x] Domaine `rocketpi.pro` (DNS → VPS)
+- [x] Domaine `rocketpi-test.pro` (DNS → VPS)
 - [ ] Sous-domaine `db.rocketpi.pro`
 - [ ] Sous-domaine `db.rocketpi-test.pro`
-- [ ] Docker + Docker Compose installés sur VPS
-- [ ] Réseau Docker `proxy` créé
-- [ ] Nginx Proxy Manager déployé en façade
-- [ ] SSL Let's Encrypt automatique sur 4 domaines
-- [ ] Stack prod déployée dans `/opt/rocketpi-prod/`
-- [ ] Stack dev déployée dans `/opt/rocketpi-test/`
+- [x] Docker + Docker Compose installés sur VPS
+- [x] Réseau Docker `proxy` créé
+- [x] **Reverse proxy déployé en façade** — Caddy 2.8 dédié dans `/root/proxy/` (Caddyfile + docker-compose), réseau `proxy` externe (NB : choix Caddy au lieu de Nginx Proxy Manager pour TLS+ACME automatique sans UI)
+- [x] SSL Let's Encrypt automatique sur 4 domaines (`rocketpi.pro`, `www.rocketpi.pro`, `rocketpi-test.pro`, `www.rocketpi-test.pro`) — certs réutilisés depuis l'ancien volume `caddy_data` pour éviter le rate-limit LE
+- [ ] Stack prod déployée dans `/opt/rocketpi-prod/` (actuellement `/root/RocketPi-Shardfall-Protocol/`, en mode dev override — à migrer)
+- [ ] Stack dev déployée dans `/opt/rocketpi-test/` (pas encore de stack dev séparée)
 - [ ] phpMyAdmin sécurisé : auth HTTP basique sur dev
 - [ ] phpMyAdmin sécurisé : auth HTTP + IP whitelist sur prod
 - [ ] Sauvegardes auto MySQL (cron dump)
