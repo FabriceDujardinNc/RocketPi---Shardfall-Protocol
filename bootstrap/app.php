@@ -14,6 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust the reverse proxy (Caddy) so Laravel reads the real client
+        // IP and detects HTTPS via X-Forwarded-Proto. Without this, asset
+        // URLs are generated with http:// even when the request came via
+        // https://, which triggers mixed-content blocking in browsers.
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);

@@ -45,6 +45,7 @@ COPY docker/php.ini /usr/local/etc/php/conf.d/rocketpi.ini
 
 # ── Supervisor (queue worker + scheduler) ─────────────────────────
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+RUN mkdir -p /var/log/supervisor && chown www-data:www-data /var/log/supervisor
 
 # ── Application ────────────────────────────────────────────────────
 WORKDIR /var/www/html
