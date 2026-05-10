@@ -30,6 +30,28 @@ class GachaService
     public const COST_PER_PULL = 10;       // Shards par tirage simple
     public const COST_PER_TEN  = 100;      // Shards pour x10 (pas de rabais)
 
+    // XP gagnée selon la rareté tirée
+    public const XP_BY_RARITY = [
+        'common'    => 10,
+        'rare'      => 25,
+        'epic'      => 75,
+        'legendary' => 200,
+    ];
+
+    // Fragments donnés en cas de doublon (selon rareté)
+    public const FRAGMENTS_ON_DUPLICATE = [
+        'common'    => 1,
+        'rare'      => 5,
+        'epic'      => 20,
+        'legendary' => 100,
+    ];
+
+    public function __construct(
+        private readonly RewardService $rewards,
+        private readonly XpService $xp,
+        private readonly MissionService $missions,
+    ) {}
+
     /**
      * Effectue un tirage de N exemplaires. Atomique.
      *
@@ -83,6 +105,30 @@ class GachaService
                 'description'    => "Tirage {$count}× sur {$banner->name}",
                 'ip_address'     => $ipAddress,
             ]);
+
+            // 5. XP + fragments doublons + progression missions
+            $totalXp = 0;
+            foreach ($results as $r) {
+                $rarity = $r['operator']->rarity;
+                $totalXp += self::XP_BY_RARITY[$rarity] ?? 0;
+
+                if (! $r['is_new']) {
+                    $fragmentsAmount = self::FRAGMENTS_ON_DUPLICATE[$rarity] ?? 0;
+                    if ($fragmentsAmount > 0) {
+                        $this->rewards->apply(
+                            $user,
+                            [['type' => 'fragments_'.$r['operator']->codename, 'amount' => $fragmentsAmount]],
+                            'gacha_duplicate',
+                            $r['pull'],
+                            $ipAddress,
+                        );
+                    }
+                }
+            }
+            if ($totalXp > 0) {
+                $this->xp->award($user, $totalXp);
+            }
+            $this->missions->progressFor($user, 'pull', $count);
 
             return $results;
         });

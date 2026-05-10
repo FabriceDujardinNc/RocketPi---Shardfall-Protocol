@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Player\DashboardController;
 use App\Http\Controllers\Player\CollectionController;
+use App\Http\Controllers\Player\DailyLoginController;
 use App\Http\Controllers\Player\GachaController;
 use App\Http\Controllers\Player\LeaderboardController;
 use App\Http\Controllers\Player\MissionController;
@@ -57,6 +58,9 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
 
     Route::get('/dashboard',   [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/collection',  [CollectionController::class, 'index'])->name('collection');
+
+    // Daily login reward claim
+    Route::post('/daily-login/claim', [DailyLoginController::class, 'claim'])->name('daily-login.claim');
 
     // Gacha
     Route::get('/gacha',                 [GachaController::class, 'index'])->name('gacha');

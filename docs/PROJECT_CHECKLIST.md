@@ -483,15 +483,29 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] Throttle 60/60min sur la route `gacha.pull`
 - [ ] Page admin logs gacha (controller stub présent — UI table à câbler)
 - [ ] Storybook installé (à 15+ composants)
-- [ ] Connexion quotidienne (calendrier mensuel, paliers J1/J7/J15/J30)
-- [ ] Missions journalières (3-5/jour)
-- [ ] Missions hebdomadaires (5/sem)
-- [ ] XP comptes 1-60+
-- [ ] Fragments doublons → opérateur ciblé en boutique
-- [ ] Page `/referral`
+- [x] **Connexion quotidienne** — `DailyLoginService` calcule streak global et jour mensuel (1-30), paliers spéciaux J1/J7/J15/J30 avec rewards boostés (shards + tickets premium), bouton "Réclamer" sur le dashboard
+- [x] **Missions journalières** (3 actives seedées) — auto-progressées via `MissionService::progressFor('pull', n)` à chaque tirage, claim avec rewards + XP via `MissionService::claim()`
+- [x] **Missions hebdomadaires** (2 seedées : Signal Shard hebdo + Commandant actif)
+- [x] **XP comptes 1-99** — `XpService` avec formule linéaire (100×N XP par niveau), gain auto sur pull (10/25/75/200 par rareté) et claim mission (xp_reward), level-up cascade géré
+- [x] **Fragments doublons** — `gacha_duplicate` reward 1/5/20/100 fragments selon rareté, currency type `fragments_{codename}` créée à la volée, log Transaction immuable
+- [ ] Échange fragments → opérateur ciblé en boutique (boutique pas implémentée)
+- [ ] Page `/referral` (controller stub avec liens fonctionnels — UI à compléter)
 - [ ] Classement hebdomadaire
 - [ ] Classement mensuel
 - [ ] Classement collection
+
+### Services métier créés
+- [x] `App\Services\GachaService` — pull atomique avec pity/rate-up/XP/missions/fragments
+- [x] `App\Services\RewardService` — applique tableau de rewards (currencies + log Transaction)
+- [x] `App\Services\XpService` — award + level-up cascade
+- [x] `App\Services\DailyLoginService` — record + streak + claim
+- [x] `App\Services\MissionService` — progressFor / claim / listForUser
+
+### Pages joueur réelles (avec data live)
+- [x] **Dashboard** — niveau + XP bar + currencies + opérateurs count + streak + daily reward claim + missions journalières/hebdo avec MissionCard fonctionnel
+- [x] **Collection** — grid d'OperatorCard pour chaque PlayerOperator, badge `+N` pour duplicates
+- [x] **Missions** — page dédiée avec tabs daily/weekly et claim
+- [x] **Gacha** + **GachaBanner** (déjà fait phase précédente)
 
 ### Phase 3 — Méta-jeu
 - [ ] Inventaire visuel
