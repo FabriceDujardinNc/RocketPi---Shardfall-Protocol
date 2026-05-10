@@ -124,13 +124,35 @@ Free-to-play, **jamais pay-to-win**. Monnaie premium (gacha), skins cosmétiques
 
 ## Roadmap
 
-| Phase | Contenu |
+| Phase | État | Contenu |
+|---|---|---|
+| **1** | ✅ | Fondations Laravel + Auth (login/register/email verify/reset) + dev quick login + Design System (32 composants) + modèles DB (15 tables) |
+| **2** | ✅ | Gacha 100% serveur (taux 60/30/8/2, pity 80/10 + soft pity, rate-up, animation Framer Motion), fidélisation (daily login, missions, XP 1-99, fragments doublons), classements Redis Sorted Sets (top 100 + voisins + reset auto), parrainage complet (paliers parrain niv 5/15/30, anti-abuse), pages admin (logs gacha filtrables + leaderboards + referrals), Pest 34/34 tests, ESLint+Stylelint enforcement |
+| **3** *(à venir)* | ⏳ | Méta-jeu : inventaire visuel, boutique, profil public, amis, achievements visibles, Battle Pass saisonnier (50 paliers, 8 sem), affinité opérateurs |
+| **4** | ⏳ | Intégration Unity 6 WebGL + événements limités + classement compétitif saisonnier |
+| **5** | ⏳ | Multijoueur Photon · Stripe (Cashier) · guildes · co-op PvE · Hall of Fame annuel |
+
+## Stack métier — services backend
+
+| Service | Rôle |
 |---|---|
-| **1** *(en cours)* | Fondations Laravel + Auth + Design System + modèles DB |
-| **2** | Gacha (taux 60/30/8/2, pity 80/10) + fidélisation + classements basiques |
-| **3** | Méta-jeu : inventaire, boutique, profil, amis, achievements, Battle Pass, affinité |
-| **4** | Intégration Unity 6 WebGL + événements limités + classement compétitif |
-| **5** | Multijoueur Photon · Stripe · guildes · co-op · Hall of Fame annuel |
+| `GachaService` | Pull atomique avec pity/rate-up, hooks XP/missions/fragments/leaderboard |
+| `RewardService` | Applique tableau de rewards (currencies + Transaction immuable) |
+| `XpService` | Award XP + level-up cascade + hook référral milestones |
+| `DailyLoginService` | Streak + paliers J1/J7/J15/J30 + claim |
+| `MissionService` | progressFor / claim avec rewards + XP |
+| `LeaderboardService` | Redis ZSET (addPoints / topN / neighbors), snapshot MySQL, distribution rewards par paliers % |
+| `ReferralService` | Parrainage avec anti-abuse (max 50, IP detection), milestones niv 5/15/30 |
+
+## Tests & qualité
+
+```powershell
+docker compose exec laravel-app vendor/bin/pest    # 34 tests / 78 assertions au vert
+docker compose exec vite npm run lint               # 0 erreur
+docker compose exec vite npm run stylelint          # 0 erreur
+```
+
+ESLint 9 interdit `bg-[#hex]`, `mt-[13px]`, inline `style={{color:'#hex'}}`. Stylelint 17 interdit `color: red` et `color: #abc` partout sauf source DS (`resources/css/app.css`).
 
 ---
 
