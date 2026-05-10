@@ -1,9 +1,27 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import GuestLayout from '@/Layouts/GuestLayout';
 import Button from '@ui/Button';
 import { type FormEventHandler } from 'react';
 
+interface DevUser {
+    id: number;
+    email: string;
+    name: string;
+    display_name: string | null;
+    role: string;
+    is_banned: boolean;
+}
+
+interface PageProps {
+    app: { name: string; env: string };
+    devUsers: DevUser[] | null;
+    [key: string]: unknown;
+}
+
 export default function Login() {
+    const { props } = usePage<PageProps>();
+    const isDev = props.app?.env === 'local';
+
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
@@ -13,6 +31,12 @@ export default function Login() {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         post('/login', { onFinish: () => reset('password') });
+    };
+
+    // Dev quick login : submit le form standard avec flag `dev=1`.
+    // Le controller ignore ce flag en prod (env check côté serveur).
+    const quickLogin = (email: string) => {
+        router.post('/login', { email, dev: true, password: '', remember: true });
     };
 
     return (
@@ -72,6 +96,47 @@ export default function Login() {
                     </Link>
                 </div>
             </form>
+
+            {/* ── Dev quick login ───────────────────────────────────── */}
+            {isDev && props.devUsers && props.devUsers.length > 0 && (
+                <section className="mt-8 p-4 rounded-md border border-warning/30 bg-warning/5">
+                    <header className="flex items-center justify-between mb-3">
+                        <h3 className="font-display text-xs uppercase tracking-mega text-warning">
+                            ⚡ Mode dev — connexion rapide
+                        </h3>
+                        <span className="font-mono text-[10px] text-text-low">APP_ENV=local</span>
+                    </header>
+                    <p className="font-mono text-xs text-text-low mb-3">
+                        Cliquer pour se connecter sans mot de passe (désactivé en prod).
+                    </p>
+                    <ul className="flex flex-col gap-1.5">
+                        {props.devUsers.map((u) => (
+                            <li key={u.id}>
+                                <button
+                                    type="button"
+                                    onClick={() => quickLogin(u.email)}
+                                    className="w-full text-left px-3 py-2 rounded-md bg-bg-elev1 border border-border-default hover:border-shard-500/40 hover:bg-bg-elev2 transition-colors duration-fast group"
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="font-mono text-xs text-text-high group-hover:text-shard-400 truncate">
+                                            {u.email}
+                                        </span>
+                                        <span className={
+                                            'font-display text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0 ' +
+                                            (u.is_banned        ? 'bg-danger/15 text-danger'   :
+                                             u.role === 'super_admin' ? 'bg-rarity-legendary/15 text-rarity-legendary' :
+                                             u.role === 'admin'  ? 'bg-shard-500/15 text-shard-400' :
+                                                                   'bg-bg-elev3 text-text-medium')
+                                        }>
+                                            {u.is_banned ? 'BANNI' : u.role.replace('_', ' ')}
+                                        </span>
+                                    </div>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
         </>
     );
 }

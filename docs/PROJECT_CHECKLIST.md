@@ -24,8 +24,8 @@
 - [x] Inertia.js 3.1
 - [x] React 19 + TypeScript
 - [x] Tailwind CSS 4
-- [ ] Laravel Sanctum installé (composer require laravel/sanctum)
-- [ ] Laravel Horizon installé (composer require laravel/horizon)
+- [x] Laravel Sanctum (composer.json `^4.3`, migration personal_access_tokens créée)
+- [x] Laravel Horizon (composer.json `^5.46`)
 - [ ] Laravel Policies + Gates configurés
 - [x] Vite 8 (compat plugin-react 6.x)
 - [x] Panel admin : Inertia + React main (pas de Filament)
@@ -85,15 +85,23 @@
 
 ### Services Docker
 - [x] `laravel-app` (PHP-FPM 8.5 + extensions)
-- [x] `nginx`
+- [x] `nginx` (port `127.0.0.1:8000:80` exposé en dev)
 - [x] `mysql` (MySQL 8.4 LTS)
 - [x] `phpmyadmin`
 - [x] `redis` (Redis 8)
 - [x] `queue-worker` (Horizon)
 - [x] `scheduler` (artisan schedule:run)
-- [x] (dev) `mailpit` capture emails
-- [x] (dev) `vite` HMR sur :5173
-- [x] (dev) `installer` (one-shot : composer + npm + APP_KEY + migrate au boot)
+- [x] (dev) `mailpit` capture emails (`localhost:8025`)
+- [x] (dev) `vite` HMR sur `localhost:5173`
+- [x] (dev) `installer` (one-shot : storage perms + composer + npm + APP_KEY + migrate au boot)
+
+### Boot validé en local (2026-05-10)
+- [x] Build OK (Dockerfiles refactorés avec `mlocati/php-extension-installer` — fix `cp: can't stat 'modules/*'`)
+- [x] MySQL 8.4 healthy (retiré `default-authentication-plugin`, `expire_logs_days`, `query_cache_type` — deprecated/retirés en 8.4)
+- [x] Installer exécute `composer install`, `npm install`, `chmod 777 storage`, `migrate`
+- [x] App accessible sur `http://localhost:8000`
+- [x] Vite HMR connecté (host=`0.0.0.0`, hmr.host=`localhost`, polling pour WSL)
+- [x] Réseau Docker `proxy` créé, `internal: false` en dev (besoin internet pour composer/npm)
 
 ### Extensions PHP (laravel-app)
 - [x] pdo_mysql
@@ -240,11 +248,19 @@
 ## 7. Seeders
 
 - [x] `DatabaseSeeder` (orchestrateur)
-- [x] `AdminUserSeeder` (compte admin)
+- [x] `AdminUserSeeder` — admin via .env + **Fabrice** (`fabricedujardin873@gmail.com` / `dev1234`, super_admin) + 3 comptes test dev (admin, player, banned) seedés en local uniquement
 - [x] `OperatorSeeder` (8 opérateurs avec lore + abilities complets)
 - [x] `BannerSeeder` (bannière permanente + 1 événementielle)
 - [x] `MissionSeeder` (5 missions ≥ 3 demandées)
-- [x] `LeaderboardSeasonSeeder` (5 saisons ≥ 1 demandée)
+- [x] `LeaderboardSeasonSeeder` (6 saisons ≥ 1 demandée)
+
+### Modèles Eloquent (créés au fil du seeding)
+- [x] `User` (avec MustVerifyEmail + helpers + booted hook referral_code)
+- [x] `Operator` (avec casts JSON `abilities` + booleans)
+- [x] `Banner` (avec casts JSON `rate_up_operators` + decimals taux + datetimes)
+- [x] `Mission` (avec casts JSON `rewards` + booleans + datetimes)
+- [x] `LeaderboardSeason` (avec casts datetimes + booleans)
+- [ ] Autres modèles (PlayerOperator, GachaPull, Currency, Transaction, Referral, ReferralReward, DailyLogin, MissionProgress, BattlePass*, OperatorAffinity, Achievement, Event, Guild*, LeaderboardEntry, LeaderboardReward, PityCounter) — à créer au fur et à mesure des controllers
 
 ---
 
@@ -290,6 +306,13 @@
 
 ### Génération auto
 - [x] Code parrainage `XXX-XXXX-XXXX` à l'inscription (booted hook sur User model)
+
+### Dev quick login (mode local uniquement)
+- [x] Section "⚡ Mode dev — connexion rapide" sur la page `/login`
+- [x] Liste les comptes existants avec rôle visuel (super_admin/admin/banned)
+- [x] Click → POST `/login` standard avec flag `dev=true` (pas de route séparée)
+- [x] Backend ignore le flag si `APP_ENV !== local` (env check côté serveur)
+- [x] Inertia partage `app.env` + `auth.user` + `flash` + `devUsers` via `HandleInertiaRequests`
 
 ---
 

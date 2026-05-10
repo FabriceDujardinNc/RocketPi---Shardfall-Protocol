@@ -1,6 +1,12 @@
 FROM php:8.5-fpm-alpine
 
-# ── System dependencies ────────────────────────────────────────────
+# install-php-extensions — résolution automatique des dépendances système
+# (libpng, freetype, libzip, icu, etc.) et gestion robuste des cas limites
+# (opcache built-in vs shared, pcntl, etc.). Évite les erreurs
+# "cp: can't stat 'modules/*'" sur les bulk install.
+COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
+
+# ── System tooling ─────────────────────────────────────────────────
 RUN apk add --no-cache \
     bash \
     curl \
@@ -8,21 +14,15 @@ RUN apk add --no-cache \
     zip \
     unzip \
     supervisor \
-    libpng-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
-    libzip-dev \
-    icu-dev \
-    oniguruma-dev \
     nodejs \
     npm
 
-# ── PHP extensions (same runtime as prod) ─────────────────────────
-RUN docker-php-ext-configure gd \
-    --with-freetype \
-    --with-jpeg \
-    && docker-php-ext-install \
+# ── PHP extensions (mêmes que prod) ────────────────────────────────
+# install-php-extensions sait quoi faire pour chaque extension :
+#   shared vs built-in, deps système (libpng, freetype, icu...), etc.
+RUN install-php-extensions \
     pdo_mysql \
+    redis \
     intl \
     gd \
     zip \
@@ -30,8 +30,6 @@ RUN docker-php-ext-configure gd \
     mbstring \
     opcache \
     pcntl
-
-RUN pecl install redis && docker-php-ext-enable redis
 
 # ── Composer ───────────────────────────────────────────────────────
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
@@ -42,8 +40,8 @@ COPY docker/php.ini /usr/local/etc/php/conf.d/rocketpi.ini
 WORKDIR /var/www/html
 
 # Code is bind-mounted at runtime — no COPY, no npm build, no artisan cache.
-# npm install / composer install run on the host; vendor/ and node_modules/
-# come in via the delegated volume mount.
+# composer install / npm install run via the `installer` service in
+# docker-compose.override.yml on first boot.
 
 EXPOSE 9000
 CMD ["php-fpm"]

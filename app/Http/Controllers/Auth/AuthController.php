@@ -26,12 +26,28 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string',
+        // Dev quick login : APP_ENV=local + flag `dev` → connexion sans password.
+        // Aucun effet en prod (env check côté serveur).
+        $isDevQuick = app()->environment('local') && $request->boolean('dev');
+
+        $validated = $request->validate([
+            'email'    => 'required|email',
+            'password' => $isDevQuick ? 'nullable|string' : 'required|string',
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        if ($isDevQuick) {
+            $user = User::where('email', $validated['email'])->first();
+            if (! $user) {
+                return back()->withErrors(['email' => 'Aucun compte avec cet email.'])->onlyInput('email');
+            }
+            Auth::login($user, true);
+            $request->session()->regenerate();
+
+            return redirect($user->isAdmin() ? route('admin.dashboard') : route('dashboard'))
+                ->with('status', "Connecté en tant que {$user->email} (dev mode).");
+        }
+
+        if (! Auth::attempt($validated, $request->boolean('remember'))) {
             return back()
                 ->withErrors(['email' => 'Identifiants invalides.'])
                 ->onlyInput('email');
