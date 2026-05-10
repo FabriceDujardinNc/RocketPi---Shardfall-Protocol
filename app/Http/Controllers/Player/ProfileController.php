@@ -22,7 +22,7 @@ class ProfileController extends Controller
     {
         return Inertia::render('Player/Profile', [
             'user' => $request->user()->only([
-                'id', 'name', 'email', 'display_name', 'avatar_url',
+                'id', 'name', 'email', 'display_name', 'slug', 'avatar_url',
                 'account_level', 'account_xp', 'referral_code',
             ]),
         ]);

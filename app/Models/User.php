@@ -16,7 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
     'name', 'email', 'password',
-    'display_name', 'avatar_url',
+    'display_name', 'slug', 'avatar_url',
     'role', 'account_level', 'account_xp',
     'referral_code', 'referred_by_user_id',
     'last_active_at', 'is_banned', 'ban_reason', 'banned_at',
@@ -51,6 +51,22 @@ class User extends Authenticatable implements MustVerifyEmail
                 $user->referral_code = self::generateUniqueReferralCode();
             }
         });
+
+        // Generate / refresh URL slug whenever the source pseudo changes.
+        // We use display_name primarily and fall back to name. Sharing a
+        // profile after a rename will yield a fresh URL — old links break,
+        // which matches the user's expectation that the URL reflects the
+        // current pseudo.
+        static::saving(function (User $user) {
+            $needsSlug = empty($user->slug)
+                || $user->isDirty('display_name')
+                || ($user->isDirty('name') && empty($user->display_name));
+
+            if ($needsSlug) {
+                $base = Str::slug($user->display_name ?? $user->name) ?: 'user';
+                $user->slug = self::makeUniqueSlug($base, $user->id);
+            }
+        });
     }
 
     public static function generateUniqueReferralCode(): string
@@ -65,6 +81,20 @@ class User extends Authenticatable implements MustVerifyEmail
         } while (self::where('referral_code', $code)->exists());
 
         return $code;
+    }
+
+    public static function makeUniqueSlug(string $base, ?int $excludeId = null): string
+    {
+        $slug = $base;
+        $i    = 2;
+        while (self::where('slug', $slug)
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->exists()
+        ) {
+            $slug = $base.'-'.$i;
+            $i++;
+        }
+        return $slug;
     }
 
     public function isAdmin(): bool

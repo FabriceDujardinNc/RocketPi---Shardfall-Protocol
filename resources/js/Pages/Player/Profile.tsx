@@ -1,7 +1,7 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import PlayerLayout from '@/Layouts/PlayerLayout';
 import Button from '@ui/Button';
-import { type FormEventHandler } from 'react';
+import { type FormEventHandler, useState } from 'react';
 
 interface Props {
     user: {
@@ -9,6 +9,7 @@ interface Props {
         name: string;
         email: string;
         display_name: string | null;
+        slug: string | null;
         avatar_url: string | null;
         account_level: number;
         account_xp: number;
@@ -21,6 +22,18 @@ export default function Profile({ user }: Props) {
         display_name: user.display_name ?? '',
         avatar_url: user.avatar_url ?? '',
     });
+    const [copied, setCopied] = useState(false);
+
+    const publicUrl = user.slug
+        ? `${window.location.origin}/profile/${user.slug}`
+        : null;
+
+    const copyPublicUrl = async () => {
+        if (!publicUrl) return;
+        await navigator.clipboard.writeText(publicUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -41,6 +54,27 @@ export default function Profile({ user }: Props) {
                     <dt className="text-text-low">Code parrainage</dt><dd className="text-shard-400">{user.referral_code}</dd>
                 </dl>
             </section>
+
+            {publicUrl && (
+                <section className="rounded-lg bg-bg-elev1 border border-shard-500/30 p-6 mb-6">
+                    <p className="font-display text-xs uppercase tracking-wide text-text-low">URL publique de ton profil</p>
+                    <p className="font-mono text-sm text-shard-400 break-all mt-2">{publicUrl}</p>
+                    <p className="font-mono text-xs text-text-low mt-2">
+                        Cette URL change si tu modifies ton pseudo affiché.
+                    </p>
+                    <div className="flex gap-2 mt-4 flex-wrap">
+                        <Button onClick={copyPublicUrl} variant="secondary" size="sm">
+                            {copied ? 'Copié !' : 'Copier le lien'}
+                        </Button>
+                        <Link
+                            href={`/profile/${user.slug}`}
+                            className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-bg-elev2 hover:bg-bg-elev1 border border-border-default font-display text-xs uppercase tracking-wide text-text-medium hover:text-text-high transition"
+                        >
+                            Voir mon profil public
+                        </Link>
+                    </div>
+                </section>
+            )}
 
             <form onSubmit={submit} className="rounded-lg bg-bg-elev1 border border-border-default p-6 flex flex-col gap-4">
                 <p className="font-display text-xs uppercase tracking-wide text-text-low">Personnalisation</p>

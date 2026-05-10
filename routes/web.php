@@ -103,9 +103,11 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
     Route::post('/battlepass/tier/{tier}/claim',         [BattlePassController::class, 'claim'])->name('battlepass.claim');
 
     // Profil
-    Route::get('/profile',         [ProfileController::class, 'index'])->name('profile');
-    Route::get('/profile/{user}',  [ProfileController::class, 'show'])->name('profile.show');
-    Route::patch('/profile',       [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/profile',              [ProfileController::class, 'index'])->name('profile');
+    // URL publique partageable, résolue par slug (ex: /profile/fabrice).
+    // Le slug est auto-généré depuis display_name (cf. User::booted).
+    Route::get('/profile/{user:slug}',  [ProfileController::class, 'show'])->name('profile.show');
+    Route::patch('/profile',            [ProfileController::class, 'update'])->name('profile.update');
 
     // Jeu Unity WebGL (phase 4)
     Route::get('/play', [PlayController::class, 'index'])->name('play');

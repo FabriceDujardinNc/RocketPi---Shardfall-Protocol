@@ -314,6 +314,7 @@
 
 ### Génération auto
 - [x] Code parrainage `XXX-XXXX-XXXX` à l'inscription (booted hook sur User model)
+- [x] **Slug d'URL profil** depuis `display_name` → `Str::slug(...)` avec collision suffix `-2`/`-3` (booted hook `saving`). Route `/profile/{user:slug}` (scoped binding, n'impacte pas les routes admin par ID). Le slug est régénéré quand le `display_name` change ; les anciens liens partagés deviennent caducs (trade-off explicité dans la page d'édition).
 
 ### Redirections post-auth
 - [x] **`/login`, `/register`, `/forgot-password`, `/reset-password`** : si user connecté, redirige vers `/admin` (admin) ou `/dashboard` (joueur) via `redirectUsersTo` configuré dans `bootstrap/app.php`
