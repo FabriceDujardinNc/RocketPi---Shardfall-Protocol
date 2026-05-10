@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Player\AchievementController;
 use App\Http\Controllers\Player\DashboardController;
 use App\Http\Controllers\Player\CollectionController;
 use App\Http\Controllers\Player\DailyLoginController;
 use App\Http\Controllers\Player\GachaController;
+use App\Http\Controllers\Player\OperatorController;
 use App\Http\Controllers\Player\LeaderboardController;
 use App\Http\Controllers\Player\MissionController;
 use App\Http\Controllers\Player\ReferralController;
@@ -58,6 +60,11 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
 
     Route::get('/dashboard',   [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/collection',  [CollectionController::class, 'index'])->name('collection');
+    Route::get('/operators/{operator}', [OperatorController::class, 'show'])->name('operators.show');
+
+    // Achievements
+    Route::get('/achievements',                 [AchievementController::class, 'index'])->name('achievements');
+    Route::post('/achievements/{userAchievement}/claim', [AchievementController::class, 'claim'])->name('achievements.claim');
 
     // Daily login reward claim
     Route::post('/daily-login/claim', [DailyLoginController::class, 'claim'])->name('daily-login.claim');
@@ -82,7 +89,8 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
     Route::post('/referral/{reward}/claim', [ReferralController::class, 'claim'])->name('referral.claim');
 
     // Shop
-    Route::get('/shop', [ShopController::class, 'index'])->name('shop');
+    Route::get('/shop',          [ShopController::class, 'index'])->name('shop');
+    Route::post('/shop/purchase',[ShopController::class, 'purchase'])->name('shop.purchase');
 
     // Battle Pass
     Route::get('/battlepass',                            [BattlePassController::class, 'index'])->name('battlepass');

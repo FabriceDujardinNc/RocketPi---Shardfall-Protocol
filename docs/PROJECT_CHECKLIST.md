@@ -513,6 +513,7 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] `App\Services\BattlePassService` — addXp / purchase (1000 shards) / claim (free + premium si activé)
 - [x] `App\Services\AffinityService` — award XP affinité par opérateur (0-10), formule 100×(N+1)
 - [x] `App\Services\AchievementService` — track événements, claim avec rewards, listForUser (cache hidden non débloqués)
+- [x] `App\Services\ShopService` — listPacks + purchasePack atomique avec lockForUpdate Currency
 - [x] `App\Console\Commands\LeaderboardReset` (artisan `leaderboard:reset`) — snapshot + distribution post-reset
 
 ### Pages joueur réelles (avec data live)
@@ -521,16 +522,17 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] **Missions** — page dédiée avec tabs daily/weekly et claim
 - [x] **Gacha** + **GachaBanner** (déjà fait phase précédente)
 
-### Phase 3 — Méta-jeu *(en cours — fondations posées)*
-- [x] **Inventaire visuel** — page Collection avec OperatorCard, badge duplicate +N, affinity bar par opérateur
-- [ ] Boutique (route + page stub présents — à câbler avec packs achetables)
+### Phase 3 — Méta-jeu *(quasi-terminée)*
+- [x] **Inventaire visuel** — page Collection avec OperatorCard cliquable → détail, badge duplicate +N, affinity bar par opérateur
+- [x] **Boutique** — `ShopService` avec 3 packs hardcodés (starter gratuit, shards pack, événementiel Apex), `ShopController` index/purchase, page `/shop` avec grid de packs cliquables (achat shards in-game, Stripe en Phase 5)
 - [x] **Profil public** (page `Player/ProfilePublic.tsx` fonctionnelle, lien depuis ProfileController.show)
 - [ ] Système amis (Phase 5)
-- [x] **Achievements visibles** — `Achievement` model + `AchievementService::track/claim/listForUser`, 10 achievements seedés (collection × 5, progression × 3, special × 1, social × 1), tracking auto via GachaService (first_pull, pulled_10/100, first_epic, first_legendary)
+- [x] **Achievements visibles** — `Achievement` model + `AchievementService::track/claim/listForUser`, 10 achievements seedés (collection × 5, progression × 3, special × 1, social × 1), tracking auto via GachaService. **Page `/achievements`** avec stats, groupement par catégorie, claim button par achievement complété.
 - [x] **Battle Pass saisonnier** — `BattlePass` + `BattlePassTier` × 50 + `BattlePassProgress` models, `BattlePassService` (addXp/purchase/claim), saison 1 seedée (8 semaines, 1000 shards premium, paliers milestones 5/10/25/50), page `/battlepass` avec roadmap horizontale + progression XP, hook XpService alimente automatiquement le BP actif
 - [x] **Affinité Opérateurs** — `OperatorAffinity` model 0-10 levels, `AffinityService::award` avec formule 100×(N+1) XP par level, hook GachaService (25 XP/pull + 10 XP doublon), affinity bar par opérateur dans Collection
+- [x] **Page détail opérateur `/operators/{id}`** — stats HP/dégâts/mobilité, arme signature, capacités (active/passive/ultimate), affinité avec AffinityMeter, lore progressif débloqué (5 paliers : 0/2/5/8/10)
 - [x] **Classements par faction** (déjà actifs depuis Phase 2 — 3 saisons ORBIT/FERRO/VEIL avec hook gacha)
-- [ ] Lore débloqué progressivement par niveau d'affinité (UI à câbler — modèle prêt avec `unlocked_rewards` JSON)
+- [x] **Lore débloqué progressivement par niveau d'affinité** — 5 paliers générés à la volée par `OperatorController::lorePart()`, UI dans page détail opérateur (à terme : stocker dans operators.lore_unlocks JSON ou table dédiée)
 - [ ] Skins gratuits / voicelines par level affinité (assets pas en BDD)
 - [ ] MCP Design System custom (Phase 3+ ou plus tard)
 

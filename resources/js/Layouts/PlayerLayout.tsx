@@ -2,14 +2,15 @@ import { Link, usePage } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 
 const NAV = [
-    { href: '/dashboard',  label: 'Dashboard' },
-    { href: '/collection', label: 'Collection' },
-    { href: '/gacha',      label: 'Gacha' },
-    { href: '/missions',   label: 'Missions' },
-    { href: '/battlepass', label: 'Battle Pass' },
-    { href: '/leaderboard',label: 'Classement' },
-    { href: '/shop',       label: 'Shop' },
-    { href: '/play',       label: 'Jouer' },
+    { href: '/dashboard',    label: 'Dashboard' },
+    { href: '/collection',   label: 'Collection' },
+    { href: '/gacha',        label: 'Gacha' },
+    { href: '/missions',     label: 'Missions' },
+    { href: '/battlepass',   label: 'Battle Pass' },
+    { href: '/achievements', label: 'Honneurs' },
+    { href: '/leaderboard',  label: 'Classement' },
+    { href: '/shop',         label: 'Shop' },
+    { href: '/play',         label: 'Jouer' },
 ];
 
 export default function PlayerLayout({ children }: PropsWithChildren) {
