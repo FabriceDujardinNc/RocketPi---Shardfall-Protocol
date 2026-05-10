@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ReferralService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,8 @@ use Inertia\Response;
 
 class AuthController extends Controller
 {
+    public function __construct(private readonly ReferralService $referrals) {}
+
     // ── Login ───────────────────────────────────────────────────────────
 
     public function showLogin(): Response
@@ -87,6 +90,19 @@ class AuthController extends Controller
             'referred_by_user_id' => $referrer?->id,
         ]);
 
+        if ($referrer) {
+            try {
+                $this->referrals->createForNewUser(
+                    referrer: $referrer,
+                    referee: $user,
+                    ip: $request->ip(),
+                    fingerprint: $request->header('X-Device-Fingerprint'),
+                );
+            } catch (\RuntimeException $e) {
+                \Log::info("Referral creation skipped for user {$user->id}: {$e->getMessage()}");
+            }
+        }
+
         event(new Registered($user));
         Auth::login($user);
 
@@ -155,6 +171,10 @@ class AuthController extends Controller
     public function verifyEmail(EmailVerificationRequest $request): RedirectResponse
     {
         $request->fulfill();
+
+        if ($user = $request->user()) {
+            $this->referrals->validateOnEmailVerified($user);
+        }
 
         return redirect()->route('dashboard');
     }

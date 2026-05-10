@@ -9,16 +9,18 @@ use App\Models\User;
  *
  * Spec : niveaux 1 à 60+, croissance linéaire simple.
  * Formule : pour passer du niveau N au niveau N+1, il faut 100 × N XP.
- *   Niveau 1 → 2 : 100 XP
- *   Niveau 2 → 3 : 200 XP
- *   Niveau N → N+1 : 100×N XP
  *
  * `account_xp` stocke l'XP cumulée DANS le niveau actuel (pas total).
  * `account_level` est plafonné à 99.
+ *
+ * Hooks au level-up : déclenche les paliers parrain (niv 5/15/30) via
+ * ReferralService::checkLevelMilestones.
  */
 class XpService
 {
     public const MAX_LEVEL = 99;
+
+    public function __construct(private readonly ReferralService $referrals) {}
 
     public function award(User $user, int $xp): array
     {
@@ -37,6 +39,15 @@ class XpService
             $user->account_xp = 0;
         }
         $user->save();
+
+        // Hook référral : paliers 5/15/30 du filleul → reward parrain
+        if ($user->account_level > $startLevel) {
+            try {
+                $this->referrals->checkLevelMilestones($user, $startLevel, $user->account_level);
+            } catch (\Throwable $e) {
+                \Log::warning('Referral milestone check failed', ['user' => $user->id, 'error' => $e->getMessage()]);
+            }
+        }
 
         return [
             'xp_gained'  => $xp,

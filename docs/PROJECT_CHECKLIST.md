@@ -381,16 +381,18 @@
 - [ ] 1er achat filleul → +50% prem au parrain
 
 ### Anti-abus
-- [ ] Vérif email obligatoire
-- [ ] Délai 7j d'activité réelle
-- [ ] Détection multi-comptes IP/fingerprint (flag admin)
-- [ ] Max 50 parrainages actifs par compte
-- [ ] Logs complets pour audit
-- [ ] Aucune récompense réelle
+- [x] **Vérif email obligatoire** — `validateOnEmailVerified()` n'active les rewards qu'après email vérifié
+- [ ] Délai 7j d'activité réelle (simplifié à la vérif email pour l'instant)
+- [x] **Détection multi-comptes IP** — flag automatique si même IP qu'un autre filleul du parrain
+- [x] **Détection fingerprint** (champ `referee_fingerprint` capturé via header `X-Device-Fingerprint`)
+- [x] **Max 50 parrainages actifs par compte** — `MAX_ACTIVE_REFERRALS_PER_USER` enforced dans `createForNewUser`
+- [x] **Logs complets pour audit** — table `referral_rewards` immuable + statut `flagged` avec `flag_reason`
+- [x] **Aucune récompense réelle** — toutes les rewards sont des currencies in-game (shards, tickets, tokens de choix opérateur)
+- [x] Bouton flag manuel dans `/admin/referrals` pour les cas suspects
 
 ### Pages
-- [ ] Joueur `/referral`
-- [ ] Admin `/admin/referrals`
+- [x] **Joueur `/referral`** — code visible, lien copiable, stats filleuls, rewards en attente avec claim, table filleuls avec niveau/statut/email vérifié
+- [x] **Admin `/admin/referrals`** — table filtrable (statut + recherche email), stats (6 KPIs), bouton flag manuel avec raison, badge "Même IP"
 
 ---
 
@@ -438,9 +440,9 @@
 
 ### Pages
 - [x] Joueur `/leaderboard` — tabs par saison, top 100, voisins (3 avant + user + 3 après), userRank summary, empty state élégant
-- [ ] Admin `/admin/leaderboards` (controller stub présent — UI table à câbler avec stats par saison)
+- [x] **Admin `/admin/leaderboards`** — liste saisons actives + archivées avec participants count, badge expirée, bouton "Reset" (snapshot + distributeRewards)
+- [x] **Admin `/admin/leaderboards/{season}`** — détail saison, top 100 avec source Redis ou MySQL selon état
 - [ ] Historique post-reset visible côté joueur (snapshot table prête)
-- [ ] Admin `/admin/leaderboards`
 
 ---
 
@@ -503,10 +505,11 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 ### Services métier créés
 - [x] `App\Services\GachaService` — pull atomique avec pity/rate-up/XP/missions/fragments + leaderboard hooks
 - [x] `App\Services\RewardService` — applique tableau de rewards (currencies + log Transaction)
-- [x] `App\Services\XpService` — award + level-up cascade
+- [x] `App\Services\XpService` — award + level-up cascade + hook référral milestones
 - [x] `App\Services\DailyLoginService` — record + streak + claim
 - [x] `App\Services\MissionService` — progressFor / claim / listForUser + leaderboard hooks
 - [x] `App\Services\LeaderboardService` — Redis ZSET addPoints/topN/rankOf/scoreOf/neighborsOf, snapshot MySQL, distributeRewards par paliers
+- [x] `App\Services\ReferralService` — createForNewUser (avec anti-abuse), validateOnEmailVerified, checkLevelMilestones, claim, pendingRewardsFor
 - [x] `App\Console\Commands\LeaderboardReset` (artisan `leaderboard:reset`) — snapshot + distribution post-reset
 
 ### Pages joueur réelles (avec data live)

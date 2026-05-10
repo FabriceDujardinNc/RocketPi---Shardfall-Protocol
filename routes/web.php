@@ -79,6 +79,7 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
 
     // Parrainage
     Route::get('/referral',  [ReferralController::class, 'index'])->name('referral');
+    Route::post('/referral/{reward}/claim', [ReferralController::class, 'claim'])->name('referral.claim');
 
     // Shop
     Route::get('/shop', [ShopController::class, 'index'])->name('shop');
