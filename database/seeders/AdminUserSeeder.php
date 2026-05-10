@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Currency;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -42,6 +43,18 @@ class AdminUserSeeder extends Seeder
         // ── Comptes test (uniquement en local) ─────────────────────
         if (app()->environment('local')) {
             $this->seedDevAccounts();
+
+            // Crédite chaque user en shards/credits pour tester le gacha
+            foreach (User::all() as $u) {
+                Currency::firstOrCreate(
+                    ['user_id' => $u->id, 'type' => Currency::TYPE_SHARDS],
+                    ['balance' => 5000]
+                );
+                Currency::firstOrCreate(
+                    ['user_id' => $u->id, 'type' => Currency::TYPE_CREDITS],
+                    ['balance' => 50000]
+                );
+            }
         }
     }
 

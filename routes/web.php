@@ -59,8 +59,11 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
     Route::get('/collection',  [CollectionController::class, 'index'])->name('collection');
 
     // Gacha
-    Route::get('/gacha',          [GachaController::class, 'index'])->name('gacha');
-    Route::get('/gacha/{banner}', [GachaController::class, 'show'])->name('gacha.banner');
+    Route::get('/gacha',                 [GachaController::class, 'index'])->name('gacha');
+    Route::get('/gacha/{banner}',        [GachaController::class, 'show'])->name('gacha.banner');
+    Route::post('/gacha/{banner}/pull',  [GachaController::class, 'pull'])
+        ->middleware('throttle:60,60')
+        ->name('gacha.pull');
 
     // Classements
     Route::get('/leaderboard',           [LeaderboardController::class, 'index'])->name('leaderboard');

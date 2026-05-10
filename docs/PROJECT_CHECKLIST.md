@@ -254,13 +254,18 @@
 - [x] `MissionSeeder` (5 missions ≥ 3 demandées)
 - [x] `LeaderboardSeasonSeeder` (6 saisons ≥ 1 demandée)
 
-### Modèles Eloquent (créés au fil du seeding)
+### Modèles Eloquent (créés au fil du seeding/gacha)
 - [x] `User` (avec MustVerifyEmail + helpers + booted hook referral_code)
 - [x] `Operator` (avec casts JSON `abilities` + booleans)
 - [x] `Banner` (avec casts JSON `rate_up_operators` + decimals taux + datetimes)
 - [x] `Mission` (avec casts JSON `rewards` + booleans + datetimes)
 - [x] `LeaderboardSeason` (avec casts datetimes + booleans)
-- [ ] Autres modèles (PlayerOperator, GachaPull, Currency, Transaction, Referral, ReferralReward, DailyLogin, MissionProgress, BattlePass*, OperatorAffinity, Achievement, Event, Guild*, LeaderboardEntry, LeaderboardReward, PityCounter) — à créer au fur et à mesure des controllers
+- [x] `Currency` (constantes TYPE_SHARDS/CREDITS/TICKETS_*, relation user)
+- [x] `Transaction` (immuable, no UPDATED_AT, morphTo reference)
+- [x] `GachaPull` (immuable, audit légal, relations user/banner/operator)
+- [x] `PlayerOperator` (relation user/operator, duplicate_count)
+- [x] `PityCounter` (relation user/banner)
+- [ ] Autres modèles (Referral, ReferralReward, DailyLogin, MissionProgress, BattlePass*, OperatorAffinity, Achievement, Event, Guild*, LeaderboardEntry, LeaderboardReward) — à créer au fur et à mesure
 
 ---
 
@@ -465,16 +470,18 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] Premiers écrans admin (Dashboard + Players index/show fonctionnels)
 - [x] Tables additionnelles : DailyLogin, Mission, MissionProgress, BattlePass, BattlePassProgress, OperatorAffinity, Achievement, UserAchievement, Event, Guild, GuildMember, LeaderboardSeason, LeaderboardEntry, LeaderboardReward
 
-### Phase 2 — Gacha + fidélisation court terme
-- [ ] Logique tirage 100% serveur
-- [ ] Taux 60/30/8/2
-- [ ] Pity Légendaire 80 (soft 60), Épique 10
-- [ ] Bannières permanentes + événementielles avec rate-up
-- [ ] Animations Framer Motion
-- [ ] Historique tirages
-- [ ] Transactions MySQL atomiques (`DB::transaction()` + `lockForUpdate()`)
-- [ ] Logs détaillés audit légal
-- [ ] Page admin logs gacha
+### Phase 2 — Gacha + fidélisation court terme *(gacha fonctionnel)*
+- [x] **Logique tirage 100% serveur** (`App\Services\GachaService`)
+- [x] **Taux 60/30/8/2** (configurables par bannière, soft pity boost calculé)
+- [x] **Pity Légendaire 80 (soft 60), Épique 10** (configurables par bannière)
+- [x] **Bannières permanentes + événementielles avec rate-up** (50% chance chez les rate-up sur epic/legendary)
+- [x] **Animations Framer Motion** (`GachaPullAnimation` reveal séquentiel)
+- [x] **Historique tirages** (20 derniers affichés sur la page bannière)
+- [x] **Transactions MySQL atomiques** (`DB::transaction()` + `lockForUpdate()` sur PityCounter et Currency)
+- [x] **Logs détaillés audit légal** (table `gacha_pulls` immuable, no UPDATED_AT, log session_id + ip + flags pity)
+- [x] Boutons Tirer ×1 / ×10 fonctionnels avec validation solde
+- [x] Throttle 60/60min sur la route `gacha.pull`
+- [ ] Page admin logs gacha (controller stub présent — UI table à câbler)
 - [ ] Storybook installé (à 15+ composants)
 - [ ] Connexion quotidienne (calendrier mensuel, paliers J1/J7/J15/J30)
 - [ ] Missions journalières (3-5/jour)
