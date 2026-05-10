@@ -21,7 +21,7 @@ interface OwnedOperator {
         portrait_url: string | null;
         lore: string | null;
     };
-    affinity: { level: number; xp_current: number; next_xp: number };
+    affinity?: { level: number; xp_current: number; next_xp: number };
 }
 
 interface Props {
@@ -82,12 +82,16 @@ export default function Collection({ operators, totalCount }: Props) {
                             <div className="px-2">
                                 <div className="flex justify-between font-display text-xs uppercase tracking-wide">
                                     <span className="text-text-medium">Affinité</span>
-                                    <span className="text-shard-400 font-mono">Niv. {po.affinity.level}/10</span>
+                                    <span className="text-shard-400 font-mono">Niv. {po.affinity?.level ?? 0}/10</span>
                                 </div>
                                 <div className="h-1.5 mt-1 rounded-full bg-bg-elev2 overflow-hidden">
                                     <div
                                         className="h-full bg-gradient-to-r from-shard-400 to-shard-600 transition-all duration-normal"
-                                        style={{ width: `${Math.min(100, (po.affinity.xp_current / po.affinity.next_xp) * 100)}%` }}
+                                        style={{
+                                            width: po.affinity
+                                                ? `${Math.min(100, (po.affinity.xp_current / Math.max(1, po.affinity.next_xp)) * 100)}%`
+                                                : '0%',
+                                        }}
                                     />
                                 </div>
                             </div>
