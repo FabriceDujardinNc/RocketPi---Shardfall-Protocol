@@ -150,10 +150,12 @@ Free-to-play, **jamais pay-to-win**. Monnaie premium (gacha), skins cosmétiques
 ## Tests & qualité
 
 ```powershell
-docker compose exec laravel-app vendor/bin/pest    # 34 tests / 78 assertions au vert
+docker compose exec laravel-app vendor/bin/pest    # 95 tests / 215 assertions — 0 fail
 docker compose exec vite npm run lint               # 0 erreur
 docker compose exec vite npm run stylelint          # 0 erreur
 ```
+
+Couverture Pest : 10 fichiers de tests dédiés couvrant 100% des services métier (Xp, DailyLogin, Gacha, Mission, Affinity, Achievement, Shop, BattlePass, **Leaderboard avec Redis DB 15 isolée**, **Referral**).
 
 ESLint 9 interdit `bg-[#hex]`, `mt-[13px]`, inline `style={{color:'#hex'}}`. Stylelint 17 interdit `color: red` et `color: #abc` partout sauf source DS (`resources/css/app.css`).
 
