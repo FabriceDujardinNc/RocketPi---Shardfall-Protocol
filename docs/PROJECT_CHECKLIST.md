@@ -41,11 +41,14 @@
 
 ### Tooling
 - [x] Node.js 22 LTS
-- [ ] Pest 3 (composer require --dev pestphp/pest)
+- [x] **Pest 4.7** installé + 4 fichiers de tests services (34 tests / 78 assertions, tous au vert)
 - [x] Vitest (déps installées)
 - [ ] Storybook 8 (config `.storybook/`)
 - [x] Code versionné GitHub
 - [x] Procédure `git pull && docker compose up -d --build`
+- [x] **ESLint 9** flat config — interdit `bg-[#hex]`, `mt-[13px]`, inline `style={{color:'#hex'}}` (no-restricted-syntax)
+- [x] **Stylelint 17** — interdit `color-no-hex` + `color-named` partout sauf source DS
+- [x] Scripts `npm run lint`, `lint:fix`, `stylelint`
 
 ---
 
@@ -156,12 +159,12 @@
 - [x] Radix UI primitives installées (dialog, dropdown, popover, tabs, tooltip)
 - [x] Lucide React installé
 - [x] Framer Motion installé
-- [ ] **ESLint configuré** (interdit valeurs hardcodées hex/arbitraires)
-- [ ] **Stylelint configuré**
+- [x] **ESLint 9 configuré** — `eslint.config.js` flat, règles `no-restricted-syntax` interdisant `bg-[#hex]`, `mt-[13px]`, inline `style={{color:'#hex'}}`. Lint 0 erreur.
+- [x] **Stylelint 17 configuré** — `.stylelintrc.json`, `color-no-hex` + `color-named` actifs hors source DS. Lint 0 erreur.
 
 ### Règles non-négociables (appliquer au code)
-- [ ] Aucune couleur hex hors tokens.json
-- [ ] Aucune valeur arbitraire `mt-[13px]`, `bg-[#FF5733]`
+- [x] **Aucune couleur hex hors tokens.json** — enforced par Stylelint + ESLint (échec build CI à venir)
+- [x] **Aucune valeur arbitraire `mt-[13px]`, `bg-[#FF5733]`** — enforced par ESLint
 - [ ] Toute story Storybook obligatoire pour nouveau composant
 - [ ] Toute doc Markdown obligatoire pour nouveau composant
 - [ ] Réutiliser variantes existantes plutôt que créer un composant

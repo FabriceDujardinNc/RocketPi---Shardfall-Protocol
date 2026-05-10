@@ -9,7 +9,6 @@ import GachaPullAnimation from '@game/GachaPullAnimation';
 import { useState } from 'react';
 
 type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
-type Faction = 'orbit' | 'ferro' | 'veil';
 
 interface Banner {
     id: number;
