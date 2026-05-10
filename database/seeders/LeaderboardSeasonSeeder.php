@@ -50,7 +50,20 @@ class LeaderboardSeasonSeeder extends Seeder
             ]
         );
 
-        // Classements de collection permanents (un par faction)
+        // Classement Collection global (permanent)
+        LeaderboardSeason::firstOrCreate(
+            ['type' => 'collection', 'season_number' => 1],
+            [
+                'name'      => 'Collection — Hall des Recruteurs',
+                'type'      => 'collection',
+                'season_number' => 1,
+                'starts_at' => now(),
+                'ends_at'   => now()->addYears(10),
+                'is_active' => true,
+            ]
+        );
+
+        // Classements par faction (un par faction)
         foreach (['ORBIT', 'FERRO', 'VEIL'] as $i => $faction) {
             LeaderboardSeason::firstOrCreate(
                 ['type' => 'faction', 'faction' => $faction, 'season_number' => 1],

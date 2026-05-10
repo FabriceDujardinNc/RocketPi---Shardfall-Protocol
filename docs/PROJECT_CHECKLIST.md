@@ -394,47 +394,49 @@
 ## 12. Système de classements (leaderboards)
 
 ### Classements
-- [ ] Hebdomadaire (reset lundi 00h UTC)
-- [ ] Mensuel (reset 1er du mois)
-- [ ] Annuel "Hall of Fame" (activé après 6+ mois)
-- [ ] Compétitif saisonnier (Bronze → Master, ELO/MMR, reset trimestriel)
-- [ ] Collection (permanent)
-- [ ] Par faction (ORBIT/FERRO/VEIL)
+- [x] Hebdomadaire (saison seedée, active automatiquement)
+- [x] Mensuel (saison seedée, active automatiquement)
+- [ ] Annuel "Hall of Fame" (activé après 6+ mois — schéma prêt)
+- [x] Compétitif saisonnier (saison "Éclat Primordial", 3 mois)
+- [x] Collection (permanent — saison "Hall des Recruteurs")
+- [x] Par faction (ORBIT/FERRO/VEIL — 3 saisons faction)
 - [ ] Guildes (phase 5)
 
 ### Système de points
-- [ ] Victoires PvP ×3
-- [ ] Missions ×1
-- [ ] Défis hebdo ×5
-- [ ] Bonus MVP
-- [ ] Plafond quotidien
-- [ ] Calcul 100% serveur
+- [ ] Victoires PvP ×3 (PvP pas encore implémenté — phase 4)
+- [x] Missions × 1 (daily) ou × 5 (weekly) → ajouté à toutes saisons weekly/monthly/seasonal actives au claim
+- [ ] Défis hebdo ×5 (couverts par les missions weekly = +5 actuellement)
+- [ ] Bonus MVP (PvP-related)
+- [ ] Plafond quotidien (`daily_score_earned` schema en place — logique à câbler)
+- [x] Calcul 100% serveur (toutes les sources de points sont dans des services backend)
+- [x] Gacha pull → +1 par opérateur unique nouveau (collection + faction matching)
 
 ### Récompenses (paliers de %)
-- [ ] Top 1 : titre exclusif + monnaie + skin exclusif
-- [ ] Top 10 : monnaie + bordure profil
-- [ ] Top 100 : monnaie modérée
-- [ ] Top 1% : monnaie + fragments
-- [ ] Top 10% : monnaie modérée
-- [ ] Top 50% : participation symbolique
+- [x] Logique de tier matching dans `LeaderboardService::distributeRewards()` (top_1, top_10, top_100, top_1pct, top_10pct, top_50pct)
+- [ ] Configurer les rewards par tier dans `leaderboard_rewards` (table prête, seeder à compléter)
+- [ ] Skins exclusifs / titres / bordures (assets pas encore en BDD)
 
 ### Anti-triche
-- [ ] Validation autoritaire serveur
+- [x] Validation autoritaire serveur (toutes les sources de points en backend, jamais côté client)
+- [x] Logs détaillés via `transactions` table (chaque distribution de reward loggée)
 - [ ] Détection auto anomalies
-- [ ] Limite 50 matchs classés/jour
+- [ ] Limite 50 matchs classés/jour (PvP — phase 4)
 - [ ] Cooldown anti-smurf
-- [ ] Logs détaillés
 - [ ] Système de signalement joueur
 
 ### Architecture
-- [ ] Redis Sorted Sets actifs
-- [ ] Worker Laravel async pour mises à jour
-- [ ] Pagination (top 100 + voisins)
-- [ ] Snapshots MySQL post-reset (cron)
-- [ ] Distribution auto récompenses post-reset
+- [x] **Redis Sorted Sets actifs** — `LeaderboardService` utilise `Redis::zincrby/zrevrange/zrevrank/zscore`
+- [x] **Pagination top 100 + voisins** — `topN(season, 100)` et `neighborsOf(user, season, span=3)`
+- [x] **Snapshots MySQL post-reset** — `snapshotToMysql(season)` archive + del Redis ZSET
+- [x] **Distribution auto récompenses post-reset** — `distributeRewards(season)` parcourt entries archivées et matche les paliers
+- [x] **Commande artisan `leaderboard:reset`** — flags `--season=`, `--type=`, `--expired-only`, prête pour le scheduler
+- [ ] Schedule Laravel (`schedule:list` à câbler dans `routes/console.php` : weekly lundi 00h UTC, monthly 1er 00h UTC)
+- [ ] Worker Redis dédié pour batching de gros volumes (pas nécessaire avant gros traffic)
 
 ### Pages
-- [ ] Joueur `/leaderboard` (onglets, top 100, voisins, historique, récompenses)
+- [x] Joueur `/leaderboard` — tabs par saison, top 100, voisins (3 avant + user + 3 après), userRank summary, empty state élégant
+- [ ] Admin `/admin/leaderboards` (controller stub présent — UI table à câbler avec stats par saison)
+- [ ] Historique post-reset visible côté joueur (snapshot table prête)
 - [ ] Admin `/admin/leaderboards`
 
 ---
@@ -490,16 +492,19 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] **Fragments doublons** — `gacha_duplicate` reward 1/5/20/100 fragments selon rareté, currency type `fragments_{codename}` créée à la volée, log Transaction immuable
 - [ ] Échange fragments → opérateur ciblé en boutique (boutique pas implémentée)
 - [ ] Page `/referral` (controller stub avec liens fonctionnels — UI à compléter)
-- [ ] Classement hebdomadaire
-- [ ] Classement mensuel
-- [ ] Classement collection
+- [x] **Classement hebdomadaire** (saison active, points via mission claim)
+- [x] **Classement mensuel** (saison active, points via mission claim)
+- [x] **Classement collection** (saison active, points via gacha pulls — 1 pt par opérateur unique)
+- [x] **Classement par faction** (3 saisons ORBIT/FERRO/VEIL — pts par opérateur faction-matching)
 
 ### Services métier créés
-- [x] `App\Services\GachaService` — pull atomique avec pity/rate-up/XP/missions/fragments
+- [x] `App\Services\GachaService` — pull atomique avec pity/rate-up/XP/missions/fragments + leaderboard hooks
 - [x] `App\Services\RewardService` — applique tableau de rewards (currencies + log Transaction)
 - [x] `App\Services\XpService` — award + level-up cascade
 - [x] `App\Services\DailyLoginService` — record + streak + claim
-- [x] `App\Services\MissionService` — progressFor / claim / listForUser
+- [x] `App\Services\MissionService` — progressFor / claim / listForUser + leaderboard hooks
+- [x] `App\Services\LeaderboardService` — Redis ZSET addPoints/topN/rankOf/scoreOf/neighborsOf, snapshot MySQL, distributeRewards par paliers
+- [x] `App\Console\Commands\LeaderboardReset` (artisan `leaderboard:reset`) — snapshot + distribution post-reset
 
 ### Pages joueur réelles (avec data live)
 - [x] **Dashboard** — niveau + XP bar + currencies + opérateurs count + streak + daily reward claim + missions journalières/hebdo avec MissionCard fonctionnel

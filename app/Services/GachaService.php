@@ -50,6 +50,7 @@ class GachaService
         private readonly RewardService $rewards,
         private readonly XpService $xp,
         private readonly MissionService $missions,
+        private readonly LeaderboardService $leaderboard,
     ) {}
 
     /**
@@ -129,6 +130,29 @@ class GachaService
                 $this->xp->award($user, $totalXp);
             }
             $this->missions->progressFor($user, 'pull', $count);
+
+            // Leaderboard collection : 1 point par opérateur unique nouvellement obtenu
+            $newCount = count(array_filter($results, fn ($r) => $r['is_new']));
+            if ($newCount > 0) {
+                try {
+                    foreach ($this->leaderboard->activeSeasons() as $season) {
+                        if ($season->type === 'collection') {
+                            $this->leaderboard->addPoints($user, $season, $newCount);
+                        }
+                        if ($season->type === 'faction') {
+                            $factionNew = count(array_filter(
+                                $results,
+                                fn ($r) => $r['is_new'] && $r['operator']->faction === $season->faction
+                            ));
+                            if ($factionNew > 0) {
+                                $this->leaderboard->addPoints($user, $season, $factionNew);
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    \Log::warning('Leaderboard points add failed', ['user' => $user->id, 'error' => $e->getMessage()]);
+                }
+            }
 
             return $results;
         });

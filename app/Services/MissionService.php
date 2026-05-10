@@ -24,6 +24,7 @@ class MissionService
     public function __construct(
         private readonly RewardService $rewards,
         private readonly XpService $xp,
+        private readonly LeaderboardService $leaderboard,
     ) {}
 
     /**
@@ -94,6 +95,19 @@ class MissionService
                 'reward_claimed' => true,
                 'claimed_at'     => now(),
             ]);
+
+            // Leaderboard : points selon type de mission (weekly = 5pts/×défi, daily = 1pt)
+            $points = $mission->type === 'weekly' ? 5 : 1;
+            try {
+                foreach ($this->leaderboard->activeSeasons() as $season) {
+                    if (in_array($season->type, ['weekly', 'monthly', 'seasonal'], true)) {
+                        $this->leaderboard->addPoints($user, $season, $points);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Redis indisponible : on ne casse pas le claim, on log seulement
+                \Log::warning('Leaderboard points add failed', ['user' => $user->id, 'error' => $e->getMessage()]);
+            }
 
             return [
                 'mission_id' => $mission->id,
