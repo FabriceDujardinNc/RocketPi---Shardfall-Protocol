@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Currency;
+use App\Models\Operator;
+use App\Models\PlayerOperator;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -127,6 +129,68 @@ class ShopService
             return [
                 'pack_id' => $packId,
                 'rewards' => $pack['rewards'],
+            ];
+        });
+    }
+
+    /**
+     * Échange des fragments d'un opérateur contre l'opérateur lui-même
+     * (ou un cran de constellation si déjà possédé).
+     *
+     * Le coût varie selon la rareté (cf. FRAGMENTS_TO_OPERATOR).
+     * Le compteur de fragments est stocké dans Currency::type = "fragments_<codename>".
+     *
+     * Atomique : lockForUpdate sur la row Currency.
+     *
+     * @return array{operator_id:int, is_new:bool, constellation:int, fragments_used:int, fragments_left:int}
+     */
+    public function redeemFragments(User $user, Operator $operator, ?string $ipAddress = null): array
+    {
+        $cost = self::FRAGMENTS_TO_OPERATOR[$operator->rarity] ?? null;
+        if ($cost === null) {
+            throw new RuntimeException("Rareté inconnue : {$operator->rarity}");
+        }
+
+        $currencyType = 'fragments_'.$operator->codename;
+
+        return DB::transaction(function () use ($user, $operator, $cost, $currencyType, $ipAddress) {
+            $wallet = Currency::where('user_id', $user->id)
+                ->where('type', $currencyType)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $wallet || $wallet->balance < $cost) {
+                $have = $wallet?->balance ?? 0;
+                throw new RuntimeException("Fragments insuffisants : {$have}/{$cost}.");
+            }
+
+            $wallet->decrement('balance', $cost);
+
+            Transaction::create([
+                'user_id'        => $user->id,
+                'currency_type'  => $currencyType,
+                'amount'         => -$cost,
+                'balance_after'  => $wallet->balance,
+                'reason'         => 'shop_fragments_redeem',
+                'description'    => "Échange fragments → {$operator->name}",
+                'ip_address'     => $ipAddress,
+            ]);
+
+            $playerOp = PlayerOperator::firstOrCreate(
+                ['user_id' => $user->id, 'operator_id' => $operator->id],
+                ['duplicate_count' => 0, 'constellation' => 0, 'obtained_at' => now()]
+            );
+            $isNew = $playerOp->wasRecentlyCreated;
+            if (! $isNew) {
+                $playerOp->increment('constellation');
+            }
+
+            return [
+                'operator_id'    => $operator->id,
+                'is_new'         => $isNew,
+                'constellation'  => $playerOp->fresh()->constellation,
+                'fragments_used' => $cost,
+                'fragments_left' => $wallet->balance,
             ];
         });
     }
