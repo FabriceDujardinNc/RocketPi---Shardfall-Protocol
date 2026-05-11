@@ -5,6 +5,7 @@ use App\Http\Controllers\Player\AchievementController;
 use App\Http\Controllers\Player\DashboardController;
 use App\Http\Controllers\Player\CollectionController;
 use App\Http\Controllers\Player\DailyLoginController;
+use App\Http\Controllers\Player\FactionController;
 use App\Http\Controllers\Player\GachaController;
 use App\Http\Controllers\Player\OperatorController;
 use App\Http\Controllers\Player\LeaderboardController;
@@ -108,6 +109,10 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
     // Le slug est auto-généré depuis display_name (cf. User::booted).
     Route::get('/profile/{user:slug}',  [ProfileController::class, 'show'])->name('profile.show');
     Route::patch('/profile',            [ProfileController::class, 'update'])->name('profile.update');
+
+    // Factions — info publique + collection par faction
+    Route::get('/factions',                   [FactionController::class, 'index'])->name('factions');
+    Route::get('/factions/{faction:slug}',    [FactionController::class, 'show'])->name('factions.show');
 
     // Jeu Unity WebGL (phase 4)
     Route::get('/play', [PlayController::class, 'index'])->name('play');
