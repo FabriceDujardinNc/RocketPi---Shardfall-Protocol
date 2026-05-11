@@ -41,7 +41,7 @@
 
 ### Tooling
 - [x] Node.js 22 LTS
-- [x] **Pest 4.7** installé + **23 fichiers de tests (193 tests / 566 assertions, tous au vert)** — couverture services métier + policies + admin CRUD + pages joueur. Ajouts récents : **AdminLeaderboardSeasonTest (7 — anti-delete si rewards distribués)**, **AdminSettingsControllerTest (4 — incl. cache invalidation)**, **AdminCosmeticControllerTest (6 — incl. skin-requires-operator)**, **AdminPlayerGrantCurrencyTest (5 — débit/crédit/audit log)**, **AdminAchievementControllerTest (6)**, **AdminEventControllerTest (5)**. Inclus aussi : XpService / DailyLoginService (+ fix SQLite) / GachaService / MissionService / AffinityService / AchievementService / ShopService / BattlePassService / LeaderboardService (Redis DB 15 isolée) / ReferralService (first-purchase) / AuthorizationTest (Policies + Gates) / AdminOperatorControllerTest / AdminBannerControllerTest (somme taux = 1) / AdminMissionControllerTest / AdminBattlePassControllerTest (anti-overlap dates) / AdminDailyLoginRewardControllerTest / AdminFactionControllerTest / Player FactionPageTest.
+- [x] **Pest 4.7** installé + **26 fichiers de tests (213 tests / 651 assertions, tous au vert)** — couverture services métier + policies + admin CRUD + pages joueur. Ajouts récents : **CosmeticsInventoryTest (9 — inventaire/équipement règle 1-par-type + auto-unlock par palier affinité)**, **ShopFragmentsTest (6 — recrutement + constellation + Transaction log)**, **LeaderboardDailyCapTest (5 — clipping + désactivation + défaut)**, **AdminLeaderboardSeasonTest (7 — anti-delete si rewards distribués)**, **AdminSettingsControllerTest (4 — incl. cache invalidation)**, **AdminCosmeticControllerTest (6 — incl. skin-requires-operator)**, **AdminPlayerGrantCurrencyTest (5 — débit/crédit/audit log)**, **AdminAchievementControllerTest (6)**, **AdminEventControllerTest (5)**. Inclus aussi : XpService / DailyLoginService (+ fix SQLite) / GachaService / MissionService / AffinityService / AchievementService / ShopService / BattlePassService / LeaderboardService (Redis DB 15 isolée) / ReferralService (first-purchase) / AuthorizationTest (Policies + Gates) / AdminOperatorControllerTest / AdminBannerControllerTest (somme taux = 1) / AdminMissionControllerTest / AdminBattlePassControllerTest (anti-overlap dates) / AdminDailyLoginRewardControllerTest / AdminFactionControllerTest / Player FactionPageTest.
 - [x] **Isolation tests durcie** — `tests/bootstrap.php` force `$_SERVER`/`$_ENV`/`putenv` avant l'autoload (PHPUnit `<env force>` ne touche pas `$_SERVER`, donc Docker injection prenait le dessus → les tests `RefreshDatabase` essuyaient la dev MySQL).
 - [x] **URLs SEO-friendly via slug** — refactor 11/05/2026 : trait `App\Concerns\HasAutoSlug` + colonne `slug` sur operators/banners/missions/battle_passes/events/leaderboard_seasons (+ unique index), `getRouteKeyName` override sur ces models et sur Achievement (via `key`). Toutes les URLs admin et joueur passent maintenant par slug : `/admin/operators/vex`, `/gacha/signal-shard-standard`, `/admin/battle-passes/saison-1-eveil-des-shards`, etc. Génération automatique sur save, collision-safe (suffixe `-2`/`-3`).
 - [x] Vitest (déps installées)
@@ -375,10 +375,11 @@
 - [x] **Daily login rewards** (table éditable inline avec create/edit/delete par jour + fallback service sur défaut)
 - [x] **Achievements full CRUD** (clé regex-validée + 5 catégories + rewards dynamiques + flag hidden + filtres + table avec compteur de débloqués)
 - [x] **Events full CRUD** (5 types : limited_banner/pvp/pve/story/collaboration + lien optionnel à une Banner + rewards_pool + phase scheduled/current/expired + dates strictes)
-- [x] Settings.tsx (configuration globale — stub, à câbler en Lot C)
+- [x] Settings.tsx (configuration globale — BDD-backed via Setting model, cache 10 min, invalidé sur save)
 - [ ] Moderation.tsx (signalements, sanctions) — Phase 5
-- [ ] Leaderboard Seasons CRUD complet (Index + reset OK, manque create/update/destroy)
-- [ ] grantCurrency joueur (action existante en stub, à câbler en Lot E)
+- [x] **Leaderboard Seasons CRUD complet** (Create/Edit/Show + reset, anti-suppression si rewards distribués)
+- [x] **grantCurrency joueur** (atomique avec lockForUpdate, débit/crédit, anti-balance-négatif, Transaction audit log incl. admin#id + IP)
+- [x] **Cosmetics catalogue admin** (CRUD + 5 types skin/title/voiceline/banner/border + lien operator pour skins + slug-validé)
 
 ### Layouts — `resources/js/Layouts/`
 - [x] GuestLayout
@@ -437,7 +438,7 @@
 - [x] Missions × 1 (daily) ou × 5 (weekly) → ajouté à toutes saisons weekly/monthly/seasonal actives au claim
 - [ ] Défis hebdo ×5 (couverts par les missions weekly = +5 actuellement)
 - [ ] Bonus MVP (PvP-related)
-- [ ] Plafond quotidien (`daily_score_earned` schema en place — logique à câbler)
+- [x] **Plafond quotidien anti-farm** — `LeaderboardService::addPoints` clipe au cap restant, cap configurable via Setting `leaderboard.daily_cap` (défaut 5000, 0 = désactivé), tracking Redis par user/saison/jour-UTC avec expire 36h, méthode `dailyEarned()` exposée pour UI
 - [x] Calcul 100% serveur (toutes les sources de points sont dans des services backend)
 - [x] Gacha pull → +1 par opérateur unique nouveau (collection + faction matching)
 
@@ -520,7 +521,7 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] **Missions hebdomadaires** (2 seedées : Signal Shard hebdo + Commandant actif)
 - [x] **XP comptes 1-99** — `XpService` avec formule linéaire (100×N XP par niveau), gain auto sur pull (10/25/75/200 par rareté) et claim mission (xp_reward), level-up cascade géré
 - [x] **Fragments doublons** — `gacha_duplicate` reward 1/5/20/100 fragments selon rareté, currency type `fragments_{codename}` créée à la volée, log Transaction immuable
-- [ ] Échange fragments → opérateur ciblé en boutique (constante `FRAGMENTS_TO_OPERATOR` prête dans `ShopService`, échange UI à câbler)
+- [x] **Échange fragments → opérateur ciblé en boutique** — `ShopService::redeemFragments` atomique (lockForUpdate Currency), coût par rareté (30/80/200/500), crée le PlayerOperator ou incrémente constellation si déjà possédé, route `/shop/fragments/{operator}/redeem`, section UI dédiée dans `/shop`
 - [x] **Page `/referral`** — UI complète : code + lien + bouton Partager (Web Share API) + liens directs WhatsApp/Telegram/X/Email + stats filleuls + rewards en attente avec claim + table filleuls
 - [x] **Classement hebdomadaire** (saison active, points via mission claim)
 - [x] **Classement mensuel** (saison active, points via mission claim)
@@ -558,7 +559,7 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] **Page détail opérateur `/operators/{id}`** — stats HP/dégâts/mobilité, arme signature, capacités (active/passive/ultimate), affinité avec AffinityMeter, lore progressif débloqué (5 paliers : 0/2/5/8/10)
 - [x] **Classements par faction** (déjà actifs depuis Phase 2 — 3 saisons ORBIT/FERRO/VEIL avec hook gacha)
 - [x] **Lore débloqué progressivement par niveau d'affinité** — 5 paliers générés à la volée par `OperatorController::lorePart()`, UI dans page détail opérateur (à terme : stocker dans operators.lore_unlocks JSON ou table dédiée)
-- [ ] Skins gratuits / voicelines par level affinité (assets pas en BDD)
+- [x] **Skins gratuits / voicelines par level affinité** — Catalogue `cosmetics` avec colonne `unlock_at_affinity`, `CosmeticService::unlockForAffinity` hooké dans `AffinityService::award` pour auto-grant les cosmétiques liés à l'opérateur quand le palier est atteint. Seeder de 40 cosmétiques (3 skins + 1 voiceline par opérateur, paliers 2/5/8/10). Inventaire joueur côté `/cosmetics` avec équipement (1 actif global par type, 1 par opérateur pour skins).
 - [ ] MCP Design System custom (Phase 3+ ou plus tard)
 
 ### Phase 4 — Intégration Unity + compétitif
