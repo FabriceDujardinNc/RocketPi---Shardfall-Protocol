@@ -4,6 +4,7 @@ import { type PropsWithChildren } from 'react';
 const SECTIONS = [
     { href: '/admin',              label: 'Tableau de bord' },
     { href: '/admin/operators',    label: 'Opérateurs' },
+    { href: '/admin/factions',     label: 'Factions' },
     { href: '/admin/banners',      label: 'Bannières' },
     { href: '/admin/players',      label: 'Joueurs' },
     { href: '/admin/gacha-logs',   label: 'Logs Gacha' },

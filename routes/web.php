@@ -167,6 +167,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->only(['index', 'store', 'update', 'destroy'])
         ->parameters(['daily-login-rewards' => 'daily_login_reward']);
 
+    // Factions — lore + page collection par faction
+    Route::resource('factions', \App\Http\Controllers\Admin\AdminFactionController::class)
+        ->only(['index', 'show', 'edit', 'update']);
+
     // Paramètres globaux
     Route::get('settings',   [AdminSettingsController::class, 'index'])->name('settings.index');
     Route::patch('settings', [AdminSettingsController::class, 'update'])->name('settings.update');
