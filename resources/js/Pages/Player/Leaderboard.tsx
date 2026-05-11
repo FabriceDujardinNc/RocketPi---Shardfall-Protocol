@@ -58,17 +58,25 @@ export default function Leaderboard({ currentSeason, seasons, topEntries, partic
         <>
             <Head title={currentSeason.name} />
 
-            <header className="mb-6">
-                <p className="font-display text-xs uppercase tracking-mega text-shard-400">
-                    {TYPE_LABEL[currentSeason.type]}
-                    {currentSeason.faction && ` · ${currentSeason.faction}`}
-                </p>
-                <h1 className="font-display font-bold text-3xl uppercase tracking-wide mt-1">
-                    {currentSeason.name}
-                </h1>
-                <p className="font-mono text-xs text-text-low mt-1">
-                    {participantCount} participant{participantCount > 1 ? 's' : ''}
-                </p>
+            <header className="mb-6 flex items-end justify-between flex-wrap gap-4">
+                <div>
+                    <p className="font-display text-xs uppercase tracking-mega text-shard-400">
+                        {TYPE_LABEL[currentSeason.type]}
+                        {currentSeason.faction && ` · ${currentSeason.faction}`}
+                    </p>
+                    <h1 className="font-display font-bold text-3xl uppercase tracking-wide mt-1">
+                        {currentSeason.name}
+                    </h1>
+                    <p className="font-mono text-xs text-text-low mt-1">
+                        {participantCount} participant{participantCount > 1 ? 's' : ''}
+                    </p>
+                </div>
+                <Link
+                    href="/leaderboard/history"
+                    className="font-display text-xs uppercase tracking-wide text-text-medium hover:text-shard-400"
+                >
+                    Historique archives →
+                </Link>
             </header>
 
             {/* Tabs saisons */}

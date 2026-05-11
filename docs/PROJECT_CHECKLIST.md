@@ -468,7 +468,7 @@
 - [x] Joueur `/leaderboard` — tabs par saison, top 100, voisins (3 avant + user + 3 après), userRank summary, empty state élégant
 - [x] **Admin `/admin/leaderboards`** — liste saisons actives + archivées avec participants count, badge expirée, bouton "Reset" (snapshot + distributeRewards)
 - [x] **Admin `/admin/leaderboards/{season}`** — détail saison, top 100 avec source Redis ou MySQL selon état
-- [ ] Historique post-reset visible côté joueur (snapshot table prête)
+- [x] **Historique post-reset visible côté joueur** — Page `/leaderboard/history` lit `leaderboard_entries` (snapshot écrit au reset par `snapshotToMysql`), affiche les saisons closes avec rang + score + dates, met en avant top 3 personnels et stats récap (top 1, top 10, total archives). Lien depuis la page courante.
 
 ---
 

@@ -84,6 +84,7 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
 
     // Classements
     Route::get('/leaderboard',           [LeaderboardController::class, 'index'])->name('leaderboard');
+    Route::get('/leaderboard/history',   [LeaderboardController::class, 'history'])->name('leaderboard.history');
     Route::get('/leaderboard/{season}',  [LeaderboardController::class, 'show'])->name('leaderboard.season');
 
     // Missions
