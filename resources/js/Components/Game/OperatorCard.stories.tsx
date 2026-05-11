@@ -25,7 +25,7 @@ export const Common:    Story = { args: { rarity: 'common',    faction: 'FERRO',
 
 export const RosterGrid: Story = {
     render: () => (
-        <div className="grid grid-cols-4 gap-4 w-[720px]">
+        <div className="grid grid-cols-4 gap-4 max-w-3xl">
             <OperatorCard name="Vex"    role="Sniper"    rarity="legendary" faction="ORBIT" level={8} />
             <OperatorCard name="Crag"   role="Tank"      rarity="legendary" faction="FERRO" level={5} />
             <OperatorCard name="Wraith" role="Infiltr."  rarity="epic"      faction="VEIL"  level={3} />

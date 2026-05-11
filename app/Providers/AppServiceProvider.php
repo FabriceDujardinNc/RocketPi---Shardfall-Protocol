@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Operator;
 use App\Models\ReferralReward;
 use App\Models\User;
+use App\Policies\OperatorPolicy;
 use App\Policies\ReferralRewardPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Support\Facades\Gate;
@@ -20,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(ReferralReward::class, ReferralRewardPolicy::class);
+        Gate::policy(Operator::class, OperatorPolicy::class);
 
         // Le super_admin contourne toutes les vérifications applicatives.
         // Les Policies/Gates "ban" et "promote" gardent leurs propres règles

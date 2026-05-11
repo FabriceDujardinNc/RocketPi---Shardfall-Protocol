@@ -120,6 +120,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     // Opérateurs
+    Route::post('operators/{id}/restore', [AdminOperatorController::class, 'restore'])
+        ->whereNumber('id')->name('operators.restore');
     Route::resource('operators', AdminOperatorController::class);
 
     // Bannières

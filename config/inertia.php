@@ -69,9 +69,12 @@ return [
 
         'ensure_pages_exist' => false,
 
+        // Le projet utilise `resources/js/Pages` (P majuscule). Linux est case-sensitive,
+        // donc le path par défaut `js/pages` ne matche pas et les assertions Inertia
+        // échouent à trouver les composants.
         'paths' => [
 
-            resource_path('js/pages'),
+            resource_path('js/Pages'),
 
         ],
 
