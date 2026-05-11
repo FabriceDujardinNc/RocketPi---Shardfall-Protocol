@@ -1,19 +1,64 @@
 import { Link, usePage } from '@inertiajs/react';
 import { type PropsWithChildren, useEffect, useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import * as Dropdown from '@radix-ui/react-dropdown-menu';
+import { Menu, X, ChevronDown } from 'lucide-react';
 
-const NAV = [
-    { href: '/dashboard',    label: 'Dashboard' },
-    { href: '/factions',     label: 'Factions' },
-    { href: '/gacha',        label: 'Gacha' },
-    { href: '/missions',     label: 'Missions' },
-    { href: '/battlepass',   label: 'Battle Pass' },
-    { href: '/achievements', label: 'Honneurs' },
-    { href: '/leaderboard',  label: 'Classement' },
-    { href: '/referral',     label: 'Parrainage' },
-    { href: '/shop',         label: 'Shop' },
-    { href: '/cosmetics',    label: 'Vestiaire' },
-    { href: '/play',         label: 'Jouer' },
+interface NavLeaf  { href: string; label: string }
+interface NavGroup { label: string; items: NavLeaf[]; prefixes: string[] }
+type NavEntry = NavLeaf | NavGroup;
+
+const isGroup = (n: NavEntry): n is NavGroup => 'items' in n;
+
+/**
+ * Navigation joueur — regroupée en 5 entrées + CTA "Jouer".
+ * Avant : 11 entrées plates → débordement horizontal en md.
+ *
+ * Groupement métier :
+ *  - Recrutement : acquisition d'opérateurs (Gacha, Boutique, Factions)
+ *  - Progression : ce qui fait monter le compte (Missions, BP, Honneurs)
+ *  - Compétition : tout ce qui touche au classement
+ *  - Profil    : identité + inventaire perso (Collection, Vestiaire, etc.)
+ */
+const NAV: NavEntry[] = [
+    { href: '/dashboard', label: 'Dashboard' },
+    {
+        label: 'Recrutement',
+        prefixes: ['/gacha', '/shop', '/factions'],
+        items: [
+            { href: '/gacha',    label: 'Gacha' },
+            { href: '/shop',     label: 'Boutique' },
+            { href: '/factions', label: 'Factions' },
+        ],
+    },
+    {
+        label: 'Progression',
+        prefixes: ['/missions', '/battlepass', '/achievements'],
+        items: [
+            { href: '/missions',     label: 'Missions' },
+            { href: '/battlepass',   label: 'Battle Pass' },
+            { href: '/achievements', label: 'Honneurs' },
+        ],
+    },
+    {
+        label: 'Compétition',
+        prefixes: ['/leaderboard', '/hall-of-fame'],
+        items: [
+            { href: '/leaderboard',         label: 'Classement actuel' },
+            { href: '/hall-of-fame',        label: 'Hall of Fame' },
+            { href: '/leaderboard/history', label: 'Historique' },
+        ],
+    },
+    {
+        label: 'Profil',
+        prefixes: ['/collection', '/cosmetics', '/referral', '/profile'],
+        items: [
+            { href: '/collection', label: 'Collection' },
+            { href: '/cosmetics',  label: 'Vestiaire' },
+            { href: '/referral',   label: 'Parrainage' },
+            { href: '/profile',    label: 'Mon profil' },
+        ],
+    },
+    { href: '/play', label: 'Jouer' },
 ];
 
 const FACTION_COLOR: Record<string, string> = {
@@ -28,20 +73,22 @@ export default function PlayerLayout({ children }: PropsWithChildren) {
     const factionColor = user?.faction ? FACTION_COLOR[user.faction] ?? '' : '';
     const [open, setOpen] = useState(false);
 
-    // Ferme automatiquement le drawer mobile à chaque navigation pour éviter
-    // qu'il reste ouvert en arrière-plan après un click.
     useEffect(() => { setOpen(false); }, [url]);
-
-    // Bloque le scroll body quand le drawer est ouvert (UX mobile standard).
     useEffect(() => {
         if (!open) return;
         document.body.style.overflow = 'hidden';
         return () => { document.body.style.overflow = ''; };
     }, [open]);
 
-    const navClassName = (href: string) =>
-        'px-3 py-2 rounded-md transition-all ' +
+    const leafClass = (href: string) =>
+        'px-3 py-2 rounded-md transition-all font-display text-sm uppercase tracking-wide ' +
         (url.startsWith(href)
+            ? 'text-shard-400 bg-bg-elev2'
+            : 'text-text-medium hover:text-text-high hover:bg-bg-elev1');
+
+    const groupTriggerClass = (group: NavGroup) =>
+        'px-3 py-2 rounded-md transition-all font-display text-sm uppercase tracking-wide inline-flex items-center gap-1 cursor-pointer outline-none ' +
+        (group.prefixes.some(p => url.startsWith(p))
             ? 'text-shard-400 bg-bg-elev2'
             : 'text-text-medium hover:text-text-high hover:bg-bg-elev1');
 
@@ -50,7 +97,6 @@ export default function PlayerLayout({ children }: PropsWithChildren) {
             <header className="sticky top-0 z-overlay border-b border-border-default bg-bg-elev1/80 backdrop-blur">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                        {/* Hamburger — visible <md uniquement */}
                         <button
                             type="button"
                             onClick={() => setOpen(true)}
@@ -68,11 +114,41 @@ export default function PlayerLayout({ children }: PropsWithChildren) {
                         </Link>
                     </div>
 
-                    {/* Nav desktop */}
-                    <nav className="hidden md:flex items-center gap-1 font-display text-sm uppercase tracking-wide overflow-x-auto">
-                        {NAV.map(item => (
-                            <Link key={item.href} href={item.href} className={navClassName(item.href)}>
-                                {item.label}
+                    {/* Nav desktop — 6 entrées max via regroupement dropdown */}
+                    <nav className="hidden md:flex items-center gap-1">
+                        {NAV.map(entry => isGroup(entry) ? (
+                            <Dropdown.Root key={entry.label}>
+                                <Dropdown.Trigger className={groupTriggerClass(entry)}>
+                                    {entry.label}
+                                    <ChevronDown size={12} aria-hidden="true" />
+                                </Dropdown.Trigger>
+                                <Dropdown.Portal>
+                                    <Dropdown.Content
+                                        align="start"
+                                        sideOffset={6}
+                                        className="z-overlay min-w-[180px] rounded-md bg-bg-elev2 border border-border-default p-1 shadow-el2"
+                                    >
+                                        {entry.items.map(item => (
+                                            <Dropdown.Item key={item.href} asChild>
+                                                <Link
+                                                    href={item.href}
+                                                    className={
+                                                        'block px-3 py-2 rounded font-display text-xs uppercase tracking-wide transition-colors duration-fast outline-none focus:bg-bg-elev3 ' +
+                                                        (url.startsWith(item.href)
+                                                            ? 'text-shard-400 bg-bg-elev3'
+                                                            : 'text-text-medium hover:text-text-high hover:bg-bg-elev3')
+                                                    }
+                                                >
+                                                    {item.label}
+                                                </Link>
+                                            </Dropdown.Item>
+                                        ))}
+                                    </Dropdown.Content>
+                                </Dropdown.Portal>
+                            </Dropdown.Root>
+                        ) : (
+                            <Link key={entry.href} href={entry.href} className={leafClass(entry.href)}>
+                                {entry.label}
                             </Link>
                         ))}
                     </nav>
@@ -103,7 +179,7 @@ export default function PlayerLayout({ children }: PropsWithChildren) {
                 </div>
             </header>
 
-            {/* Drawer mobile */}
+            {/* Drawer mobile — sections par groupe */}
             {open && (
                 <div className="md:hidden fixed inset-0 z-modal" role="dialog" aria-modal="true">
                     <div
@@ -140,18 +216,28 @@ export default function PlayerLayout({ children }: PropsWithChildren) {
                             </div>
                         )}
 
-                        <nav className="flex flex-col gap-1 font-display text-sm uppercase tracking-wide">
-                            {NAV.map(item => (
-                                <Link key={item.href} href={item.href} className={navClassName(item.href)}>
-                                    {item.label}
+                        <nav className="flex flex-col gap-3">
+                            {NAV.map(entry => isGroup(entry) ? (
+                                <div key={entry.label}>
+                                    <p className="font-display text-[10px] uppercase tracking-mega text-text-low px-3 mb-1">
+                                        {entry.label}
+                                    </p>
+                                    <div className="flex flex-col gap-1">
+                                        {entry.items.map(item => (
+                                            <Link key={item.href} href={item.href} className={leafClass(item.href)}>
+                                                {item.label}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <Link key={entry.href} href={entry.href} className={leafClass(entry.href)}>
+                                    {entry.label}
                                 </Link>
                             ))}
                         </nav>
 
                         <div className="mt-6 pt-4 border-t border-border-default flex flex-col gap-2">
-                            <Link href="/profile" className="font-display text-sm uppercase tracking-wide text-text-medium hover:text-text-high">
-                                Mon profil
-                            </Link>
                             <Link
                                 href="/logout"
                                 method="post"
