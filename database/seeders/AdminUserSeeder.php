@@ -22,6 +22,7 @@ class AdminUserSeeder extends Seeder
                 'referral_code'     => 'ADM-0000-0000',
                 'email_verified_at' => now(),
                 'account_level'     => 99,
+                'faction'           => 'ORBIT',
             ]
         );
 
@@ -37,6 +38,7 @@ class AdminUserSeeder extends Seeder
                 'referral_code'     => 'FAB-0000-0001',
                 'email_verified_at' => now(),
                 'account_level'     => 99,
+                'faction'           => 'ORBIT',
             ]
         );
 
@@ -68,6 +70,7 @@ class AdminUserSeeder extends Seeder
                 'role'          => User::ROLE_ADMIN,
                 'referral_code' => 'TST-ADM0-0000',
                 'account_level' => 50,
+                'faction'       => 'ORBIT',
             ],
             [
                 'email'         => 'player@rocketpi.local',
@@ -76,6 +79,7 @@ class AdminUserSeeder extends Seeder
                 'role'          => User::ROLE_USER,
                 'referral_code' => 'TST-PLY0-0000',
                 'account_level' => 12,
+                'faction'       => 'FERRO',
             ],
             [
                 'email'         => 'banned@rocketpi.local',
@@ -87,6 +91,7 @@ class AdminUserSeeder extends Seeder
                 'is_banned'     => true,
                 'ban_reason'    => 'Compte test pour vérifier le flow ban',
                 'banned_at'     => now(),
+                'faction'       => 'VEIL',
             ],
         ];
 

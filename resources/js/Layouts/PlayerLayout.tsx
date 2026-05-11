@@ -15,9 +15,16 @@ const NAV = [
     { href: '/play',         label: 'Jouer' },
 ];
 
+const FACTION_COLOR: Record<string, string> = {
+    ORBIT: 'text-orbit',
+    FERRO: 'text-ferro',
+    VEIL:  'text-veil',
+};
+
 export default function PlayerLayout({ children }: PropsWithChildren) {
-    const { url, props } = usePage<{ auth?: { user?: { display_name?: string; name?: string } } }>();
+    const { url, props } = usePage<{ auth?: { user?: { display_name?: string; name?: string; faction?: string | null } } }>();
     const user = props.auth?.user;
+    const factionColor = user?.faction ? FACTION_COLOR[user.faction] ?? '' : '';
 
     return (
         <div className="min-h-screen bg-bg-base text-text-high">
@@ -50,9 +57,14 @@ export default function PlayerLayout({ children }: PropsWithChildren) {
                     <div className="flex items-center gap-3">
                         <Link
                             href="/profile"
-                            className="text-sm font-display tracking-wide text-text-medium hover:text-text-high"
+                            className="text-sm font-display tracking-wide text-text-medium hover:text-text-high flex items-center gap-2"
                         >
-                            {user?.display_name ?? user?.name ?? 'Joueur'}
+                            <span>{user?.display_name ?? user?.name ?? 'Joueur'}</span>
+                            {user?.faction && (
+                                <span className={`font-display text-[10px] uppercase tracking-mega ${factionColor}`}>
+                                    {user.faction}
+                                </span>
+                            )}
                         </Link>
                         <Link
                             href="/logout"

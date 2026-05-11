@@ -30,6 +30,9 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            // Allégeance par défaut pour les tests — chaque joueur doit en avoir
+            // une (contrainte métier). Surchargeable via makeUser(['faction' => ...]).
+            'faction' => fake()->randomElement(User::FACTIONS),
         ];
     }
 

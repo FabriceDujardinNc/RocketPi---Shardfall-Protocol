@@ -18,6 +18,7 @@ use Laravel\Sanctum\HasApiTokens;
     'name', 'email', 'password',
     'display_name', 'slug', 'avatar_url',
     'role', 'account_level', 'account_xp',
+    'faction',
     'referral_code', 'referred_by_user_id',
     'last_active_at', 'is_banned', 'ban_reason', 'banned_at',
 ])]
@@ -30,6 +31,8 @@ class User extends Authenticatable implements MustVerifyEmail
     public const ROLE_USER = 'user';
     public const ROLE_ADMIN = 'admin';
     public const ROLE_SUPER_ADMIN = 'super_admin';
+
+    public const FACTIONS = ['ORBIT', 'FERRO', 'VEIL'];
 
     protected function casts(): array
     {
@@ -49,6 +52,17 @@ class User extends Authenticatable implements MustVerifyEmail
         static::creating(function (User $user) {
             if (empty($user->referral_code)) {
                 $user->referral_code = self::generateUniqueReferralCode();
+            }
+        });
+
+        // Faction immuable : une fois définie, on ne peut plus la changer.
+        // Bloque toute tentative d'update (admin ou via Eloquent) — la seule
+        // façon de l'écrire est lors du `create()` initial.
+        static::updating(function (User $user) {
+            if ($user->isDirty('faction') && $user->getOriginal('faction')) {
+                throw new \RuntimeException(
+                    'La faction est immuable une fois choisie (joueur '.$user->id.').'
+                );
             }
         });
 
@@ -115,5 +129,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function referrals(): HasMany
     {
         return $this->hasMany(self::class, 'referred_by_user_id');
+    }
+
+    /**
+     * Faction d'allégeance du joueur (choisie à l'inscription, immuable).
+     * Renvoie null pour les rares cas legacy non backfilled.
+     */
+    public function faction(): BelongsTo
+    {
+        return $this->belongsTo(Faction::class, 'faction', 'slug');
     }
 }

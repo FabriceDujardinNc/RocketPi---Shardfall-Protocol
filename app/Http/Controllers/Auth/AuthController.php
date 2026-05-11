@@ -65,8 +65,15 @@ class AuthController extends Controller
 
     public function showRegister(Request $request): Response
     {
+        // Catalogue des factions pour l'étape "choix d'allégeance" du formulaire.
+        // Chargé depuis la BDD (FactionSeeder garantit la présence des 3).
+        $factions = \App\Models\Faction::query()
+            ->orderBy('slug')
+            ->get(['slug', 'name', 'tagline', 'lore', 'color_hue', 'accent_class']);
+
         return Inertia::render('Auth/Register', [
             'referralCode' => $request->session()->get('referral_code'),
+            'factions'     => $factions,
         ]);
     }
 
@@ -76,10 +83,14 @@ class AuthController extends Controller
             'name'     => 'required|string|max:80|unique:users,name',
             'email'    => 'required|string|email|max:255|unique:users,email',
             'password' => ['required', 'confirmed', PasswordRule::defaults()],
+            // Allégeance unique et permanente — choisie ici, jamais modifiable.
+            'faction'  => ['required', 'string', 'in:' . implode(',', User::FACTIONS)],
             'referral_code' => 'nullable|string|max:32',
         ], [
-            'name.unique'  => 'Ce pseudo est déjà pris, choisis-en un autre.',
-            'email.unique' => 'Un compte existe déjà avec cet email.',
+            'name.unique'      => 'Ce pseudo est déjà pris, choisis-en un autre.',
+            'email.unique'     => 'Un compte existe déjà avec cet email.',
+            'faction.required' => 'Choisis ton allégeance — ce choix est définitif.',
+            'faction.in'       => 'Faction invalide.',
         ]);
 
         $referrer = ! empty($validated['referral_code'])
@@ -90,6 +101,7 @@ class AuthController extends Controller
             'name'     => $validated['name'],
             'email'    => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'faction'  => $validated['faction'],
             'referred_by_user_id' => $referrer?->id,
         ]);
 
