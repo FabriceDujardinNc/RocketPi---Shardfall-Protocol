@@ -50,7 +50,7 @@ it('throws when referrer hits the active referrals limit', function () {
         ->toThrow(RuntimeException::class, 'Limite de parrainages');
 });
 
-it('validateOnEmailVerified marks status validated and creates starter pack reward', function () {
+it('validateOnEmailVerified records email_verified_at and creates starter pack but keeps status pending', function () {
     $referrer = makeUser();
     $referee  = makeUser();
 
@@ -58,9 +58,12 @@ it('validateOnEmailVerified marks status validated and creates starter pack rewa
     $svc->createForNewUser($referrer, $referee, '1.1.1.1');
     $referral = $svc->validateOnEmailVerified($referee);
 
-    expect($referral->status)->toBe(Referral::STATUS_VALIDATED);
-    expect($referral->validated_at)->not->toBeNull();
+    // Status reste pending — la promotion attend le délai 7j + activité réelle.
+    expect($referral->status)->toBe(Referral::STATUS_PENDING);
+    expect($referral->email_verified_at)->not->toBeNull();
+    expect($referral->validated_at)->toBeNull();
 
+    // Starter pack au filleul créé tout de suite.
     $reward = ReferralReward::where('referral_id', $referral->id)
         ->where('trigger', ReferralReward::TRIGGER_REFEREE_EMAIL_VERIFIED)
         ->first();
@@ -68,7 +71,7 @@ it('validateOnEmailVerified marks status validated and creates starter pack rewa
     expect($reward->beneficiary_id)->toBe($referee->id);
 });
 
-it('validateOnEmailVerified is idempotent if already validated', function () {
+it('validateOnEmailVerified is idempotent if already called', function () {
     $referrer = makeUser();
     $referee  = makeUser();
     $svc = app(ReferralService::class);
@@ -77,7 +80,7 @@ it('validateOnEmailVerified is idempotent if already validated', function () {
     $svc->validateOnEmailVerified($referee);
     $second = $svc->validateOnEmailVerified($referee);
 
-    expect($second->status)->toBe(Referral::STATUS_VALIDATED);
+    expect($second->status)->toBe(Referral::STATUS_PENDING);
     expect(ReferralReward::where('trigger', ReferralReward::TRIGGER_REFEREE_EMAIL_VERIFIED)->count())->toBe(1);
 });
 
@@ -88,6 +91,12 @@ it('checkLevelMilestones creates rewards at levels 5, 15 and 30', function () {
 
     $svc->createForNewUser($referrer, $referee, '1.1.1.1');
     $svc->validateOnEmailVerified($referee);
+
+    // Force la promotion pour tester la logique des paliers, indépendamment du gate 7j.
+    Referral::where('referee_id', $referee->id)->update([
+        'status' => Referral::STATUS_VALIDATED,
+        'validated_at' => now(),
+    ]);
 
     // Level 4 → 6 → palier 5 atteint
     $svc->checkLevelMilestones($referee, 4, 6);
@@ -164,7 +173,7 @@ it('claim transitions referral to rewarded when all rewards consumed', function 
     $svc->validateOnEmailVerified($referee);
 
     $referral = Referral::first();
-    expect($referral->status)->toBe(Referral::STATUS_VALIDATED);
+    expect($referral->status)->toBe(Referral::STATUS_PENDING);
 
     $reward = ReferralReward::first();
     $svc->claim($referee, $reward);

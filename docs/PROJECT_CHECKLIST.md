@@ -408,7 +408,7 @@
 
 ### Anti-abus
 - [x] **Vérif email obligatoire** — `validateOnEmailVerified()` n'active les rewards qu'après email vérifié
-- [ ] Délai 7j d'activité réelle (simplifié à la vérif email pour l'instant)
+- [x] **Délai 7j d'activité réelle** — `validateOnEmailVerified` ne bascule plus directement à `validated` : il marque `referrals.email_verified_at` + crée le starter pack au filleul. Le status reste pending jusqu'à ce que la commande quotidienne `referrals:promote-active` (scheduler 03:15 UTC) vérifie que (a) ≥ N jours se sont écoulés depuis la vérif email, (b) `users.last_active_at` est non null (filleul revenu au moins une fois). Délai configurable via setting `referrals.activity_delay_days` (défaut 7). Middleware `TrackUserActivity` met à jour `last_active_at` (débouncé 5 min). Sans cette promotion, `checkLevelMilestones` ne crée aucun reward parrain.
 - [x] **Détection multi-comptes IP** — flag automatique si même IP qu'un autre filleul du parrain
 - [x] **Détection fingerprint** (champ `referee_fingerprint` capturé via header `X-Device-Fingerprint`)
 - [x] **Max 50 parrainages actifs par compte** — `MAX_ACTIVE_REFERRALS_PER_USER` enforced dans `createForNewUser`

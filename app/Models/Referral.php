@@ -21,6 +21,7 @@ class Referral extends Model
             'same_ip_as_referrer' => 'boolean',
             'validated_at'        => 'datetime',
             'flagged_at'          => 'datetime',
+            'email_verified_at'   => 'datetime',
         ];
     }
 

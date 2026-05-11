@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\Referral;
 use App\Models\ReferralReward;
+use App\Models\Setting;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -28,6 +30,13 @@ use RuntimeException;
 class ReferralService
 {
     public const MAX_ACTIVE_REFERRALS_PER_USER = 50;
+
+    /**
+     * Délai d'activité réelle avant que le filleul ne valide définitivement le
+     * parrainage (et déclenche les rewards parrain). Surchargeable via setting
+     * `referrals.activity_delay_days`.
+     */
+    public const ACTIVITY_DELAY_DAYS = 7;
 
     /**
      * Mapping trigger → liste de rewards à appliquer (currencies via RewardService).
@@ -88,8 +97,14 @@ class ReferralService
 
     /**
      * Appelé après la vérification email.
-     * - Marque validated
-     * - Crée les ReferralReward pour le filleul (starter pack)
+     *
+     * Marque `email_verified_at` sur le Referral et crée le starter pack pour
+     * le filleul. NE BASCULE PAS le status à `validated` — celui-ci attend
+     * une activité réelle de N jours (cf. `promoteIfActiveEnough`).
+     *
+     * Avant cette refonte, on basculait directement à `validated` ici, ce qui
+     * exposait à du churn (compte créé + email vérifié + jamais revenu →
+     * parrain gagnait des rewards sans rien valider de tangible).
      */
     public function validateOnEmailVerified(User $referee): ?Referral
     {
@@ -99,12 +114,12 @@ class ReferralService
         }
 
         return DB::transaction(function () use ($referral, $referee) {
-            $referral->update([
-                'status'       => Referral::STATUS_VALIDATED,
-                'validated_at' => now(),
-            ]);
+            if (! $referral->email_verified_at) {
+                $referral->update(['email_verified_at' => now()]);
+            }
 
-            // Reward filleul (starter pack)
+            // Starter pack au filleul — distribué dès la vérif email,
+            // pas conditionné au délai (incitation à finaliser l'onboarding).
             ReferralReward::firstOrCreate(
                 ['referral_id' => $referral->id, 'trigger' => ReferralReward::TRIGGER_REFEREE_EMAIL_VERIFIED],
                 [
@@ -114,8 +129,75 @@ class ReferralService
                 ]
             );
 
-            return $referral;
+            // Si on est déjà passé le délai (cas import / backfill), promouvoir tout de suite.
+            $this->promoteIfActiveEnough($referral->refresh());
+
+            return $referral->refresh();
         });
+    }
+
+    /**
+     * Vérifie si un parrainage en attente peut être promu à `validated` :
+     *  - email vérifié depuis ≥ ACTIVITY_DELAY_DAYS jours
+     *  - filleul revenu au moins une fois (last_active_at non null)
+     *
+     * Renvoie true si la promotion a eu lieu maintenant.
+     */
+    public function promoteIfActiveEnough(Referral $referral): bool
+    {
+        if ($referral->status !== Referral::STATUS_PENDING) {
+            return false;
+        }
+        if (! $referral->email_verified_at) {
+            return false;
+        }
+
+        $delayDays = (int) Setting::value('referrals.activity_delay_days', self::ACTIVITY_DELAY_DAYS);
+        $threshold = CarbonImmutable::parse($referral->email_verified_at)->addDays($delayDays);
+
+        if (now()->lt($threshold)) {
+            return false;
+        }
+
+        $referee = $referral->referee()->first();
+        if (! $referee || ! $referee->last_active_at) {
+            return false;
+        }
+
+        $referral->update([
+            'status'       => Referral::STATUS_VALIDATED,
+            'validated_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Balaye tous les parrainages en attente et promeut ceux qui satisfont
+     * la règle des N jours d'activité. Appelée par la commande
+     * `referrals:promote-active` (cron quotidien).
+     *
+     * @return int nombre de parrainages promus dans ce sweep
+     */
+    public function promoteActiveSweep(): int
+    {
+        $delayDays = (int) Setting::value('referrals.activity_delay_days', self::ACTIVITY_DELAY_DAYS);
+        $cutoff    = now()->subDays($delayDays);
+
+        $promoted = 0;
+        Referral::query()
+            ->where('status', Referral::STATUS_PENDING)
+            ->whereNotNull('email_verified_at')
+            ->where('email_verified_at', '<=', $cutoff)
+            ->chunkById(200, function ($batch) use (&$promoted) {
+                foreach ($batch as $referral) {
+                    if ($this->promoteIfActiveEnough($referral)) {
+                        $promoted++;
+                    }
+                }
+            });
+
+        return $promoted;
     }
 
     /**

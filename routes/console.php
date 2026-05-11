@@ -36,3 +36,15 @@ Schedule::command('leaderboard:reset --expired-only')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/leaderboard-reset.log'));
+
+// ─── Parrainage : sweep des promotions activité ─────────────────────
+// Promeut les Referral PENDING dont la vérif email date d'au moins 7j
+// (cf. ReferralService::ACTIVITY_DELAY_DAYS) et dont le filleul a été
+// actif (last_active_at non null). Sans ça, les rewards parrain
+// ne se débloquent jamais après la refonte du délai 7j.
+Schedule::command('referrals:promote-active')
+    ->dailyAt('03:15')
+    ->timezone('UTC')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/referrals-promote.log'));
