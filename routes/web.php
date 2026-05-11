@@ -151,6 +151,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('leaderboards/{season}/reset',[AdminLeaderboardController::class, 'reset'])->name('leaderboards.reset');
 
     // Missions & événements
+    Route::post('missions/{id}/restore', [AdminMissionController::class, 'restore'])
+        ->whereNumber('id')->name('missions.restore');
     Route::resource('missions', AdminMissionController::class);
 
     // Paramètres globaux
