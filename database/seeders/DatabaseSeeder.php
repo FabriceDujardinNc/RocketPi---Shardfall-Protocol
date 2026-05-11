@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             BannerSeeder::class,
             MissionSeeder::class,
             LeaderboardSeasonSeeder::class,
+            LeaderboardRewardSeeder::class,
             BattlePassSeeder::class,
             AchievementSeeder::class,
         ]);
