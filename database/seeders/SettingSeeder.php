@@ -14,6 +14,7 @@ class SettingSeeder extends Seeder
         ['key' => 'leaderboards_enabled', 'type' => 'bool', 'value' => '1', 'label' => 'Activer les classements'],
         ['key' => 'maintenance_message', 'type' => 'string', 'value' => 'RocketPi est en maintenance — retour estimé : ~30 min.', 'label' => "Message de maintenance affiché aux joueurs"],
         ['key' => 'announcement',        'type' => 'string', 'value' => '', 'label' => "Bannière d'annonce globale (vide = masquée)"],
+        ['key' => 'leaderboard.daily_cap', 'type' => 'int', 'value' => '5000', 'label' => 'Plafond de points classement gagnés par jour (anti-farm)'],
     ];
 
     public function run(): void

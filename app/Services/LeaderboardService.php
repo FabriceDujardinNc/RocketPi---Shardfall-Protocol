@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\LeaderboardEntry;
 use App\Models\LeaderboardReward;
 use App\Models\LeaderboardSeason;
+use App\Models\Setting;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Redis;
@@ -32,18 +33,59 @@ class LeaderboardService
     }
 
     /**
+     * Clé Redis tracking le total de points classement gagnés par un joueur
+     * dans une saison, sur un jour UTC donné. Utilisée pour le plafond anti-farm.
+     */
+    public function dailyKey(int $seasonId, int $userId, ?string $date = null): string
+    {
+        $date ??= CarbonImmutable::now('UTC')->toDateString();
+        return "leaderboard:daily:{$seasonId}:{$userId}:{$date}";
+    }
+
+    /**
      * Ajoute des points à un joueur dans une saison active.
-     * Crée l'entry si absente.
+     *
+     * Applique le plafond quotidien `leaderboard.daily_cap` (setting BDD,
+     * défaut 5000). Si le total cumulé sur la journée dépasse le cap,
+     * on ne crédite que ce qui rentre encore — au-delà, on no-op.
+     *
+     * @return int score total après ajout (0 si rejeté, ou même score qu'avant si déjà au cap)
      */
     public function addPoints(User $user, LeaderboardSeason $season, int $points): int
     {
         if ($points <= 0 || ! $season->is_active) {
-            return 0;
+            return $this->scoreOf($user, $season);
+        }
+
+        $cap = (int) Setting::value('leaderboard.daily_cap', 5000);
+
+        if ($cap > 0) {
+            $dailyKey = $this->dailyKey($season->id, $user->id);
+            $earnedToday = (int) (Redis::get($dailyKey) ?? 0);
+
+            if ($earnedToday >= $cap) {
+                return $this->scoreOf($user, $season);
+            }
+
+            $points = min($points, $cap - $earnedToday);
+
+            Redis::incrby($dailyKey, $points);
+            // 36h d'expiration : couvre les fuseaux et le rollover minuit UTC
+            Redis::expire($dailyKey, 36 * 3600);
         }
 
         $newScore = (int) Redis::zincrby($this->key($season->id), $points, (string) $user->id);
 
         return $newScore;
+    }
+
+    /**
+     * Combien de points ce joueur a-t-il déjà gagné aujourd'hui (UTC) ?
+     * Utile pour afficher le cap en UI.
+     */
+    public function dailyEarned(User $user, LeaderboardSeason $season): int
+    {
+        return (int) (Redis::get($this->dailyKey($season->id, $user->id)) ?? 0);
     }
 
     /**
