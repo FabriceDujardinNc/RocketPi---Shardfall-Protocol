@@ -626,3 +626,115 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] **`README.md` projet** — présentation, install, déploiement, design system, monétisation, roadmap, tests, licence
 - [x] **`LICENSE`** — Tous droits réservés (propriétaire)
 - [ ] CI/CD GitHub Actions (optionnel — lint + tests)
+
+---
+
+## 18. Responsive design (priorité haute)
+
+**Objectif** : toutes les pages doivent être utilisables et lisibles sur mobile (375px+), tablette (768px+), desktop (1280px+). Pas de scroll horizontal, pas d'éléments coupés.
+
+### Audit pages joueur
+- [ ] `/dashboard` — cartes stats + sections doivent se réorganiser sm/md/lg
+- [ ] `/gacha` (liste + détail) — header devient compact sur mobile, boutons pleine largeur
+- [ ] `/factions` index + show — grille opérateurs collapse en 1 col sur mobile
+- [ ] `/collection` — grille adaptive (1/2/3/4 cols selon viewport)
+- [ ] `/operators/{slug}` — stats + abilities sur 1 col en mobile, 2 col tablette
+- [ ] `/cosmetics` — grille adaptive, tabs scrollables horizontalement
+- [ ] `/missions` + `/achievements` — cartes 1 col mobile
+- [ ] `/battlepass` — roadmap horizontale scrollable, sticky info panel
+- [ ] `/leaderboard` + `/leaderboard/history` — table responsive (cards en mobile)
+- [ ] `/shop` — packs + exchanges 1/2/3 cols
+- [ ] `/referral` — partage social + tableaux stats
+- [ ] `/profile` + `/profile/{slug}` — avatar + infos collapsent
+- [ ] `/play` — Unity canvas s'adapte (Phase 4)
+
+### Audit pages admin
+- [ ] `/admin` dashboard — sidebar collapsible en mobile (hamburger)
+- [ ] Tables admin (Operators, Banners, Players, etc.) — passer en cards sur mobile ou scroll horizontal
+- [ ] Forms admin (Operator/Banner/BP/etc.) — labels au-dessus des inputs en mobile
+- [ ] `/admin/factions/{slug}` show — grille opérateurs responsive
+
+### Audit pages auth
+- [ ] `/login` `/register` `/forgot-password` — formulaires centrés, lisibles 375px+
+- [ ] `/register` étape factions — passe en 1 col sur mobile (`grid-cols-1 sm:grid-cols-3`)
+
+### Header / Navigation
+- [ ] PlayerLayout header — menu hamburger en mobile, drawer latéral
+- [ ] AdminLayout sidebar — collapsible
+- [ ] Affichage faction + niveau + currencies → compact en mobile
+
+### Composants
+- [ ] Modal / Drawer — full-screen sur mobile
+- [ ] Table → cards stack en breakpoint sm
+- [ ] CurrencyDisplay header → icônes seules sur mobile (label en tooltip)
+- [ ] Tabs scrollables horizontalement
+
+### Process
+- [ ] Test régression manuelle 3 viewports : mobile (iPhone SE 375), tablette (iPad 768), desktop (1280) sur chaque page modifiée
+- [ ] Playwright visual snapshots responsive (optionnel — Phase 5)
+
+---
+
+## 19. SEO — priorité haute
+
+**Objectif** : référencement Google sur les mots-clés gacha / hero shooter / Shardfall + indexabilité des pages publiques (lore, factions, opérateurs, profils partagés).
+
+### Méta tags & Open Graph
+- [ ] `<title>` unique et descriptif par page (actuellement `<Head title=...>` partiellement) — gabarit `{page} — RocketPi: Shardfall Protocol`
+- [ ] `<meta name="description">` (155 chars max) sur chaque page publique — Home, factions, opérateurs, profils
+- [ ] `<meta name="keywords">` (facultatif mais utile) — gacha, hero shooter, Shardfall, RocketPi
+- [ ] **Open Graph** : `og:title`, `og:description`, `og:image`, `og:url`, `og:type=website|article`
+- [ ] **Twitter Cards** : `twitter:card=summary_large_image`, `twitter:title`, `twitter:description`, `twitter:image`
+- [ ] `<link rel="canonical">` sur chaque page (évite duplicate content)
+- [ ] `<html lang="fr">` (déjà OK ? à vérifier)
+
+### Pages publiques accessibles sans auth
+- [ ] Landing `/` — pitch + factions + CTA register, contenu indexable
+- [ ] `/factions` public — détail des 3 factions avec lore complet (déjà visible si auth, à exposer hors auth)
+- [ ] `/operators/{slug}` — fiche opérateur publique (lore, stats, faction) — *attention SEO sensible : ne pas exposer affinité joueur*
+- [ ] `/profile/{slug}` public — vitrine joueur (déjà existe, vérifier indexabilité)
+- [ ] `/leaderboard` public top 100 — argument trafic
+- [ ] `/about` / `/lore` — page narrative du Shardfall (à créer)
+
+### Sitemap & robots
+- [ ] `public/sitemap.xml` généré dynamiquement (artisan command + cron) — incluant factions, opérateurs publiés, leaderboard, lore pages
+- [ ] `public/robots.txt` — Allow public pages, Disallow `/admin`, `/dashboard`, `/profile/edit`, etc.
+- [ ] Soumettre sitemap à Google Search Console
+
+### Structured data (JSON-LD)
+- [ ] `Organization` schema sur la home
+- [ ] `WebSite` + `SearchAction` schema
+- [ ] `VideoGame` schema (genre, platform, publisher, gameplayMode)
+- [ ] `Person` schema sur profils publics
+- [ ] `BreadcrumbList` sur les pages internes profondes
+
+### URLs propres
+- [x] **Slugs partout** (déjà fait) — `/operators/vex-vx-01`, `/factions/orbit`, `/profile/fabrice`
+- [ ] Pas d'IDs dans les URLs publiques
+- [ ] Trailing slash policy cohérente (Laravel par défaut : pas de trailing slash)
+- [ ] Redirections 301 propres si refacto d'URLs
+
+### Performance Core Web Vitals
+- [ ] LCP < 2.5s — images optimisées (WebP/AVIF), preload des hero images
+- [ ] CLS < 0.1 — dimensions explicites sur tous les `<img>`, pas de layout shift
+- [ ] INP < 200ms — pas de JS bloquant pendant l'interaction
+- [ ] Lazy-load des images sous la fold (`loading="lazy"`)
+- [ ] Code splitting Inertia par page (déjà partiel via Vite)
+
+### Accessibilité (impact SEO)
+- [ ] `alt` sur toutes les images (portraits opérateurs, banner_image_url)
+- [ ] Hiérarchie `<h1>` `<h2>` cohérente
+- [ ] `aria-label` sur boutons icon-only
+- [ ] Contraste WCAG AA minimum (déjà OK design system mais à valider)
+- [ ] Navigation clavier complète (focus visible)
+
+### Indexation
+- [ ] HTTPS partout (déjà OK)
+- [ ] Pas de `noindex` accidentel
+- [ ] Vitesse FCP < 1.8s
+- [ ] Pré-rendu SSR ou meta tags injectés serveur (Inertia → vérifier que `<Head>` soit bien rendu côté serveur sinon : prerender + cache)
+
+### Outillage
+- [ ] Lighthouse CI dans le pipeline (Phase 5)
+- [ ] Google Search Console + Bing Webmaster Tools configurés
+- [ ] Suivi positionnement mots-clés (Plausible / Matomo + SE Ranking ou similaire)
