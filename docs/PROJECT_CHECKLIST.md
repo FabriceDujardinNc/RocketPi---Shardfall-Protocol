@@ -214,7 +214,7 @@
 ### Storybook
 - [x] **Configuration `.storybook/`** — `main.ts` (glob `Components/**/*.stories.tsx`) + `preview.tsx` (Tailwind 4 chargé, backgrounds dark/elev1/light)
 - [x] **Première story** (`Button.stories.tsx` — 5 variants × 3 sizes + icon + loading + roster comparatif)
-- [~] Stories pour tous les composants — **9 stories couvertes** (Button, OperatorCard, BattlePassNode, **Alert, Badge, Card, Input, Toggle, RarityBadge**), reste ~23 composants à couvrir
+- [x] **Stories pour tous les composants** — **32 stories / 32 composants** (100% couverture). UI : Alert, Avatar, Badge, Button, Card, Checkbox, Drawer, Input, Modal, Pagination, Progress, Radio, Select, Skeleton, Spinner, Table, Tabs, Toast, Toggle, Tooltip. Game : AffinityMeter, BannerCard, BattlePassNode, CurrencyDisplay, FactionBadge, GachaPullAnimation, LeaderboardRow, MissionCard, OperatorCard, PityCounter, RankBadge, RarityBadge. Build storybook clean.
 
 ### MCP Design System (phase 3+)
 - [ ] `list_components()`
