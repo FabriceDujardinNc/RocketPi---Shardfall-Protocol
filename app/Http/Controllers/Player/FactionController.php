@@ -44,7 +44,7 @@ class FactionController extends Controller
         $operators = $faction->operators()
             ->orderByDesc('rarity')
             ->orderBy('name')
-            ->get(['id', 'name', 'codename', 'role', 'rarity', 'portrait_url', 'is_available']);
+            ->get(['id', 'slug', 'name', 'codename', 'role', 'rarity', 'portrait_url', 'is_available']);
 
         $ownedIds = PlayerOperator::where('user_id', $user->id)
             ->whereIn('operator_id', $operators->pluck('id'))

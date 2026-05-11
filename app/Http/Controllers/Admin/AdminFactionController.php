@@ -28,7 +28,7 @@ class AdminFactionController extends Controller
         $operators = $faction->operators()
             ->orderBy('rarity', 'desc')   // legendary → common
             ->orderBy('name')
-            ->get(['id', 'name', 'codename', 'role', 'rarity', 'is_available', 'is_rate_up', 'portrait_url']);
+            ->get(['id', 'slug', 'name', 'codename', 'role', 'rarity', 'is_available', 'is_rate_up', 'portrait_url']);
 
         $byRarity = $operators->groupBy('rarity')->map->values()->toArray();
 
