@@ -155,6 +155,39 @@ class ReferralService
         }
     }
 
+    /**
+     * Premier achat payant du filleul → +50% des shards dépensés crédités au
+     * parrain (one-shot par filleul). Appelé depuis ShopService::purchasePack.
+     */
+    public function registerFirstPurchase(User $referee, int $shardsSpent): ?ReferralReward
+    {
+        if ($shardsSpent <= 0) {
+            return null;
+        }
+
+        $referral = Referral::where('referee_id', $referee->id)
+            ->whereIn('status', [Referral::STATUS_VALIDATED, Referral::STATUS_REWARDED])
+            ->first();
+        if (! $referral) {
+            return null;
+        }
+
+        $existing = ReferralReward::where('referral_id', $referral->id)
+            ->where('trigger', ReferralReward::TRIGGER_REFEREE_FIRST_PURCHASE)
+            ->first();
+        if ($existing) {
+            return null;
+        }
+
+        return ReferralReward::create([
+            'referral_id'    => $referral->id,
+            'beneficiary_id' => $referral->referrer_id,
+            'trigger'        => ReferralReward::TRIGGER_REFEREE_FIRST_PURCHASE,
+            'reward_type'    => 'shards',
+            'reward_amount'  => (int) floor($shardsSpent * 0.5),
+        ]);
+    }
+
     public function claim(User $user, ReferralReward $reward, ?string $ipAddress = null): array
     {
         if ($reward->beneficiary_id !== $user->id) {
@@ -164,9 +197,9 @@ class ReferralService
             throw new RuntimeException('Récompense déjà réclamée.');
         }
 
-        $rewardsList = self::REWARDS_BY_TRIGGER[$reward->trigger] ?? null;
-        if (! $rewardsList) {
-            throw new RuntimeException("Trigger inconnu: {$reward->trigger}");
+        $rewardsList = $this->rewardsListFor($reward);
+        if (empty($rewardsList)) {
+            throw new RuntimeException("Trigger inconnu ou récompense vide: {$reward->trigger}");
         }
 
         return DB::transaction(function () use ($user, $reward, $rewardsList, $ipAddress) {
@@ -202,10 +235,25 @@ class ReferralService
                 'id'          => $r->id,
                 'trigger'     => $r->trigger,
                 'reward_type' => $r->reward_type,
-                'rewards'     => self::REWARDS_BY_TRIGGER[$r->trigger] ?? [],
+                'rewards'     => $this->rewardsListFor($r),
                 'created_at'  => $r->created_at,
                 'referee'     => $r->referral?->referee?->only(['id', 'name', 'display_name']),
             ])
             ->toArray();
+    }
+
+    /**
+     * Pour les triggers à reward fixe, on lit REWARDS_BY_TRIGGER.
+     * Pour le first_purchase (montant dynamique), on lit reward_type/amount sur la ligne.
+     */
+    private function rewardsListFor(ReferralReward $reward): array
+    {
+        if ($reward->trigger === ReferralReward::TRIGGER_REFEREE_FIRST_PURCHASE) {
+            return [[
+                'type'   => $reward->reward_type ?: 'shards',
+                'amount' => (int) ($reward->reward_amount ?? 0),
+            ]];
+        }
+        return self::REWARDS_BY_TRIGGER[$reward->trigger] ?? [];
     }
 }

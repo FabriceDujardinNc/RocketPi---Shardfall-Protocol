@@ -20,7 +20,10 @@ use RuntimeException;
  */
 class ShopService
 {
-    public function __construct(private readonly RewardService $rewards) {}
+    public function __construct(
+        private readonly RewardService $rewards,
+        private readonly ReferralService $referrals,
+    ) {}
 
     /**
      * Liste statique des packs disponibles. À déplacer en BDD plus tard
@@ -114,6 +117,12 @@ class ShopService
             }
 
             $this->rewards->apply($user, $pack['rewards'], "shop:{$packId}", null, $ipAddress);
+
+            // Hook parrainage : premier achat payant du filleul → +50% prem au parrain.
+            // registerFirstPurchase est idempotent (no-op si la ligne existe déjà).
+            if ($price > 0) {
+                $this->referrals->registerFirstPurchase($user, $price);
+            }
 
             return [
                 'pack_id' => $packId,

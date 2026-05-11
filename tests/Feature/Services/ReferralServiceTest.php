@@ -187,3 +187,43 @@ it('pendingRewardsFor returns only unclaimed rewards for the user', function () 
     $svc->claim($referee, ReferralReward::first());
     expect($svc->pendingRewardsFor($referee))->toHaveCount(0);
 });
+
+it('registerFirstPurchase credits 50% of shards spent to the referrer (one-shot)', function () {
+    $referrer = makeUser();
+    $referee  = makeUser();
+    $svc = app(ReferralService::class);
+
+    $referral = $svc->createForNewUser($referrer, $referee, '2.2.2.2');
+    $referral->update(['status' => Referral::STATUS_VALIDATED, 'validated_at' => now()]);
+
+    $first = $svc->registerFirstPurchase($referee, 500);
+    expect($first)->not->toBeNull();
+    expect($first->beneficiary_id)->toBe($referrer->id);
+    expect($first->reward_type)->toBe('shards');
+    expect($first->reward_amount)->toBe(250);
+
+    // Idempotent : pas de double row
+    $second = $svc->registerFirstPurchase($referee, 1000);
+    expect($second)->toBeNull();
+    expect(ReferralReward::where('trigger', ReferralReward::TRIGGER_REFEREE_FIRST_PURCHASE)->count())->toBe(1);
+});
+
+it('registerFirstPurchase is a no-op when referee has no validated referral', function () {
+    $referee = makeUser();
+    expect(app(ReferralService::class)->registerFirstPurchase($referee, 500))->toBeNull();
+});
+
+it('referrer can claim the first-purchase reward with dynamic shards amount', function () {
+    $referrer = makeUser();
+    $referee  = makeUser();
+    $svc = app(ReferralService::class);
+
+    $referral = $svc->createForNewUser($referrer, $referee, '3.3.3.3');
+    $referral->update(['status' => Referral::STATUS_VALIDATED, 'validated_at' => now()]);
+    $reward = $svc->registerFirstPurchase($referee, 800);
+
+    $svc->claim($referrer, $reward);
+
+    expect(Currency::where('user_id', $referrer->id)->where('type', 'shards')->value('balance'))->toBe(400);
+    expect($reward->fresh()->claimed)->toBeTrue();
+});
