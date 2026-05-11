@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import PlayerLayout from '@/Layouts/PlayerLayout';
+import { Layers } from 'lucide-react';
 
 interface Faction {
     slug: string;
@@ -12,16 +13,31 @@ interface Faction {
 }
 
 export default function PlayerFactionsIndex({ factions }: { factions: Faction[] }) {
+    const totalOwned = factions.reduce((s, f) => s + f.operators_owned, 0);
+    const totalOps   = factions.reduce((s, f) => s + f.operators_count, 0);
+
     return (
         <>
             <Head title="Factions" />
-            <header className="mb-8">
-                <p className="font-display text-xs uppercase tracking-mega text-shard-400">Univers RocketPi</p>
-                <h1 className="font-display font-bold text-3xl uppercase tracking-wide mt-1">Les trois factions</h1>
-                <p className="text-text-medium text-sm mt-2 max-w-2xl">
-                    Après le Shardfall, trois courants se sont structurés autour des survivants exposés aux Shards.
-                    Choisis-en un pour voir son lore complet et la collection d'opérateurs qui le compose.
-                </p>
+            <header className="mb-8 flex items-end justify-between flex-wrap gap-4">
+                <div>
+                    <p className="font-display text-xs uppercase tracking-mega text-shard-400">Univers RocketPi</p>
+                    <h1 className="font-display font-bold text-3xl uppercase tracking-wide mt-1">Les trois factions</h1>
+                    <p className="text-text-medium text-sm mt-2 max-w-2xl">
+                        Après le Shardfall, trois courants se sont structurés autour des survivants exposés aux Shards.
+                        Choisis-en un pour voir son lore complet et la collection d'opérateurs qui le compose.
+                    </p>
+                </div>
+                <Link
+                    href="/collection"
+                    className="rounded-lg bg-bg-elev1 border border-shard-500/40 hover:bg-bg-elev2 hover:border-shard-400 p-4 flex items-center gap-3 transition-all duration-fast group"
+                >
+                    <Layers size={28} className="text-shard-400 group-hover:text-shard-300" />
+                    <div>
+                        <p className="font-display text-sm uppercase tracking-wide text-text-high">Ma collection complète</p>
+                        <p className="font-mono text-xs text-text-low mt-0.5">{totalOwned} / {totalOps} opérateurs débloqués</p>
+                    </div>
+                </Link>
             </header>
 
             <section className="grid md:grid-cols-3 gap-6">

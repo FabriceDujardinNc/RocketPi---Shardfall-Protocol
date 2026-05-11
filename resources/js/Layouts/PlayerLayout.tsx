@@ -3,7 +3,6 @@ import { type PropsWithChildren } from 'react';
 
 const NAV = [
     { href: '/dashboard',    label: 'Dashboard' },
-    { href: '/collection',   label: 'Collection' },
     { href: '/factions',     label: 'Factions' },
     { href: '/gacha',        label: 'Gacha' },
     { href: '/missions',     label: 'Missions' },

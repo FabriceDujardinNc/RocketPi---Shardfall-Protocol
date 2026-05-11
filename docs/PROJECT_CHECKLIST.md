@@ -41,7 +41,7 @@
 
 ### Tooling
 - [x] Node.js 22 LTS
-- [x] **Pest 4.7** installé + **11 fichiers de tests (110 tests / 254 assertions, tous au vert)** — couverture 100% des services métier + policies : XpService (6) / DailyLoginService (8 + fix SQLite `whereDate`) / GachaService (12) / MissionService (8) / AffinityService (7) / AchievementService (8) / ShopService (6) / BattlePassService (14) / **LeaderboardService (13 — Redis DB 15 isolée)** / **ReferralService (15 — incluant first-purchase)** / **AuthorizationTest (10 — Policies + Gates)**
+- [x] **Pest 4.7** installé + **17 fichiers de tests (160 tests / 476 assertions, tous au vert)** — couverture services métier + policies + admin CRUD + pages joueur : XpService (6) / DailyLoginService (8 + fix SQLite `whereDate`) / GachaService (12) / MissionService (8) / AffinityService (7) / AchievementService (8) / ShopService (6) / BattlePassService (14) / **LeaderboardService (13 — Redis DB 15 isolée)** / **ReferralService (15 — incluant first-purchase)** / **AuthorizationTest (10 — Policies + Gates)** / **AdminOperatorControllerTest (9)** / **AdminBannerControllerTest (10 — incluant somme des taux = 1)** / **AdminMissionControllerTest (7)** / **AdminBattlePassControllerTest (10 — incluant anti-overlap dates)** / **AdminDailyLoginRewardControllerTest (5)** / **AdminFactionControllerTest (6)** / **Player FactionPageTest (3)**
 - [x] **Isolation tests durcie** — `tests/bootstrap.php` force `$_SERVER`/`$_ENV`/`putenv` avant l'autoload (PHPUnit `<env force>` ne touche pas `$_SERVER`, donc Docker injection prenait le dessus → les tests `RefreshDatabase` essuyaient la dev MySQL).
 - [x] Vitest (déps installées)
 - [x] **Storybook 9 + premières stories** — `.storybook/main.ts` + `preview.tsx`, 3 stories : Button (5 variants × 3 sizes + icon/loading), OperatorCard (4 raretés + roster grid), BattlePassNode (locked/unlocked/claimed/premium + roadmap). Storybook 8 ne supporte pas Vite 8 (peer dep `^4 || ^5 || ^6`), Storybook 9 installé avec `--legacy-peer-deps` ; `npm run build-storybook` passe (9.5s).
@@ -230,7 +230,8 @@
 - [x] cache (Laravel)
 - [x] jobs (Laravel)
 - [x] personal_access_tokens (Sanctum)
-- [x] operators
+- [x] operators (+ `lore_unlocks` JSON par palier d'affinité, ajout 11/05/2026 — éditable depuis l'admin)
+- [x] **factions** (slug PK ORBIT/FERRO/VEIL, name, tagline, lore, color_hue OKLCH, accent_class, banner_image_url, icon_url — ajout 11/05/2026)
 - [x] banners
 - [x] gacha_pulls (audit-legal, immutable)
 - [x] player_operators
@@ -238,6 +239,7 @@
 - [x] transactions (append-only)
 - [x] referrals + referral_rewards
 - [x] daily_logins
+- [x] **daily_login_rewards** (day_number unique 1-365, rewards JSON, is_milestone, label — sort la const PHP vers la BDD, admin-éditable, ajout 11/05/2026)
 - [x] missions + mission_progress
 - [x] battle_passes + battle_pass_tiers + battle_pass_progress
 - [x] operator_affinities
@@ -253,10 +255,13 @@
 
 - [x] `DatabaseSeeder` (orchestrateur)
 - [x] `AdminUserSeeder` — admin via .env + **Fabrice** (`fabricedujardin873@gmail.com` / `dev1234`, super_admin) + 3 comptes test dev (admin, player, banned) seedés en local uniquement
-- [x] `OperatorSeeder` (8 opérateurs avec lore + abilities complets)
+- [x] **`FactionSeeder`** (ORBIT/FERRO/VEIL avec lore + couleur hue OKLCH)
+- [x] `OperatorSeeder` (8 opérateurs avec lore + abilities complets + **lore_unlocks 5 paliers backfillés**)
 - [x] `BannerSeeder` (bannière permanente + 1 événementielle)
 - [x] `MissionSeeder` (5 missions ≥ 3 demandées)
 - [x] `LeaderboardSeasonSeeder` (6 saisons ≥ 1 demandée)
+- [x] `LeaderboardRewardSeeder` (36 rewards = 6 tiers × 6 saisons actives)
+- [x] **`DailyLoginRewardSeeder`** (paliers J1/J7/J15/J30 reproduits depuis l'ancienne const PHP)
 
 ### Modèles Eloquent (créés au fil du seeding/gacha)
 - [x] `User` (avec MustVerifyEmail + helpers + booted hook referral_code)
@@ -340,7 +345,8 @@
 
 ### Player — `resources/js/Pages/Player/`
 - [x] Dashboard.tsx (stub avec stats grid)
-- [x] Collection.tsx (stub)
+- [x] Collection.tsx (stub) — **rétrogradée en sous-page de Factions** (lien depuis `/factions` plutôt que top-level nav)
+- [x] **Factions/Index + Show** (3 cards avec lore+couleur+collection count, page show groupée par rareté avec indicateur owned/locked façon pokédex)
 - [x] Gacha.tsx + GachaBanner.tsx (stubs)
 - [x] Shop.tsx (stub)
 - [x] Leaderboard.tsx (stub)
@@ -353,16 +359,19 @@
 
 ### Admin — `resources/js/Pages/Admin/`
 - [x] Dashboard.tsx (stats globales)
-- [x] Operators (Index, Create, Show, Edit)
-- [x] Banners (Index, Create, Show, Edit)
+- [x] **Operators full CRUD** (Index filtrable + Create + Edit avec form complet + lore_unlocks 5 paliers + Show + soft delete + restore)
+- [x] **Banners full CRUD** (idem + rate-up multi-select operators + somme des taux = 1.0000 + activate toggle + soft delete)
 - [x] Players (Index avec recherche fonctionnelle, Show avec ban/unban)
-- [x] GachaLogs.tsx (audit légal, filtrable)
+- [x] GachaLogs.tsx (audit légal, filtrable + export CSV)
 - [x] Referrals.tsx (détection patterns suspects)
-- [x] Missions (Index, Create, Show, Edit)
+- [x] **Missions full CRUD** (filtres + form rewards dynamiques + xp_reward + soft delete + restore)
 - [x] Leaderboards (Index, Show, reset)
-- [x] Settings.tsx (configuration globale)
+- [x] **Battle Pass full CRUD** (saisons avec anti-overlap dates + éditeur 50 paliers en bulk-update + milestones + filter all/milestones)
+- [x] **Factions admin** (3 cards éditables avec lore + couleur OKLCH + page Show listant les ops de la faction groupés par rareté)
+- [x] **Daily login rewards** (table éditable inline avec create/edit/delete par jour + fallback service sur défaut)
+- [x] Settings.tsx (configuration globale — stub, à câbler en Lot C)
 - [ ] Moderation.tsx (signalements, sanctions) — Phase 5
-- [ ] Events / BattlePass admin pages — Phase 3
+- [ ] Events / Achievements / Leaderboard seasons CRUD — Lot B en cours
 
 ### Layouts — `resources/js/Layouts/`
 - [x] GuestLayout

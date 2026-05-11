@@ -42,9 +42,15 @@ export default function PlayerFactionShow({ faction, byRarity, stats }: Props) {
         <>
             <Head title={faction.name} />
 
-            <Link href="/factions" className="font-mono text-xs text-text-low hover:text-text-medium inline-flex items-center gap-1 mb-4">
-                <ArrowLeft size={12} /> Toutes les factions
-            </Link>
+            <div className="flex items-center gap-4 mb-4 flex-wrap">
+                <Link href="/factions" className="font-mono text-xs text-text-low hover:text-text-medium inline-flex items-center gap-1">
+                    <ArrowLeft size={12} /> Toutes les factions
+                </Link>
+                <span className="text-text-low">·</span>
+                <Link href="/collection" className="font-mono text-xs text-text-low hover:text-shard-400">
+                    Ma collection complète →
+                </Link>
+            </div>
 
             <header className="mb-8 rounded-lg p-8 border-2 relative overflow-hidden"
                 style={{ borderColor: `oklch(0.55 0.15 ${faction.color_hue} / 0.5)` }}>
