@@ -588,17 +588,17 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 ## 15. Sécurité — règles non-négociables
 
 - [x] Aucun port DB/Redis exposé internet (config Docker)
-- [ ] Serveur Laravel = seule source de vérité (à vérifier au fil de l'implémentation)
-- [ ] Aucun calcul sensible côté client (drops/monnaie/XP/points)
-- [ ] Transactions MySQL atomiques avec verrouillage (gacha)
-- [ ] Stripe webhooks (achats)
-- [ ] Rate limiting API sensibles
-- [ ] Logs horodatés gacha (audit légal)
-- [ ] Logs horodatés matchs classés (audit légal)
-- [ ] Middleware admin sur `/admin/*`
+- [x] **Serveur Laravel = seule source de vérité** — toutes les sources de drops/XP/monnaie/score passent par les services backend (GachaService, XpService, RewardService, LeaderboardService, BattlePassService, MissionService)
+- [x] **Aucun calcul sensible côté client** — pages React n'affichent que des résultats déjà calculés serveur, jamais de logique de drop ou de gain
+- [x] **Transactions MySQL atomiques avec verrouillage (gacha)** — `GachaService::pull()` enroule tout dans `DB::transaction` + `lockForUpdate` sur `PityCounter` et `Currency`. Pattern réutilisé dans `ShopService::redeemFragments`, `AdminPlayerController::grantCurrency`, `BattlePassService::claim`, `RewardService::apply`
+- [ ] Stripe webhooks (achats) — Phase 5 avec Cashier
+- [x] **Rate limiting API sensibles** — `throttle:6,1` sur résend email, `throttle:60,60` sur gacha, `throttle:10,1` sur auth (login/register)
+- [x] **Logs horodatés gacha (audit légal)** — table `gacha_pulls` immuable, timestamps + IP + session_id + pity_state + was_pity_hit/soft_pity/rate_up, jamais d'UPDATE/DELETE
+- [ ] Logs horodatés matchs classés (audit légal) — Phase 4 (PvP)
+- [x] **Middleware admin sur `/admin/*`** — `EnsureUserIsAdmin` vérifie role ∈ {admin, super_admin}, abort 403 sinon, monté sur tout le groupe `admin.*`
 - [ ] 2FA admin recommandée
-- [ ] Logs actions admin
-- [ ] Routes admin séparées
+- [x] **Logs actions admin** — `Transaction::reason='admin_grant'` log chaque grantCurrency avec admin#id + IP + description, `User::is_banned/ban_reason/banned_at` audite chaque ban
+- [x] **Routes admin séparées** — groupe `Route::middleware(['auth','admin'])->prefix('admin')->name('admin.')->group(...)` isole toute l'admin sous `/admin/*`
 - [ ] phpMyAdmin auth HTTP (dev + prod)
 - [ ] phpMyAdmin IP whitelist (prod uniquement)
 
