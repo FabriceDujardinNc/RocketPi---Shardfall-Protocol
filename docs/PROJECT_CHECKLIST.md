@@ -26,7 +26,7 @@
 - [x] Tailwind CSS 4
 - [x] Laravel Sanctum (composer.json `^4.3`, migration personal_access_tokens créée)
 - [x] Laravel Horizon (composer.json `^5.46`)
-- [ ] Laravel Policies + Gates configurés
+- [x] **Laravel Policies + Gates configurés** — `AppServiceProvider::boot()` enregistre 6 gates (`access-admin`, `manage-content`, `view-gacha-logs`, `flag-referrals`, `reset-leaderboards`, `change-roles`) + `Gate::before` super_admin (sauf `ban`/`promote`). `UserPolicy` (view, update, ban, promote) et `ReferralRewardPolicy` (claim) câblées dans `AdminPlayerController::ban/unban` et `ReferralController::claim`. 10 tests Pest couvrent la matrice rôles + bénéficiaire.
 - [x] Vite 8 (compat plugin-react 6.x)
 - [x] Panel admin : Inertia + React main (pas de Filament)
 
@@ -41,9 +41,10 @@
 
 ### Tooling
 - [x] Node.js 22 LTS
-- [x] **Pest 4.7** installé + **10 fichiers de tests services (95 tests / 215 assertions, tous au vert)** — couverture 100% des services métier : XpService (6) / DailyLoginService (8) / GachaService (12) / MissionService (8) / AffinityService (7) / AchievementService (8) / ShopService (6) / BattlePassService (14) / **LeaderboardService (13 — Redis DB 15 isolée)** / **ReferralService (12)**
+- [x] **Pest 4.7** installé + **11 fichiers de tests (110 tests / 254 assertions, tous au vert)** — couverture 100% des services métier + policies : XpService (6) / DailyLoginService (8 + fix SQLite `whereDate`) / GachaService (12) / MissionService (8) / AffinityService (7) / AchievementService (8) / ShopService (6) / BattlePassService (14) / **LeaderboardService (13 — Redis DB 15 isolée)** / **ReferralService (15 — incluant first-purchase)** / **AuthorizationTest (10 — Policies + Gates)**
+- [x] **Isolation tests durcie** — `tests/bootstrap.php` force `$_SERVER`/`$_ENV`/`putenv` avant l'autoload (PHPUnit `<env force>` ne touche pas `$_SERVER`, donc Docker injection prenait le dessus → les tests `RefreshDatabase` essuyaient la dev MySQL).
 - [x] Vitest (déps installées)
-- [ ] Storybook 8 (config `.storybook/`)
+- [x] **Storybook 9 + premières stories** — `.storybook/main.ts` + `preview.tsx`, 3 stories : Button (5 variants × 3 sizes + icon/loading), OperatorCard (4 raretés + roster grid), BattlePassNode (locked/unlocked/claimed/premium + roadmap). Storybook 8 ne supporte pas Vite 8 (peer dep `^4 || ^5 || ^6`), Storybook 9 installé avec `--legacy-peer-deps` ; `npm run build-storybook` passe (9.5s).
 - [x] Code versionné GitHub
 - [x] Procédure `git pull && docker compose up -d --build`
 - [x] **ESLint 9** flat config — interdit `bg-[#hex]`, `mt-[13px]`, inline `style={{color:'#hex'}}` (no-restricted-syntax)
@@ -67,9 +68,9 @@
 - [ ] Stack dev déployée dans `/opt/rocketpi-test/` (pas encore de stack dev séparée)
 - [ ] phpMyAdmin sécurisé : auth HTTP basique sur dev
 - [ ] phpMyAdmin sécurisé : auth HTTP + IP whitelist sur prod
-- [ ] Sauvegardes auto MySQL (cron dump)
-- [ ] Sauvegardes auto Redis (snapshots)
-- [ ] **`docs/VPS_SETUP.md` rédigé pas à pas**
+- [ ] Sauvegardes auto MySQL (cron dump) — script + crontab fournis dans `docs/VPS_SETUP.md` §8, reste à activer sur le VPS
+- [ ] Sauvegardes auto Redis (snapshots) — idem (RDB déjà actif, copie cron à scheduler)
+- [x] **`docs/VPS_SETUP.md` rédigé pas à pas** — 12 sections (DNS, système, UFW, Caddy, stack appli, build assets, seeders, sauvegardes, phpMyAdmin durci, logs, déploiement, checklist post-install)
 
 ---
 
@@ -210,9 +211,9 @@
 - [x] CurrencyDisplay (3 monnaies avec icônes)
 
 ### Storybook
-- [ ] Configuration `.storybook/`
-- [ ] Première story (`Button.stories.tsx`)
-- [ ] Stories pour tous les composants (à activer dès 15+ composants)
+- [x] **Configuration `.storybook/`** — `main.ts` (glob `Components/**/*.stories.tsx`) + `preview.tsx` (Tailwind 4 chargé, backgrounds dark/elev1/light)
+- [x] **Première story** (`Button.stories.tsx` — 5 variants × 3 sizes + icon + loading + roster comparatif)
+- [~] Stories pour tous les composants — 3 stubs (Button, OperatorCard, BattlePassNode), reste 29 composants à couvrir
 
 ### MCP Design System (phase 3+)
 - [ ] `list_components()`
@@ -309,7 +310,7 @@
 - [x] Migration `role` (user / admin / super_admin)
 - [x] Middleware `admin`
 - [x] Constantes + helpers (`isAdmin`, `isSuperAdmin`) sur User
-- [ ] Policies + Gates
+- [x] **Policies + Gates** — UserPolicy + ReferralRewardPolicy + 6 gates dans AppServiceProvider, appliquées sur ban/unban/claim
 - [ ] 2FA admin (recommandée)
 
 ### Génération auto
@@ -373,20 +374,20 @@
 ## 11. Système de parrainage (Phase 1)
 
 ### Logique
-- [ ] Code unique format `XXX-XXXX-XXXX` à l'inscription
-- [ ] Page publique `/r/{code}`
-- [ ] Cookie/session pour propager le parrain à l'inscription
+- [x] Code unique format `XXX-XXXX-XXXX` à l'inscription (booted hook User)
+- [x] Page publique `/r/{code}` (stocke en session puis redirige register)
+- [x] Cookie/session pour propager le parrain à l'inscription (AuthController lit `session('referral_code')`)
 
 ### Récompenses filleul (à la vérif email)
-- [ ] 5 tirages gratuits permanents
-- [ ] 1 Opérateur Rare au choix parmi 3
-- [ ] 500 monnaie premium
+- [x] **5 tirages gratuits permanents** (`tickets_standard: 5` dans `REWARDS_BY_TRIGGER`)
+- [x] **1 Opérateur Rare au choix parmi 3** (`tokens_rare_choice: 1`)
+- [x] **500 monnaie premium** (`shards: 500`)
 
 ### Récompenses parrain (paliers)
-- [ ] Niv 5 filleul → 10 tirages premium
-- [ ] Niv 15 → 1 Épique + 1000 prem
-- [ ] Niv 30 → 1 Légendaire au choix
-- [ ] 1er achat filleul → +50% prem au parrain
+- [x] **Niv 5 filleul → 10 tirages premium** (`tickets_premium: 10`)
+- [x] **Niv 15 → 1 Épique + 1000 prem** (`shards: 1000` + `tokens_epic_choice: 1`)
+- [x] **Niv 30 → 1 Légendaire au choix** (`tokens_legendary_choice: 1`)
+- [x] **1er achat filleul → +50% prem au parrain** — `ReferralService::registerFirstPurchase`, idempotent par filleul, montant calculé dynamiquement sur `reward_amount` de la row. Hook dans `ShopService::purchasePack`. 3 tests Pest.
 
 ### Anti-abus
 - [x] **Vérif email obligatoire** — `validateOnEmailVerified()` n'active les rewards qu'après email vérifié
@@ -426,8 +427,8 @@
 
 ### Récompenses (paliers de %)
 - [x] Logique de tier matching dans `LeaderboardService::distributeRewards()` (top_1, top_10, top_100, top_1pct, top_10pct, top_50pct)
-- [ ] Configurer les rewards par tier dans `leaderboard_rewards` (table prête, seeder à compléter)
-- [ ] Skins exclusifs / titres / bordures (assets pas encore en BDD)
+- [x] **Configurer les rewards par tier dans `leaderboard_rewards`** — `LeaderboardRewardSeeder` : 6 tiers × 5 types de saison (weekly/monthly/seasonal/collection/faction), payouts tunés par type, 36 rewards seedés sur les saisons actives, wiré dans `DatabaseSeeder`.
+- [~] Skins exclusifs / titres / bordures — types `cosmetic_*` réservés dans le seeder rewards (`cosmetic_title_apex`, `cosmetic_border_legend`, `cosmetic_faction_banner`, etc.), mais traités comme compteurs opaques tant qu'un inventaire cosmétique n'est pas câblé
 
 ### Anti-triche
 - [x] Validation autoritaire serveur (toutes les sources de points en backend, jamais côté client)
@@ -496,15 +497,15 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] **Logs détaillés audit légal** (table `gacha_pulls` immuable, no UPDATED_AT, log session_id + ip + flags pity)
 - [x] Boutons Tirer ×1 / ×10 fonctionnels avec validation solde
 - [x] Throttle 60/60min sur la route `gacha.pull`
-- [ ] Page admin logs gacha (controller stub présent — UI table à câbler)
-- [ ] Storybook installé (à 15+ composants)
+- [x] **Page admin logs gacha** — UI complète : 3 stats cards + form filtres (joueur, bannière, rareté, période, flag pity), table avec RarityBadge + flags Pity/Soft/Rate-up, pagination, **export CSV**. Routes `admin/gacha-logs` (index + export) câblées.
+- [x] Storybook installé — 3 stories actuelles, à étendre au fur et à mesure
 - [x] **Connexion quotidienne** — `DailyLoginService` calcule streak global et jour mensuel (1-30), paliers spéciaux J1/J7/J15/J30 avec rewards boostés (shards + tickets premium), bouton "Réclamer" sur le dashboard
 - [x] **Missions journalières** (3 actives seedées) — auto-progressées via `MissionService::progressFor('pull', n)` à chaque tirage, claim avec rewards + XP via `MissionService::claim()`
 - [x] **Missions hebdomadaires** (2 seedées : Signal Shard hebdo + Commandant actif)
 - [x] **XP comptes 1-99** — `XpService` avec formule linéaire (100×N XP par niveau), gain auto sur pull (10/25/75/200 par rareté) et claim mission (xp_reward), level-up cascade géré
 - [x] **Fragments doublons** — `gacha_duplicate` reward 1/5/20/100 fragments selon rareté, currency type `fragments_{codename}` créée à la volée, log Transaction immuable
-- [ ] Échange fragments → opérateur ciblé en boutique (boutique pas implémentée)
-- [ ] Page `/referral` (controller stub avec liens fonctionnels — UI à compléter)
+- [ ] Échange fragments → opérateur ciblé en boutique (constante `FRAGMENTS_TO_OPERATOR` prête dans `ShopService`, échange UI à câbler)
+- [x] **Page `/referral`** — UI complète : code + lien + bouton Partager (Web Share API) + liens directs WhatsApp/Telegram/X/Email + stats filleuls + rewards en attente avec claim + table filleuls
 - [x] **Classement hebdomadaire** (saison active, points via mission claim)
 - [x] **Classement mensuel** (saison active, points via mission claim)
 - [x] **Classement collection** (saison active, points via gacha pulls — 1 pt par opérateur unique)
@@ -605,6 +606,6 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] `.env.example`
 - [x] Memory files (project_rocketpi.md, user_fabrice.md)
 - [x] `docs/PROJECT_CHECKLIST.md` (ce fichier)
-- [ ] `README.md` projet (présentation, install, déploiement)
-- [ ] `LICENSE`
+- [x] **`README.md` projet** — présentation, install, déploiement, design system, monétisation, roadmap, tests, licence
+- [x] **`LICENSE`** — Tous droits réservés (propriétaire)
 - [ ] CI/CD GitHub Actions (optionnel — lint + tests)

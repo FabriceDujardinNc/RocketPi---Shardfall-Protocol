@@ -13,7 +13,7 @@
 | Backend | Laravel 13 · PHP 8.5 · Sanctum · Horizon · Policies/Gates |
 | Frontend | Inertia.js 3.1 · React 19 · TypeScript · Tailwind CSS 4 · Vite 8 |
 | Données | MySQL 8.4 LTS · Redis 8 (cache/sessions/queues/leaderboards) |
-| Infra | Docker · Docker Compose · Nginx Proxy Manager · VPS Hostinger |
+| Infra | Docker · Docker Compose · Caddy reverse proxy · VPS Hostinger |
 | Tests | Pest 3 · Vitest · Storybook 8 |
 | Jeu (phase 4) | Unity 6 LTS WebGL · Photon Fusion |
 
@@ -76,7 +76,9 @@ docker compose exec laravel-app php artisan db:seed
 | `db.rocketpi.pro` | phpMyAdmin prod (auth HTTP + IP whitelist) |
 | `db.rocketpi-test.pro` | phpMyAdmin dev (auth HTTP) |
 
-Routage via **Nginx Proxy Manager** unique en façade, SSL Let's Encrypt automatique.
+Routage via un **Caddy 2.8** unique en façade (`/root/proxy/`), SSL Let's Encrypt automatique sur les 4 domaines.
+
+Procédure VPS détaillée : [`docs/VPS_SETUP.md`](docs/VPS_SETUP.md).
 
 ---
 
@@ -149,13 +151,16 @@ Free-to-play, **jamais pay-to-win**. Monnaie premium (gacha), skins cosmétiques
 
 ## Tests & qualité
 
-```powershell
-docker compose exec laravel-app vendor/bin/pest    # 95 tests / 215 assertions — 0 fail
-docker compose exec vite npm run lint               # 0 erreur
-docker compose exec vite npm run stylelint          # 0 erreur
+```bash
+docker compose exec laravel-app vendor/bin/pest    # 110 tests / 254 assertions — 0 fail
+docker compose exec vite npm run lint              # 0 erreur
+docker compose exec vite npm run stylelint         # 0 erreur
+docker compose exec vite npm run build-storybook   # build Storybook static
 ```
 
-Couverture Pest : 10 fichiers de tests dédiés couvrant 100% des services métier (Xp, DailyLogin, Gacha, Mission, Affinity, Achievement, Shop, BattlePass, **Leaderboard avec Redis DB 15 isolée**, **Referral**).
+Couverture Pest : 11 fichiers de tests dédiés (XpService, DailyLoginService, GachaService, MissionService, AffinityService, AchievementService, ShopService, BattlePassService, **LeaderboardService — Redis DB 15 isolée**, **ReferralService — incluant first-purchase**, **Policies — admin/super_admin matrix + referral reward beneficiary**).
+
+> Note isolation : `tests/bootstrap.php` force `$_SERVER` / `$_ENV` / `putenv` à `DB_CONNECTION=sqlite`, `DB_DATABASE=:memory:`, `REDIS_DB=15`. Docker injecte les vars de prod dans `$_SERVER` que Laravel lit en priorité, donc PHPUnit `<env force="true">` seul ne suffit pas — sans cette précaution les tests `RefreshDatabase` essuyaient la dev MySQL.
 
 ESLint 9 interdit `bg-[#hex]`, `mt-[13px]`, inline `style={{color:'#hex'}}`. Stylelint 17 interdit `color: red` et `color: #abc` partout sauf source DS (`resources/css/app.css`).
 
@@ -163,4 +168,6 @@ ESLint 9 interdit `bg-[#hex]`, `mt-[13px]`, inline `style={{color:'#hex'}}`. Sty
 
 ## Licence
 
-À définir.
+Tous droits réservés — voir [`LICENSE`](LICENSE).
+
+Le code est consultable publiquement à des fins de revue ; toute réutilisation, redistribution ou dérivation requiert l'accord écrit du détenteur des droits.
