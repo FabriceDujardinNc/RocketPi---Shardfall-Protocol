@@ -162,6 +162,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::resource('battle-passes', \App\Http\Controllers\Admin\AdminBattlePassController::class)
         ->parameters(['battle-passes' => 'battle_pass']);
 
+    // Récompenses de connexion quotidienne
+    Route::resource('daily-login-rewards', \App\Http\Controllers\Admin\AdminDailyLoginRewardController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->parameters(['daily-login-rewards' => 'daily_login_reward']);
+
     // Paramètres globaux
     Route::get('settings',   [AdminSettingsController::class, 'index'])->name('settings.index');
     Route::patch('settings', [AdminSettingsController::class, 'update'])->name('settings.update');

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\DailyLogin;
+use App\Models\DailyLoginReward;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -104,6 +105,12 @@ class DailyLoginService
 
     public function rewardForDay(int $day): array
     {
+        // BDD en priorité (éditable depuis l'admin). Fallback sur la constante PHP
+        // si la table n'a pas encore été seedée — garde le comportement legacy.
+        $row = DailyLoginReward::where('day_number', $day)->first();
+        if ($row) {
+            return $row->rewards;
+        }
         return self::REWARDS_BY_DAY[$day] ?? self::DEFAULT_REWARD;
     }
 }
