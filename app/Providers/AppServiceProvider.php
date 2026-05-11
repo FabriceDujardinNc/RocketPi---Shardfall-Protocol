@@ -2,23 +2,40 @@
 
 namespace App\Providers;
 
+use App\Models\ReferralReward;
+use App\Models\User;
+use App\Policies\ReferralRewardPolicy;
+use App\Policies\UserPolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        //
+        Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(ReferralReward::class, ReferralRewardPolicy::class);
+
+        // Le super_admin contourne toutes les vérifications applicatives.
+        // Les Policies/Gates "ban" et "promote" gardent leurs propres règles
+        // (un super_admin ne se ban pas et ne se rétrograde pas lui-même).
+        Gate::before(function (User $user, string $ability) {
+            if ($user->isSuperAdmin() && ! in_array($ability, ['ban', 'promote'], true)) {
+                return true;
+            }
+            return null;
+        });
+
+        Gate::define('access-admin',       fn (User $user) => $user->isAdmin());
+        Gate::define('manage-content',     fn (User $user) => $user->isAdmin());   // operators, banners, missions
+        Gate::define('view-gacha-logs',    fn (User $user) => $user->isAdmin());
+        Gate::define('flag-referrals',     fn (User $user) => $user->isAdmin());
+        Gate::define('reset-leaderboards', fn (User $user) => $user->isAdmin());
+        Gate::define('change-roles',       fn (User $user) => $user->isSuperAdmin());
     }
 }

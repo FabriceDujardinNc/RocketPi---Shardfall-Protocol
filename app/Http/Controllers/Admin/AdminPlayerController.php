@@ -41,6 +41,8 @@ class AdminPlayerController extends Controller
 
     public function ban(Request $request, User $user): RedirectResponse
     {
+        $this->authorize('ban', $user);
+
         $reason = $request->validate(['reason' => 'required|string|max:500'])['reason'];
 
         $user->update([
@@ -54,6 +56,8 @@ class AdminPlayerController extends Controller
 
     public function unban(User $user): RedirectResponse
     {
+        $this->authorize('ban', $user);
+
         $user->update([
             'is_banned' => false,
             'ban_reason' => null,

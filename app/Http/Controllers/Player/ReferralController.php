@@ -48,6 +48,8 @@ class ReferralController extends Controller
 
     public function claim(Request $request, ReferralReward $reward): RedirectResponse
     {
+        $this->authorize('claim', $reward);
+
         try {
             $this->service->claim($request->user(), $reward, $request->ip());
             return back()->with('status', 'Récompense réclamée.');
