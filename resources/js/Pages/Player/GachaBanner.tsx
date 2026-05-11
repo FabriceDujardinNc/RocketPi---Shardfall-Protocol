@@ -100,12 +100,12 @@ export default function GachaBanner({ banner, pity, shards, cost, recentPulls }:
                 ← Toutes les bannières
             </Link>
 
-            <header className="mt-2 mb-6 flex items-end justify-between">
-                <div>
+            <header className="mt-2 mb-6 flex items-end justify-between flex-wrap gap-4">
+                <div className="min-w-0">
                     {banner.tag && (
                         <p className="font-display text-xs uppercase tracking-mega text-shard-400">{banner.tag}</p>
                     )}
-                    <h1 className="font-display font-bold text-3xl uppercase tracking-wide mt-1">{banner.name}</h1>
+                    <h1 className="font-display font-bold text-2xl sm:text-3xl uppercase tracking-wide mt-1">{banner.name}</h1>
                     {banner.subtitle && (
                         <p className="font-mono text-sm text-text-medium mt-1">{banner.subtitle}</p>
                     )}

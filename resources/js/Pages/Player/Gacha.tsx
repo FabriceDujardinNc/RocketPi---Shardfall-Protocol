@@ -30,10 +30,10 @@ export default function Gacha({ banners, shards }: Props) {
     return (
         <>
             <Head title="Recrutement" />
-            <header className="flex items-end justify-between mb-8">
+            <header className="flex items-end justify-between flex-wrap gap-4 mb-6 sm:mb-8">
                 <div>
                     <p className="font-display text-xs uppercase tracking-mega text-shard-400">Signal Shard</p>
-                    <h1 className="font-display font-bold text-3xl uppercase tracking-wide mt-1">Recrutement</h1>
+                    <h1 className="font-display font-bold text-2xl sm:text-3xl uppercase tracking-wide mt-1">Recrutement</h1>
                 </div>
                 <CurrencyDisplay currency="premium" amount={shards} />
             </header>

@@ -634,40 +634,42 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 **Objectif** : toutes les pages doivent être utilisables et lisibles sur mobile (375px+), tablette (768px+), desktop (1280px+). Pas de scroll horizontal, pas d'éléments coupés.
 
 ### Audit pages joueur
-- [ ] `/dashboard` — cartes stats + sections doivent se réorganiser sm/md/lg
-- [ ] `/gacha` (liste + détail) — header devient compact sur mobile, boutons pleine largeur
-- [ ] `/factions` index + show — grille opérateurs collapse en 1 col sur mobile
-- [ ] `/collection` — grille adaptive (1/2/3/4 cols selon viewport)
-- [ ] `/operators/{slug}` — stats + abilities sur 1 col en mobile, 2 col tablette
-- [ ] `/cosmetics` — grille adaptive, tabs scrollables horizontalement
-- [ ] `/missions` + `/achievements` — cartes 1 col mobile
-- [ ] `/battlepass` — roadmap horizontale scrollable, sticky info panel
-- [ ] `/leaderboard` + `/leaderboard/history` — table responsive (cards en mobile)
-- [ ] `/shop` — packs + exchanges 1/2/3 cols
-- [ ] `/referral` — partage social + tableaux stats
-- [ ] `/profile` + `/profile/{slug}` — avatar + infos collapsent
+- [x] **`/dashboard`** — header flex-wrap (déjà OK), grid stats `md:grid-cols-3` collapse à 1 col mobile
+- [x] **`/gacha` liste** — header `flex-wrap gap-4`, taille H1 responsive (text-2xl sm:text-3xl)
+- [x] **`/gacha/{slug}` détail** — header flex-wrap, min-w-0 sur le titre pour gérer overflow
+- [x] **`/factions` index + show** — grille opérateurs `grid-cols-2 md:3 lg:4`, header padding responsive (p-5 sm:p-8), titre 3xl sm:4xl
+- [x] **`/collection`** — déjà `grid-cols-2 sm:3 md:4 lg:5` (audit confirmé)
+- [x] **`/operators/{slug}`** — stats `grid-cols-3` fixe (acceptable car cellules courtes), abilities `md:grid-cols-2`
+- [x] **`/cosmetics`** — déjà `sm:grid-cols-2 lg:grid-cols-3` (audit confirmé)
+- [x] **`/missions` + `/achievements`** — déjà `md:grid-cols-2` (1 col mobile, audit confirmé)
+- [x] **`/battlepass`** — roadmap déjà en `overflow-x-auto`, info-panel `flex-wrap gap-3` (audit confirmé)
+- [x] **`/leaderboard` + history** — déjà `lg:grid-cols-3` + table avec `overflow-x-auto` côté composant
+- [x] **`/shop`** — déjà `sm:grid-cols-2 lg:grid-cols-3` + header `flex-wrap`
+- [x] **`/referral`** — déjà `md:grid-cols-2` sur cards parrainage
+- [x] **`/profile` + `/profile/{slug}`** — avatar `size-20 md:size-24` + `flex-wrap`, déjà OK
 - [ ] `/play` — Unity canvas s'adapte (Phase 4)
 
 ### Audit pages admin
-- [ ] `/admin` dashboard — sidebar collapsible en mobile (hamburger)
-- [ ] Tables admin (Operators, Banners, Players, etc.) — passer en cards sur mobile ou scroll horizontal
-- [ ] Forms admin (Operator/Banner/BP/etc.) — labels au-dessus des inputs en mobile
-- [ ] `/admin/factions/{slug}` show — grille opérateurs responsive
+- [x] **`/admin` layout** — sidebar `hidden md:block`, drawer slide-in via hamburger en mobile (zoned z-modal)
+- [x] **Tables admin (13 pages)** — wrapper `overflow-x-auto` + `min-w-[700px]` sur `<table>` pour scroll horizontal natif (audit GachaLogs, Referrals, BattlePass, Missions, Players, DailyLoginRewards, Operators, Banners, Cosmetics, Leaderboards, Events, Achievements)
+- [x] **Forms admin** — déjà `md:grid-cols-2` / `md:grid-cols-3` (1 col mobile par défaut, audit confirmé)
+- [x] **`/admin/factions/{slug}` show** — grille opérateurs responsive (déjà OK depuis fix slug commit antérieur)
 
 ### Audit pages auth
-- [ ] `/login` `/register` `/forgot-password` — formulaires centrés, lisibles 375px+
-- [ ] `/register` étape factions — passe en 1 col sur mobile (`grid-cols-1 sm:grid-cols-3`)
+- [x] **`/login` `/register` `/forgot-password`** — formulaires GuestLayout déjà centrés (max-w-sm), lisibles 375px+
+- [x] **`/register` étape factions** — utilise `grid sm:grid-cols-3` → 1 col mobile, 3 col tablette+ (déjà conforme à la règle)
 
 ### Header / Navigation
-- [ ] PlayerLayout header — menu hamburger en mobile, drawer latéral
-- [ ] AdminLayout sidebar — collapsible
-- [ ] Affichage faction + niveau + currencies → compact en mobile
+- [x] **PlayerLayout header** — Menu hamburger Lucide en mobile (<md), drawer slide-in 72w avec `bg-bg-base/80 backdrop-blur-sm` overlay, fermeture auto à la navigation (`useEffect [url]`), body-scroll lock
+- [x] **AdminLayout sidebar** — Pattern identique : sidebar `hidden md:block` desktop, top-bar mobile h-14 avec hamburger, drawer left 72w
+- [x] **Affichage faction + niveau** — Faction badge `hidden sm:inline` desktop, visible dans drawer mobile sous "Compte"
+- [x] **Bouton Déconnexion** — `hidden sm:inline` header, présent en bas du drawer mobile
 
 ### Composants
-- [ ] Modal / Drawer — full-screen sur mobile
-- [ ] Table → cards stack en breakpoint sm
-- [ ] CurrencyDisplay header → icônes seules sur mobile (label en tooltip)
-- [ ] Tabs scrollables horizontalement
+- [x] **Modal / Drawer** — Radix Dialog déjà responsive (Modal `max-w-lg`, fitted à viewport)
+- [x] **Table component** — wrapper `overflow-x-auto` + `min-w-[640px]` sur `<table>` pour scroll natif
+- [x] **CurrencyDisplay header** — `min-w-0 truncate` sur pseudo, gap responsive `sm:gap-3`
+- [x] **Tabs (Radix)** — déjà horizontalement scrollable via `inline-flex` natif
 
 ### Process
 - [ ] Test régression manuelle 3 viewports : mobile (iPhone SE 375), tablette (iPad 768), desktop (1280) sur chaque page modifiée

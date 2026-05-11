@@ -1,8 +1,8 @@
 import { type HTMLAttributes, type ThHTMLAttributes, type TdHTMLAttributes } from 'react';
 
 export const Table = ({ className, ...props }: HTMLAttributes<HTMLTableElement>) => (
-    <div className="rounded-lg border border-border-default bg-bg-elev1 overflow-hidden">
-        <table className={`w-full text-sm ${className ?? ''}`} {...props} />
+    <div className="rounded-lg border border-border-default bg-bg-elev1 overflow-x-auto">
+        <table className={`w-full text-sm min-w-[640px] ${className ?? ''}`} {...props} />
     </div>
 );
 

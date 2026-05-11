@@ -31,8 +31,8 @@ export default function AdminPlayersIndex({ players, q }: Props) {
                 />
             </form>
 
-            <div className="rounded-lg bg-bg-elev1 border border-border-default overflow-hidden">
-                <table className="w-full text-sm">
+            <div className="rounded-lg bg-bg-elev1 border border-border-default overflow-x-auto">
+                <table className="w-full text-sm min-w-[700px]">
                     <thead className="bg-bg-elev2 font-display text-xs uppercase tracking-wide text-text-low">
                         <tr>
                             <th className="px-4 py-3 text-left">ID</th>

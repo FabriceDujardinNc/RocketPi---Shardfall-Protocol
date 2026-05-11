@@ -52,7 +52,7 @@ export default function PlayerFactionShow({ faction, byRarity, stats }: Props) {
                 </Link>
             </div>
 
-            <header className="mb-8 rounded-lg p-8 border-2 relative overflow-hidden"
+            <header className="mb-6 sm:mb-8 rounded-lg p-5 sm:p-8 border-2 relative overflow-hidden"
                 style={{ borderColor: `oklch(0.55 0.15 ${faction.color_hue} / 0.5)` }}>
                 {faction.banner_image_url && (
                     <div className="absolute inset-0 opacity-30">
@@ -62,10 +62,10 @@ export default function PlayerFactionShow({ faction, byRarity, stats }: Props) {
                 )}
                 <div className="relative">
                     <p className="font-display text-xs uppercase tracking-mega" style={{ color: `oklch(0.78 0.18 ${faction.color_hue})` }}>Faction</p>
-                    <h1 className="font-display font-bold text-4xl uppercase tracking-wide mt-1" style={{ color: `oklch(0.85 0.18 ${faction.color_hue})` }}>
+                    <h1 className="font-display font-bold text-3xl sm:text-4xl uppercase tracking-wide mt-1" style={{ color: `oklch(0.85 0.18 ${faction.color_hue})` }}>
                         {faction.name}
                     </h1>
-                    {faction.tagline && <p className="text-text-medium text-base mt-2 max-w-2xl">{faction.tagline}</p>}
+                    {faction.tagline && <p className="text-text-medium text-sm sm:text-base mt-2 max-w-2xl">{faction.tagline}</p>}
                     <div className="mt-4 inline-flex items-center gap-2 font-mono text-xs text-text-low px-3 py-1.5 rounded bg-bg-elev1 border border-border-default">
                         Collection : {stats.owned} / {stats.total} opérateurs débloqués
                     </div>
