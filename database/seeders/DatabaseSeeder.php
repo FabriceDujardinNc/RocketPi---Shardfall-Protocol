@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             AchievementSeeder::class,
             DailyLoginRewardSeeder::class,
             SettingSeeder::class,
+            CosmeticSeeder::class,
         ]);
     }
 }

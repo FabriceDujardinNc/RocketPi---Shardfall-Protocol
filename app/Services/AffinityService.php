@@ -27,10 +27,12 @@ class AffinityService
     public const XP_PER_PULL = 25;
     public const XP_PER_DUPLICATE = 10;
 
+    public function __construct(private readonly CosmeticService $cosmetics) {}
+
     public function award(User $user, Operator $operator, int $xp): array
     {
         if ($xp <= 0) {
-            return ['xp_gained' => 0, 'leveled_up' => false, 'new_level' => 0];
+            return ['xp_gained' => 0, 'leveled_up' => false, 'new_level' => 0, 'cosmetics_unlocked' => []];
         }
 
         $affinity = OperatorAffinity::firstOrCreate(
@@ -52,10 +54,17 @@ class AffinityService
 
         $affinity->save();
 
+        // Hook cosmétiques : tout palier franchi peut débloquer skin/voiceline associés.
+        $unlocked = [];
+        if ($affinity->level > $startLevel) {
+            $unlocked = $this->cosmetics->unlockForAffinity($user, $operator->id, $affinity->level);
+        }
+
         return [
-            'xp_gained'  => $xp,
-            'leveled_up' => $affinity->level > $startLevel,
-            'new_level'  => $affinity->level,
+            'xp_gained'          => $xp,
+            'leveled_up'         => $affinity->level > $startLevel,
+            'new_level'          => $affinity->level,
+            'cosmetics_unlocked' => $unlocked,
         ];
     }
 

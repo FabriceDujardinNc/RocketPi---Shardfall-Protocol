@@ -11,6 +11,7 @@ const NAV = [
     { href: '/leaderboard',  label: 'Classement' },
     { href: '/referral',     label: 'Parrainage' },
     { href: '/shop',         label: 'Shop' },
+    { href: '/cosmetics',    label: 'Vestiaire' },
     { href: '/play',         label: 'Jouer' },
 ];
 

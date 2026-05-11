@@ -97,6 +97,12 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
     // Shop
     Route::get('/shop',          [ShopController::class, 'index'])->name('shop');
     Route::post('/shop/purchase',[ShopController::class, 'purchase'])->name('shop.purchase');
+    Route::post('/shop/fragments/{operator}/redeem', [ShopController::class, 'redeemFragments'])->name('shop.fragments.redeem');
+
+    // Cosmétiques — inventaire perso
+    Route::get('/cosmetics',                       [\App\Http\Controllers\Player\CosmeticsController::class, 'index'])->name('cosmetics');
+    Route::post('/cosmetics/{cosmetic}/equip',     [\App\Http\Controllers\Player\CosmeticsController::class, 'equip'])->name('cosmetics.equip');
+    Route::post('/cosmetics/{cosmetic}/unequip',   [\App\Http\Controllers\Player\CosmeticsController::class, 'unequip'])->name('cosmetics.unequip');
 
     // Battle Pass
     Route::get('/battlepass',                            [BattlePassController::class, 'index'])->name('battlepass');
