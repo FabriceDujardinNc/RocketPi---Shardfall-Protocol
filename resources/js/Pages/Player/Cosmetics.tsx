@@ -124,7 +124,7 @@ export default function Cosmetics({ inventory, totalCount }: Props) {
 
                         {item.preview_url && (
                             <div className="aspect-square w-full rounded bg-bg-elev2 overflow-hidden">
-                                <img src={item.preview_url} alt={item.name} className="w-full h-full object-cover" />
+                                <img src={item.preview_url} alt={item.name} loading="lazy" className="w-full h-full object-cover" />
                             </div>
                         )}
 

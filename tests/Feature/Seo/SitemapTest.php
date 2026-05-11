@@ -24,7 +24,7 @@ it('includes home and lore base URLs', function () {
     $body = $this->get('/sitemap.xml')->getContent();
     expect($body)->toContain('<loc>'.config('app.url').'/</loc>');
     expect($body)->toContain('/lore</loc>');
-    expect($body)->toContain('/leaderboard</loc>');
+    expect($body)->toContain('/top</loc>');
 });
 
 it('lists factions on lore namespace', function () {

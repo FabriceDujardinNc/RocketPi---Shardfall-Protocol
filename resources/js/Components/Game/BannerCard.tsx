@@ -18,7 +18,7 @@ export default function BannerCard({ name, description, imageUrl, endsAt, onClic
         >
             <div className="aspect-[16/7] bg-bg-elev2 relative">
                 {imageUrl ? (
-                    <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
+                    <img src={imageUrl} alt={name} loading="lazy" className="w-full h-full object-cover" />
                 ) : (
                     <div className="absolute inset-0 flex items-center justify-center font-display font-bold uppercase text-text-low">
                         {name}

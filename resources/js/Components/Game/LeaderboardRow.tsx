@@ -20,7 +20,7 @@ export default function LeaderboardRow({ rank, name, score, avatarUrl, isCurrent
         >
             <RankBadge rank={rank} />
             {avatarUrl ? (
-                <img src={avatarUrl} alt="" className="size-10 rounded-full border-2 border-border-default" />
+                <img src={avatarUrl} alt="" loading="lazy" className="size-10 rounded-full border-2 border-border-default" />
             ) : (
                 <div className="size-10 rounded-full bg-bg-elev2 border-2 border-border-default" />
             )}

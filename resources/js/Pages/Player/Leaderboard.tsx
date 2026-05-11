@@ -71,12 +71,20 @@ export default function Leaderboard({ currentSeason, seasons, topEntries, partic
                         {participantCount} participant{participantCount > 1 ? 's' : ''}
                     </p>
                 </div>
-                <Link
-                    href="/leaderboard/history"
-                    className="font-display text-xs uppercase tracking-wide text-text-medium hover:text-shard-400"
-                >
-                    Historique archives →
-                </Link>
+                <div className="flex flex-wrap gap-3 items-center">
+                    <Link
+                        href="/hall-of-fame"
+                        className="font-display text-xs uppercase tracking-wide text-rarity-legendary hover:text-rarity-epic"
+                    >
+                        🏆 Hall of Fame
+                    </Link>
+                    <Link
+                        href="/leaderboard/history"
+                        className="font-display text-xs uppercase tracking-wide text-text-medium hover:text-shard-400"
+                    >
+                        Historique →
+                    </Link>
+                </div>
             </header>
 
             {/* Tabs saisons */}

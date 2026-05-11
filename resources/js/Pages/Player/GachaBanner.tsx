@@ -117,7 +117,7 @@ export default function GachaBanner({ banner, pity, shards, cost, recentPulls }:
             <div className="rounded-lg overflow-hidden border-2 border-shard-500/40 shadow-glow-shard mb-6 bg-bg-elev1">
                 <div className="aspect-[16/6] bg-bg-elev2 flex items-center justify-center">
                     {banner.banner_image_url
-                        ? <img src={banner.banner_image_url} alt={banner.name} className="w-full h-full object-cover" />
+                        ? <img src={banner.banner_image_url} alt={banner.name} loading="lazy" className="w-full h-full object-cover" />
                         : <span className="font-display text-2xl text-text-low uppercase tracking-mega">{banner.featured_operator ?? banner.name}</span>}
                 </div>
             </div>

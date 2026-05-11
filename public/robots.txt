@@ -9,7 +9,7 @@ Allow: /
 Allow: /lore
 Allow: /factions
 Allow: /operators
-Allow: /leaderboard
+Allow: /top
 Allow: /profile/
 
 # Authentification & onboarding (indexable mais marqué noindex côté HTML)

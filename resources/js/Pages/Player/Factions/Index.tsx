@@ -52,7 +52,7 @@ export default function PlayerFactionsIndex({ factions }: { factions: Faction[] 
                         >
                             {f.banner_image_url && (
                                 <div className="rounded-md overflow-hidden aspect-video">
-                                    <img src={f.banner_image_url} alt={f.name} className="w-full h-full object-cover" />
+                                    <img src={f.banner_image_url} alt={f.name} loading="lazy" className="w-full h-full object-cover" />
                                 </div>
                             )}
                             <header>

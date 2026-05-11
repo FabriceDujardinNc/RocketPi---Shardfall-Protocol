@@ -33,7 +33,7 @@ class SitemapController extends Controller
         // Static pages
         $urls[] = ['loc' => "{$base}/",         'priority' => '1.0', 'changefreq' => 'weekly'];
         $urls[] = ['loc' => "{$base}/lore",     'priority' => '0.9', 'changefreq' => 'monthly'];
-        $urls[] = ['loc' => "{$base}/leaderboard", 'priority' => '0.7', 'changefreq' => 'daily'];
+        $urls[] = ['loc' => "{$base}/top",      'priority' => '0.8', 'changefreq' => 'daily'];
 
         // Factions publiques (3 fixes)
         foreach (Faction::query()->get(['slug', 'updated_at']) as $faction) {

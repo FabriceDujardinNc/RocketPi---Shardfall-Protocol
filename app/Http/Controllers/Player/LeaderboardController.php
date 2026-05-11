@@ -66,6 +66,66 @@ class LeaderboardController extends Controller
     }
 
     /**
+     * Hall of Fame — palmarès annuel.
+     *
+     * Liste les saisons `type=annual` (terminées ou en cours), avec le top 100
+     * de chacune (LeaderboardEntry pour les archivées, Redis ZSET pour les
+     * en cours). Page d'honneur — pas de claim, pas de stats personnelles.
+     */
+    public function hallOfFame(): Response
+    {
+        $seasons = LeaderboardSeason::query()
+            ->where('type', 'annual')
+            ->orderByDesc('season_number')
+            ->get();
+
+        $palmares = $seasons->map(function (LeaderboardSeason $s) {
+            $isArchived = ! $s->is_active;
+
+            if ($isArchived) {
+                // Saison close — lit le snapshot MySQL
+                $entries = LeaderboardEntry::where('season_id', $s->id)
+                    ->with('user:id,display_name,name,slug,account_level')
+                    ->orderBy('rank')
+                    ->limit(100)
+                    ->get()
+                    ->map(fn ($e) => [
+                        'rank'         => $e->rank,
+                        'score'        => $e->score,
+                        'display_name' => $e->user?->display_name ?? $e->user?->name ?? 'Unknown',
+                        'slug'         => $e->user?->slug,
+                        'account_level' => $e->user?->account_level ?? 1,
+                    ]);
+            } else {
+                // Saison en cours — top 100 Redis (réutilise le service)
+                $entries = collect($this->service->topN($s, 100))
+                    ->map(fn ($e) => [
+                        'rank'         => $e['rank'],
+                        'score'        => $e['score'],
+                        'display_name' => $e['display_name'] ?? $e['name'],
+                        'slug'         => null,
+                        'account_level' => $e['account_level'] ?? 1,
+                    ]);
+            }
+
+            return [
+                'id'           => $s->id,
+                'name'         => $s->name,
+                'season_number' => $s->season_number,
+                'starts_at'    => $s->starts_at,
+                'ends_at'      => $s->ends_at,
+                'is_active'    => $isArchived ? false : true,
+                'entries'      => $entries,
+            ];
+        });
+
+        return Inertia::render('Player/HallOfFame', [
+            'palmares' => $palmares,
+            'totalSeasons' => $seasons->count(),
+        ]);
+    }
+
+    /**
      * Historique des saisons closes — lit `leaderboard_entries` (snapshot MySQL
      * écrit par `LeaderboardService::snapshotToMysql` au reset de saison).
      *

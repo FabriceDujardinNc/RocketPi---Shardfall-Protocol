@@ -427,7 +427,7 @@
 ### Classements
 - [x] Hebdomadaire (saison seedée, active automatiquement)
 - [x] Mensuel (saison seedée, active automatiquement)
-- [ ] Annuel "Hall of Fame" (activé après 6+ mois — schéma prêt)
+- [x] **Annuel "Hall of Fame"** — Page `/hall-of-fame` lit saisons `type=annual`, top 100 archivées via `leaderboard_entries` ou en cours via Redis ZSET. Médailles 🥇🥈🥉, lien profil public. 5 tests Pest.
 - [x] Compétitif saisonnier (saison "Éclat Primordial", 3 mois)
 - [x] Collection (permanent — saison "Hall des Recruteurs")
 - [x] Par faction (ORBIT/FERRO/VEIL — 3 saisons faction)
@@ -697,7 +697,7 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] **`/lore/factions/{slug}`** — lore complet + roster public (operators `is_available=true`)
 - [x] **`/lore/operators/{slug}`** — fiche complète : portrait, stats, arme signature, capacités, lore (vitrine sans data joueur)
 - [x] **`/profile/{slug}` public** — vitrine joueur déjà existante (à enrichir SEO ultérieurement)
-- [ ] `/leaderboard` public — actuellement protégé par auth, à exposer en lecture seule pour SEO (différé)
+- [x] **`/top` public** — Top 100 hebdo sans auth, indexable, zéro PII (pseudo + rang + score uniquement), JSON-LD Breadcrumb. 3 tests Pest.
 
 ### Sitemap & robots
 - [x] **`/sitemap.xml`** — `SitemapController` génère dynamiquement (cache 6h) : home, /lore, /leaderboard, factions, opérateurs `is_available=true`, profils joueurs `level>=5` non bannis (limite 1000). Format urlset standard avec lastmod/changefreq/priority.
@@ -722,13 +722,13 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [ ] LCP < 2.5s — images optimisées (WebP/AVIF), preload des hero images
 - [ ] CLS < 0.1 — dimensions explicites sur tous les `<img>`, pas de layout shift
 - [ ] INP < 200ms — pas de JS bloquant pendant l'interaction
-- [ ] Lazy-load des images sous la fold (`loading="lazy"`)
+- [x] **Lazy-load des images sous la fold** — `loading="lazy"` ajouté sur grilles below-fold (Shop exchanges, Cosmetics, Factions/Show roster, Lore/Faction roster, Admin/Cosmetics, LeaderboardRow, GachaBanner pulls)
 - [ ] Code splitting Inertia par page (déjà partiel via Vite)
 
 ### Accessibilité (impact SEO)
-- [ ] `alt` sur toutes les images (portraits opérateurs, banner_image_url)
-- [ ] Hiérarchie `<h1>` `<h2>` cohérente
-- [ ] `aria-label` sur boutons icon-only
+- [x] **`alt` sur toutes les images** — audit complet : portraits/banners ont `alt={name}`, images décoratives (avatar dans row, banner background) ont `alt=""` (pratique a11y correcte)
+- [x] **Hiérarchie `<h1>` `<h2>` cohérente** — audit : 2 pages (BattlePass, Leaderboard) ont 2 h1 dans des branches mutuellement exclusives (empty-state vs contenu), 1 h1 actif au runtime
+- [x] **`aria-label` sur boutons icon-only** — déjà OK : Modal/Drawer/Toast close, PlayerLayout/AdminLayout hamburger+close, Pagination nav
 - [ ] Contraste WCAG AA minimum (déjà OK design system mais à valider)
 - [ ] Navigation clavier complète (focus visible)
 

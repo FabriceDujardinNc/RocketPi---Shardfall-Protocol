@@ -115,7 +115,7 @@ export default function Shop({ packs, shards, credits, exchanges }: Props) {
 
                                 {ex.portrait_url && (
                                     <div className="aspect-square w-full rounded bg-bg-elev2 overflow-hidden">
-                                        <img src={ex.portrait_url} alt={ex.name} className="w-full h-full object-cover" />
+                                        <img src={ex.portrait_url} alt={ex.name} loading="lazy" className="w-full h-full object-cover" />
                                     </div>
                                 )}
 

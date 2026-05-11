@@ -55,6 +55,10 @@ Route::prefix('lore')->name('lore.')->group(function () {
     Route::get('/operators/{operator}',   [\App\Http\Controllers\Public\LoreController::class, 'operator'])->name('operator');
 });
 
+// Classement public top 100 (lecture seule, sans auth) — argument trafic SEO.
+// La page joueur authentifiée (/leaderboard) reste séparée et inclut le rang perso.
+Route::get('/top', [\App\Http\Controllers\Public\LoreController::class, 'leaderboard'])->name('top');
+
 // Auth
 Route::middleware('guest')->group(function () {
     Route::get('/login',    [AuthController::class, 'showLogin'])->name('login');
@@ -99,6 +103,7 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
     // Classements
     Route::get('/leaderboard',           [LeaderboardController::class, 'index'])->name('leaderboard');
     Route::get('/leaderboard/history',   [LeaderboardController::class, 'history'])->name('leaderboard.history');
+    Route::get('/hall-of-fame',          [LeaderboardController::class, 'hallOfFame'])->name('hall-of-fame');
     Route::get('/leaderboard/{season}',  [LeaderboardController::class, 'show'])->name('leaderboard.season');
 
     // Missions

@@ -102,7 +102,7 @@ export default function PlayerFactionShow({ faction, byRarity, stats }: Props) {
                                     >
                                         <div className="aspect-[3/4] bg-bg-elev2 relative">
                                             {op.portrait_url ? (
-                                                <img src={op.portrait_url} alt={op.name} className="w-full h-full object-cover" />
+                                                <img src={op.portrait_url} alt={op.name} loading="lazy" className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="absolute inset-0 flex items-center justify-center font-display text-3xl uppercase text-text-low">
                                                     {op.name.slice(0, 2)}

@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\Faction;
+use App\Models\LeaderboardSeason;
 use App\Models\Operator;
+use App\Services\LeaderboardService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -66,6 +68,40 @@ class LoreController extends Controller
                 'stat_hp', 'stat_damage', 'stat_mobility',
                 'weapon_name', 'weapon_description', 'abilities',
             ]),
+        ]);
+    }
+
+    /**
+     * Classement public en lecture seule (top 100 saison hebdo en cours).
+     *
+     * Page indexable — argument trafic SEO. N'expose que le pseudo, le rang
+     * et le score (zéro PII), pas d'email ni de stats sensibles.
+     */
+    public function leaderboard(LeaderboardService $service): Response
+    {
+        // Saison hebdo active la plus récente (ce que voient les joueurs au quotidien).
+        $season = LeaderboardSeason::query()
+            ->where('type', 'weekly')
+            ->where('is_active', true)
+            ->where('starts_at', '<=', now())
+            ->where('ends_at', '>', now())
+            ->orderByDesc('starts_at')
+            ->first();
+
+        $entries = $season
+            ? collect($service->topN($season, 100))
+                ->map(fn ($e) => [
+                    'rank'         => $e['rank'],
+                    'display_name' => $e['display_name'] ?? $e['name'],
+                    'score'        => $e['score'],
+                ])
+                ->values()
+            : collect();
+
+        return Inertia::render('Public/Leaderboard', [
+            'season' => $season?->only(['id', 'name', 'type', 'season_number', 'starts_at', 'ends_at']),
+            'entries' => $entries,
+            'participantCount' => $season ? $service->participantCount($season) : 0,
         ]);
     }
 }
