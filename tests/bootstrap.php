@@ -22,7 +22,9 @@ $overrides = [
     'QUEUE_CONNECTION'       => 'sync',
     'SESSION_DRIVER'         => 'array',
     'REDIS_HOST'             => 'redis',
-    'REDIS_PASSWORD'         => '',
+    // REDIS_PASSWORD est volontairement absent : on laisse Laravel le lire
+    // depuis .env (la même valeur qui authentifie l'app en dev). Le démon Redis
+    // est démarré avec --requirepass donc le password est requis.
     'REDIS_DB'               => '15',
     'REDIS_CACHE_DB'         => '15',
     'PULSE_ENABLED'          => 'false',
