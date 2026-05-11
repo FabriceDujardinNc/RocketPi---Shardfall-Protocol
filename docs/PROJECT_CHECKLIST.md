@@ -214,7 +214,7 @@
 ### Storybook
 - [x] **Configuration `.storybook/`** — `main.ts` (glob `Components/**/*.stories.tsx`) + `preview.tsx` (Tailwind 4 chargé, backgrounds dark/elev1/light)
 - [x] **Première story** (`Button.stories.tsx` — 5 variants × 3 sizes + icon + loading + roster comparatif)
-- [~] Stories pour tous les composants — 3 stubs (Button, OperatorCard, BattlePassNode), reste 29 composants à couvrir
+- [~] Stories pour tous les composants — **9 stories couvertes** (Button, OperatorCard, BattlePassNode, **Alert, Badge, Card, Input, Toggle, RarityBadge**), reste ~23 composants à couvrir
 
 ### MCP Design System (phase 3+)
 - [ ] `list_components()`

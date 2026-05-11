@@ -94,7 +94,7 @@ export default function LeaderboardHistory({ history, best, totals }: Props) {
                                             {b.season_name}
                                         </h3>
                                     </div>
-                                    {b.faction && <FactionBadge faction={b.faction} />}
+                                    {b.faction && <FactionBadge faction={b.faction.toLowerCase() as 'orbit' | 'ferro' | 'veil'} />}
                                 </div>
                                 <p className={'font-display font-bold text-4xl tabular-nums ' + rankClass(b.rank)}>
                                     #{b.rank}
@@ -135,7 +135,7 @@ export default function LeaderboardHistory({ history, best, totals }: Props) {
                                         <td className="px-4 py-3 text-text-high">
                                             <div className="flex items-center gap-2">
                                                 {row.season_name}
-                                                {row.faction && <FactionBadge faction={row.faction} />}
+                                                {row.faction && <FactionBadge faction={row.faction.toLowerCase() as 'orbit' | 'ferro' | 'veil'} />}
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-text-medium">
