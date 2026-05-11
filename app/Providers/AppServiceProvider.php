@@ -3,11 +3,13 @@
 namespace App\Providers;
 
 use App\Models\Banner;
+use App\Models\BattlePass;
 use App\Models\Mission;
 use App\Models\Operator;
 use App\Models\ReferralReward;
 use App\Models\User;
 use App\Policies\BannerPolicy;
+use App\Policies\BattlePassPolicy;
 use App\Policies\MissionPolicy;
 use App\Policies\OperatorPolicy;
 use App\Policies\ReferralRewardPolicy;
@@ -29,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Operator::class, OperatorPolicy::class);
         Gate::policy(Banner::class, BannerPolicy::class);
         Gate::policy(Mission::class, MissionPolicy::class);
+        Gate::policy(BattlePass::class, BattlePassPolicy::class);
 
         // Le super_admin contourne toutes les vérifications applicatives.
         // Les Policies/Gates "ban" et "promote" gardent leurs propres règles

@@ -9,8 +9,9 @@ const SECTIONS = [
     { href: '/admin/gacha-logs',   label: 'Logs Gacha' },
     { href: '/admin/referrals',    label: 'Parrainages' },
     { href: '/admin/leaderboards', label: 'Classements' },
-    { href: '/admin/missions',     label: 'Missions' },
-    { href: '/admin/settings',     label: 'Paramètres' },
+    { href: '/admin/missions',      label: 'Missions' },
+    { href: '/admin/battle-passes', label: 'Battle Pass' },
+    { href: '/admin/settings',      label: 'Paramètres' },
 ];
 
 export default function AdminLayout({ children }: PropsWithChildren) {

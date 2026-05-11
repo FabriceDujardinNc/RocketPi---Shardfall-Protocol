@@ -155,6 +155,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->whereNumber('id')->name('missions.restore');
     Route::resource('missions', AdminMissionController::class);
 
+    // Battle Pass — saisons + paliers
+    Route::put('battle-passes/{battle_pass}/tiers',
+        [\App\Http\Controllers\Admin\AdminBattlePassController::class, 'updateTiers']
+    )->name('battle-passes.tiers.update');
+    Route::resource('battle-passes', \App\Http\Controllers\Admin\AdminBattlePassController::class)
+        ->parameters(['battle-passes' => 'battle_pass']);
+
     // Paramètres globaux
     Route::get('settings',   [AdminSettingsController::class, 'index'])->name('settings.index');
     Route::patch('settings', [AdminSettingsController::class, 'update'])->name('settings.update');
