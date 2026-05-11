@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             BattlePassSeeder::class,
             AchievementSeeder::class,
             DailyLoginRewardSeeder::class,
+            SettingSeeder::class,
         ]);
     }
 }

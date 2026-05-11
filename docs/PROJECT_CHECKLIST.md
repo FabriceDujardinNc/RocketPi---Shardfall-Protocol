@@ -41,7 +41,7 @@
 
 ### Tooling
 - [x] Node.js 22 LTS
-- [x] **Pest 4.7** installé + **19 fichiers de tests (171 tests / 503 assertions, tous au vert)** — couverture services métier + policies + admin CRUD + pages joueur. Ajout : **AdminAchievementControllerTest (6)** et **AdminEventControllerTest (5)**. Inclus aussi : XpService / DailyLoginService (+ fix SQLite) / GachaService / MissionService / AffinityService / AchievementService / ShopService / BattlePassService / LeaderboardService (Redis DB 15 isolée) / ReferralService (first-purchase) / AuthorizationTest (Policies + Gates) / AdminOperatorControllerTest / AdminBannerControllerTest (somme taux = 1) / AdminMissionControllerTest / AdminBattlePassControllerTest (anti-overlap dates) / AdminDailyLoginRewardControllerTest / AdminFactionControllerTest / Player FactionPageTest.
+- [x] **Pest 4.7** installé + **23 fichiers de tests (193 tests / 566 assertions, tous au vert)** — couverture services métier + policies + admin CRUD + pages joueur. Ajouts récents : **AdminLeaderboardSeasonTest (7 — anti-delete si rewards distribués)**, **AdminSettingsControllerTest (4 — incl. cache invalidation)**, **AdminCosmeticControllerTest (6 — incl. skin-requires-operator)**, **AdminPlayerGrantCurrencyTest (5 — débit/crédit/audit log)**, **AdminAchievementControllerTest (6)**, **AdminEventControllerTest (5)**. Inclus aussi : XpService / DailyLoginService (+ fix SQLite) / GachaService / MissionService / AffinityService / AchievementService / ShopService / BattlePassService / LeaderboardService (Redis DB 15 isolée) / ReferralService (first-purchase) / AuthorizationTest (Policies + Gates) / AdminOperatorControllerTest / AdminBannerControllerTest (somme taux = 1) / AdminMissionControllerTest / AdminBattlePassControllerTest (anti-overlap dates) / AdminDailyLoginRewardControllerTest / AdminFactionControllerTest / Player FactionPageTest.
 - [x] **Isolation tests durcie** — `tests/bootstrap.php` force `$_SERVER`/`$_ENV`/`putenv` avant l'autoload (PHPUnit `<env force>` ne touche pas `$_SERVER`, donc Docker injection prenait le dessus → les tests `RefreshDatabase` essuyaient la dev MySQL).
 - [x] **URLs SEO-friendly via slug** — refactor 11/05/2026 : trait `App\Concerns\HasAutoSlug` + colonne `slug` sur operators/banners/missions/battle_passes/events/leaderboard_seasons (+ unique index), `getRouteKeyName` override sur ces models et sur Achievement (via `key`). Toutes les URLs admin et joueur passent maintenant par slug : `/admin/operators/vex`, `/gacha/signal-shard-standard`, `/admin/battle-passes/saison-1-eveil-des-shards`, etc. Génération automatique sur save, collision-safe (suffixe `-2`/`-3`).
 - [x] Vitest (déps installées)
@@ -241,6 +241,8 @@
 - [x] referrals + referral_rewards
 - [x] daily_logins
 - [x] **daily_login_rewards** (day_number unique 1-365, rewards JSON, is_milestone, label — sort la const PHP vers la BDD, admin-éditable, ajout 11/05/2026)
+- [x] **settings** (key PK string, value text, type bool/string/int/json, label, description — kill-switches globaux, ajout 11/05/2026)
+- [x] **cosmetics + player_cosmetics** (catalogue skin/title/voiceline/banner/border + pivot user/cosmetic avec is_equipped, ajout 11/05/2026)
 - [x] missions + mission_progress
 - [x] battle_passes + battle_pass_tiers + battle_pass_progress
 - [x] operator_affinities
@@ -263,6 +265,7 @@
 - [x] `LeaderboardSeasonSeeder` (6 saisons ≥ 1 demandée)
 - [x] `LeaderboardRewardSeeder` (36 rewards = 6 tiers × 6 saisons actives)
 - [x] **`DailyLoginRewardSeeder`** (paliers J1/J7/J15/J30 reproduits depuis l'ancienne const PHP)
+- [x] **`SettingSeeder`** (6 flags par défaut : maintenance/gacha/shop/leaderboards_enabled + maintenance_message + announcement)
 
 ### Modèles Eloquent (créés au fil du seeding/gacha)
 - [x] `User` (avec MustVerifyEmail + helpers + booted hook referral_code)

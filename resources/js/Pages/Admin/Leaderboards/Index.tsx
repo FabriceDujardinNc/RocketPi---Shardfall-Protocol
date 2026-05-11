@@ -2,9 +2,11 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Button from '@ui/Button';
 import Alert from '@ui/Alert';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 
 interface Season {
     id: number;
+    slug: string;
     name: string;
     type: string;
     faction: string | null;
@@ -32,7 +34,12 @@ export default function AdminLeaderboardsIndex({ seasons }: Props) {
 
     const reset = (season: Season) => {
         if (!confirm(`Reset la saison « ${season.name} » ? Cette action archive en MySQL et distribue les rewards. Irréversible.`)) return;
-        router.post(`/admin/leaderboards/${season.id}/reset`, {}, { preserveScroll: true });
+        router.post(`/admin/leaderboards/${season.slug}/reset`, {}, { preserveScroll: true });
+    };
+
+    const destroy = (season: Season) => {
+        if (!confirm(`Supprimer définitivement la saison « ${season.name} » ? Les entries archivées seront aussi supprimées.`)) return;
+        router.delete(`/admin/leaderboards/${season.slug}`);
     };
 
     const active   = seasons.filter(s => s.is_active);
@@ -42,11 +49,14 @@ export default function AdminLeaderboardsIndex({ seasons }: Props) {
         <>
             <Head title="Admin · Classements" />
 
-            <header className="mb-6">
-                <h1 className="font-display font-bold text-2xl uppercase tracking-wide">Classements</h1>
-                <p className="font-mono text-xs text-text-low mt-1">
-                    Saisons actives en Redis · saisons archivées en MySQL
-                </p>
+            <header className="mb-6 flex items-end justify-between flex-wrap gap-3">
+                <div>
+                    <h1 className="font-display font-bold text-2xl uppercase tracking-wide">Classements</h1>
+                    <p className="font-mono text-xs text-text-low mt-1">
+                        Saisons actives en Redis · saisons archivées en MySQL
+                    </p>
+                </div>
+                <Link href="/admin/leaderboards/create"><Button variant="shard" icon={<Plus size={14} />}>Nouvelle saison</Button></Link>
             </header>
 
             {props.flash?.status && <div className="mb-4"><Alert variant="success">{props.flash.status}</Alert></div>}
@@ -60,7 +70,7 @@ export default function AdminLeaderboardsIndex({ seasons }: Props) {
                     <div className="rounded-lg bg-bg-elev1 border border-border-default p-6 text-center text-text-medium font-mono text-sm">
                         Aucune saison active.
                     </div>
-                ) : <SeasonsTable seasons={active} onReset={reset} showActions />}
+                ) : <SeasonsTable seasons={active} onReset={reset} onDestroy={destroy} showActions />}
             </section>
 
             <section>
@@ -71,15 +81,15 @@ export default function AdminLeaderboardsIndex({ seasons }: Props) {
                     <div className="rounded-lg bg-bg-elev1 border border-border-default p-6 text-center text-text-medium font-mono text-sm">
                         Aucune saison archivée.
                     </div>
-                ) : <SeasonsTable seasons={archived} onReset={reset} showActions={false} />}
+                ) : <SeasonsTable seasons={archived} onReset={reset} onDestroy={destroy} showActions={false} />}
             </section>
         </>
     );
 }
 
 function SeasonsTable({
-    seasons, onReset, showActions,
-}: { seasons: Season[]; onReset: (s: Season) => void; showActions: boolean }) {
+    seasons, onReset, onDestroy, showActions,
+}: { seasons: Season[]; onReset: (s: Season) => void; onDestroy: (s: Season) => void; showActions: boolean }) {
     return (
         <div className="rounded-lg bg-bg-elev1 border border-border-default overflow-hidden">
             <table className="w-full text-sm">
@@ -97,7 +107,7 @@ function SeasonsTable({
                     {seasons.map(s => (
                         <tr key={s.id} className="border-t border-border-default hover:bg-bg-elev2/50">
                             <td className="px-3 py-2">
-                                <Link href={`/admin/leaderboards/${s.id}`} className="text-shard-400 hover:text-shard-300 font-display">
+                                <Link href={`/admin/leaderboards/${s.slug}`} className="text-shard-400 hover:text-shard-300 font-display">
                                     {s.name}
                                 </Link>
                             </td>
@@ -118,11 +128,15 @@ function SeasonsTable({
                                     : <span className="font-display text-xs uppercase text-text-low">Archivée{s.rewards_distributed ? ' · rewards distribués' : ''}</span>}
                             </td>
                             <td className="px-3 py-2 text-right">
-                                {showActions && (
-                                    <Button size="sm" variant="danger" onClick={() => onReset(s)}>
-                                        Reset
-                                    </Button>
-                                )}
+                                <div className="inline-flex gap-1">
+                                    <Link href={`/admin/leaderboards/${s.slug}/edit`}><Button size="sm" variant="ghost" icon={<Pencil size={12} />}>Éditer</Button></Link>
+                                    {showActions && (
+                                        <Button size="sm" variant="danger" onClick={() => onReset(s)}>Reset</Button>
+                                    )}
+                                    {!s.rewards_distributed && (
+                                        <Button size="sm" variant="danger" icon={<Trash2 size={12} />} onClick={() => onDestroy(s)}>Suppr</Button>
+                                    )}
+                                </div>
                             </td>
                         </tr>
                     ))}

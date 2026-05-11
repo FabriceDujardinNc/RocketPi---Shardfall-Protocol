@@ -14,6 +14,7 @@ const SECTIONS = [
     { href: '/admin/battle-passes',        label: 'Battle Pass' },
     { href: '/admin/achievements',         label: 'Achievements' },
     { href: '/admin/events',               label: 'Événements' },
+    { href: '/admin/cosmetics',            label: 'Cosmétiques' },
     { href: '/admin/daily-login-rewards',  label: 'Daily login' },
     { href: '/admin/settings',             label: 'Paramètres' },
 ];

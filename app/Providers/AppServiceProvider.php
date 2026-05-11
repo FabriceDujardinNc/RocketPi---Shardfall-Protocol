@@ -5,22 +5,28 @@ namespace App\Providers;
 use App\Models\Achievement;
 use App\Models\Banner;
 use App\Models\BattlePass;
+use App\Models\Cosmetic;
 use App\Models\DailyLoginReward;
 use App\Models\Event;
 use App\Models\Faction;
+use App\Models\LeaderboardSeason;
 use App\Models\Mission;
 use App\Models\Operator;
 use App\Models\ReferralReward;
+use App\Models\Setting;
 use App\Models\User;
 use App\Policies\AchievementPolicy;
 use App\Policies\BannerPolicy;
 use App\Policies\BattlePassPolicy;
+use App\Policies\CosmeticPolicy;
 use App\Policies\DailyLoginRewardPolicy;
 use App\Policies\EventPolicy;
 use App\Policies\FactionPolicy;
+use App\Policies\LeaderboardSeasonPolicy;
 use App\Policies\MissionPolicy;
 use App\Policies\OperatorPolicy;
 use App\Policies\ReferralRewardPolicy;
+use App\Policies\SettingPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -44,6 +50,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Faction::class, FactionPolicy::class);
         Gate::policy(Achievement::class, AchievementPolicy::class);
         Gate::policy(Event::class, EventPolicy::class);
+        Gate::policy(LeaderboardSeason::class, LeaderboardSeasonPolicy::class);
+        Gate::policy(Setting::class, SettingPolicy::class);
+        Gate::policy(Cosmetic::class, CosmeticPolicy::class);
 
         // Le super_admin contourne toutes les vérifications applicatives.
         // Les Policies/Gates "ban" et "promote" gardent leurs propres règles

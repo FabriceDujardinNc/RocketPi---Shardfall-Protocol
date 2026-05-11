@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreLeaderboardSeasonRequest;
 use App\Models\LeaderboardEntry;
 use App\Models\LeaderboardSeason;
 use App\Services\LeaderboardService;
@@ -20,12 +21,15 @@ class AdminLeaderboardController extends Controller
 
     public function index(): Response
     {
+        $this->authorize('viewAny', LeaderboardSeason::class);
+
         $seasons = LeaderboardSeason::orderByDesc('is_active')
             ->orderByDesc('starts_at')
             ->get();
 
         $rows = $seasons->map(fn (LeaderboardSeason $s) => [
             'id'                  => $s->id,
+            'slug'                => $s->slug,
             'name'                => $s->name,
             'type'                => $s->type,
             'faction'             => $s->faction,
@@ -43,9 +47,23 @@ class AdminLeaderboardController extends Controller
         ]);
     }
 
+    public function create(): Response
+    {
+        $this->authorize('create', LeaderboardSeason::class);
+        return Inertia::render('Admin/Leaderboards/Create', $this->formDeps());
+    }
+
+    public function store(StoreLeaderboardSeasonRequest $request): RedirectResponse
+    {
+        $season = LeaderboardSeason::create($request->validated());
+        return redirect()->route('admin.leaderboards.show', $season)
+            ->with('status', "Saison « {$season->name} » créée.");
+    }
+
     public function show(LeaderboardSeason $season): Response
     {
-        // Si saison active : top 100 depuis Redis. Sinon : entries archivées MySQL.
+        $this->authorize('view', $season);
+
         if ($season->is_active) {
             $entries = $this->service->topN($season, 100);
             $source  = 'redis';
@@ -69,7 +87,7 @@ class AdminLeaderboardController extends Controller
 
         return Inertia::render('Admin/Leaderboards/Show', [
             'season' => $season->only([
-                'id', 'name', 'type', 'faction', 'season_number',
+                'id', 'slug', 'name', 'type', 'faction', 'season_number',
                 'starts_at', 'ends_at', 'is_active', 'rewards_distributed',
             ]),
             'entries'           => $entries,
@@ -80,8 +98,33 @@ class AdminLeaderboardController extends Controller
         ]);
     }
 
+    public function edit(LeaderboardSeason $season): Response
+    {
+        $this->authorize('update', $season);
+        return Inertia::render('Admin/Leaderboards/Edit', array_merge($this->formDeps(), [
+            'season' => $season,
+        ]));
+    }
+
+    public function update(StoreLeaderboardSeasonRequest $request, LeaderboardSeason $season): RedirectResponse
+    {
+        $season->update($request->validated());
+        return redirect()->route('admin.leaderboards.show', $season)
+            ->with('status', "Saison « {$season->name} » mise à jour.");
+    }
+
+    public function destroy(LeaderboardSeason $season): RedirectResponse
+    {
+        $this->authorize('delete', $season);
+        $season->delete();
+        return redirect()->route('admin.leaderboards.index')
+            ->with('status', 'Saison supprimée. Les entries archivées MySQL sont cascade-deleted.');
+    }
+
     public function reset(LeaderboardSeason $season): RedirectResponse
     {
+        $this->authorize('update', $season);
+
         if (! $season->is_active) {
             return back()->withErrors(['season' => 'Saison déjà fermée.']);
         }
@@ -90,5 +133,15 @@ class AdminLeaderboardController extends Controller
         $distributed = $this->service->distributeRewards($season, $this->rewards);
 
         return back()->with('status', "Saison {$season->name} fermée — {$archived} entries archivées, {$distributed} récompenses distribuées.");
+    }
+
+    private function formDeps(): array
+    {
+        return [
+            'enums' => [
+                'types'    => ['weekly', 'monthly', 'seasonal', 'annual', 'collection', 'faction'],
+                'factions' => ['ORBIT', 'FERRO', 'VEIL'],
+            ],
+        ];
     }
 }

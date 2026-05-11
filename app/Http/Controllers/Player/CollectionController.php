@@ -19,7 +19,7 @@ class CollectionController extends Controller
             ->get()
             ->keyBy('operator_id');
 
-        $owned = PlayerOperator::with('operator:id,name,codename,faction,role,rarity,portrait_url,lore')
+        $owned = PlayerOperator::with('operator:id,slug,name,codename,faction,role,rarity,portrait_url,lore')
             ->where('user_id', $user->id)
             ->orderByDesc('obtained_at')
             ->get()

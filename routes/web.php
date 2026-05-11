@@ -151,9 +151,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('referrals/{referral}/flag', [AdminReferralController::class, 'flag'])->name('referrals.flag');
 
     // Classements
-    Route::get('leaderboards',               [AdminLeaderboardController::class, 'index'])->name('leaderboards.index');
-    Route::get('leaderboards/{season}',      [AdminLeaderboardController::class, 'show'])->name('leaderboards.show');
-    Route::post('leaderboards/{season}/reset',[AdminLeaderboardController::class, 'reset'])->name('leaderboards.reset');
+    Route::post('leaderboards/{season}/reset', [AdminLeaderboardController::class, 'reset'])->name('leaderboards.reset');
+    Route::resource('leaderboards', AdminLeaderboardController::class)
+        ->parameters(['leaderboards' => 'season']);
 
     // Missions & événements
     Route::post('missions/{slug}/restore', [AdminMissionController::class, 'restore'])
@@ -182,6 +182,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Événements (limités dans le temps, optionnellement liés à une bannière)
     Route::resource('events', \App\Http\Controllers\Admin\AdminEventController::class)
+        ->except(['show']);
+
+    // Cosmétiques (catalogue : skins/titles/voicelines/banners/borders)
+    Route::resource('cosmetics', \App\Http\Controllers\Admin\AdminCosmeticController::class)
         ->except(['show']);
 
     // Paramètres globaux
