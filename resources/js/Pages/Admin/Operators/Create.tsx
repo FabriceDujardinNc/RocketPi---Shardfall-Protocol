@@ -24,6 +24,7 @@ export default function OperatorCreate({ enums }: Props) {
                     stat_hp: 100, stat_damage: 50, stat_mobility: 50,
                     weapon_name: '', weapon_description: '',
                     abilities: [],
+                    lore_unlocks: null, // le form remplit avec les 5 paliers par défaut
                     is_available: true, is_rate_up: false,
                     sort_order: 0,
                 }}

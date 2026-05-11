@@ -143,10 +143,36 @@ class OperatorSeeder extends Seeder
         foreach ($operators as $data) {
             $abilities = $data['abilities'];
             unset($data['abilities']);
+
+            $lore_unlocks = $this->buildLoreUnlocks($data);
+
             Operator::firstOrCreate(
                 ['codename' => $data['codename']],
-                array_merge($data, ['abilities' => $abilities])
+                array_merge($data, [
+                    'abilities'    => $abilities,
+                    'lore_unlocks' => $lore_unlocks,
+                ])
             );
         }
+    }
+
+    /**
+     * Construit les 5 paliers de lore (0/2/5/8/10) à partir des attributs de l'opérateur.
+     * Reprend la logique procédurale qui était dans OperatorController::lorePart() pour
+     * conserver le contenu existant côté joueur — éditable ensuite depuis l'admin.
+     */
+    private function buildLoreUnlocks(array $data): array
+    {
+        $name    = $data['name'];
+        $faction = $data['faction'];
+        $role    = $data['role'];
+
+        return [
+            ['level' => 0,  'title' => 'Présentation',          'snippet' => $data['lore']],
+            ['level' => 2,  'title' => 'Origines',              'snippet' => "Avant le Shardfall, {$name} servait dans les rangs de la faction {$faction}. Spécialiste {$role}, son passé reste partiellement classifié."],
+            ['level' => 5,  'title' => "L'incident Shardfall",  'snippet' => "L'exposition aux Shards a transformé {$name}. Les changements physiques et mentaux observés défient encore la compréhension scientifique actuelle."],
+            ['level' => 8,  'title' => 'Vie privée',            'snippet' => "Loin des champs de bataille, {$name} cultive une passion pour des activités étonnamment ordinaires. Une humanité qui rappelle ce que l'on protège."],
+            ['level' => 10, 'title' => 'Confidence ultime',     'snippet' => "La confidence ultime — révélée seulement aux commandants ayant gagné une affinité maximale avec {$name}."],
+        ];
     }
 }

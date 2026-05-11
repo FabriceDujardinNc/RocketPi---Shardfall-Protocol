@@ -8,6 +8,22 @@ interface Ability {
     description: string;
 }
 
+interface LoreUnlock {
+    level: 0 | 2 | 5 | 8 | 10;
+    title: string;
+    snippet: string | null;
+}
+
+const LORE_LEVELS: Array<LoreUnlock['level']> = [0, 2, 5, 8, 10];
+
+const LORE_DEFAULT_TITLES: Record<LoreUnlock['level'], string> = {
+    0:  'Présentation',
+    2:  'Origines',
+    5:  "L'incident Shardfall",
+    8:  'Vie privée',
+    10: 'Confidence ultime',
+};
+
 export interface OperatorFormData {
     id?: number;
     name: string;
@@ -23,6 +39,7 @@ export interface OperatorFormData {
     weapon_name: string | null;
     weapon_description: string | null;
     abilities: Ability[] | null;
+    lore_unlocks: LoreUnlock[] | null;
     is_available: boolean;
     is_rate_up: boolean;
     sort_order: number;
@@ -36,9 +53,19 @@ interface Props {
 }
 
 export default function OperatorForm({ initial, enums, submitLabel, action }: Props) {
+    const ensureLore = (existing: LoreUnlock[] | null | undefined): LoreUnlock[] => {
+        const byLevel = new Map((existing ?? []).map(u => [u.level, u]));
+        return LORE_LEVELS.map(level => byLevel.get(level) ?? {
+            level,
+            title: LORE_DEFAULT_TITLES[level],
+            snippet: '',
+        });
+    };
+
     const { data, setData, errors, processing, post, put } = useForm({
         ...initial,
         abilities: initial.abilities ?? [],
+        lore_unlocks: ensureLore(initial.lore_unlocks),
     });
 
     const onSubmit = (e: React.FormEvent) => {
@@ -147,11 +174,53 @@ export default function OperatorForm({ initial, enums, submitLabel, action }: Pr
 
             {/* Lore */}
             <fieldset className="rounded-lg bg-bg-elev1 border border-border-default p-5">
-                <legend className="font-display text-xs uppercase tracking-wide text-shard-400 px-2">Lore</legend>
+                <legend className="font-display text-xs uppercase tracking-wide text-shard-400 px-2">Lore (présentation)</legend>
                 <textarea value={data.lore ?? ''} onChange={(e) => setData('lore', e.target.value || null)}
                     className={inputCls + ' h-40 mt-2'} maxLength={5000} placeholder="Histoire du personnage, background..." />
                 {errors.lore && <p className="text-danger text-xs font-mono mt-1">{errors.lore}</p>}
                 <p className="text-text-low text-xs font-mono mt-1">{(data.lore ?? '').length} / 5000</p>
+            </fieldset>
+
+            {/* Lore débloqué progressivement par affinité */}
+            <fieldset className="rounded-lg bg-bg-elev1 border border-border-default p-5">
+                <legend className="font-display text-xs uppercase tracking-wide text-shard-400 px-2">Lore progressif (paliers d'affinité)</legend>
+                <p className="text-text-low text-xs font-mono mt-1 mb-4">
+                    Chaque palier se débloque côté joueur quand son affinité avec l'opérateur atteint le niveau correspondant.
+                </p>
+                <div className="space-y-4">
+                    {(data.lore_unlocks ?? []).map((u, idx) => (
+                        <div key={u.level} className="rounded-md bg-bg-elev2/50 border border-border-default p-3">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="font-display text-xs uppercase tracking-wide text-shard-400">Niveau {u.level}</span>
+                                <span className="font-mono text-xs text-text-low">{(u.snippet ?? '').length} / 3000</span>
+                            </div>
+                            <input
+                                value={u.title}
+                                onChange={(e) => {
+                                    const next = [...(data.lore_unlocks ?? [])];
+                                    next[idx] = { ...u, title: e.target.value };
+                                    setData('lore_unlocks', next);
+                                }}
+                                className={inputCls + ' mb-2'}
+                                placeholder="Titre du palier"
+                                maxLength={64}
+                            />
+                            <textarea
+                                value={u.snippet ?? ''}
+                                onChange={(e) => {
+                                    const next = [...(data.lore_unlocks ?? [])];
+                                    next[idx] = { ...u, snippet: e.target.value || null };
+                                    setData('lore_unlocks', next);
+                                }}
+                                className={inputCls + ' h-24'}
+                                placeholder="Contenu débloqué à ce palier..."
+                                maxLength={3000}
+                            />
+                            {errors[`lore_unlocks.${idx}.title`]   && <p className="text-danger text-xs font-mono mt-1">{errors[`lore_unlocks.${idx}.title`]}</p>}
+                            {errors[`lore_unlocks.${idx}.snippet`] && <p className="text-danger text-xs font-mono mt-1">{errors[`lore_unlocks.${idx}.snippet`]}</p>}
+                        </div>
+                    ))}
+                </div>
             </fieldset>
 
             {/* Flags */}

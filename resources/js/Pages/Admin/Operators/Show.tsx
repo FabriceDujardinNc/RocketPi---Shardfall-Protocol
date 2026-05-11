@@ -7,6 +7,7 @@ import Alert from '@ui/Alert';
 import { ArrowLeft, Pencil, Archive, RotateCcw } from 'lucide-react';
 
 interface Ability { name: string; type: 'active' | 'passive' | 'ultimate'; description: string }
+interface LoreUnlock { level: number; title: string; snippet: string | null }
 
 interface Operator {
     id: number;
@@ -23,6 +24,7 @@ interface Operator {
     weapon_name: string | null;
     weapon_description: string | null;
     abilities: Ability[] | null;
+    lore_unlocks: LoreUnlock[] | null;
     is_available: boolean;
     is_rate_up: boolean;
     sort_order: number;
@@ -120,8 +122,24 @@ export default function OperatorShow({ operator }: { operator: Operator }) {
 
                     {operator.lore && (
                         <section className="rounded-lg bg-bg-elev1 border border-border-default p-5">
-                            <h2 className="font-display text-sm uppercase tracking-wide text-shard-400 mb-2">Lore</h2>
+                            <h2 className="font-display text-sm uppercase tracking-wide text-shard-400 mb-2">Lore (présentation)</h2>
                             <p className="text-text-medium text-sm whitespace-pre-wrap leading-relaxed">{operator.lore}</p>
+                        </section>
+                    )}
+
+                    {(operator.lore_unlocks?.length ?? 0) > 0 && (
+                        <section className="rounded-lg bg-bg-elev1 border border-border-default p-5">
+                            <h2 className="font-display text-sm uppercase tracking-wide text-shard-400 mb-3">Lore progressif (paliers d'affinité)</h2>
+                            <div className="space-y-4">
+                                {operator.lore_unlocks!.map(u => (
+                                    <div key={u.level} className="border-l-2 border-shard-500/50 pl-3">
+                                        <p className="font-display text-text-high">{u.title} <span className="font-mono text-xs text-text-low ml-2">Niv. {u.level}</span></p>
+                                        {u.snippet
+                                            ? <p className="text-text-medium text-sm mt-1 whitespace-pre-wrap leading-relaxed">{u.snippet}</p>
+                                            : <p className="text-text-low text-xs font-mono mt-1 italic">(vide — à compléter)</p>}
+                                    </div>
+                                ))}
+                            </div>
                         </section>
                     )}
                 </main>

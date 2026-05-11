@@ -37,14 +37,19 @@ interface Props {
 
 interface PageProps { flash?: { status?: string }; [key: string]: unknown }
 
+const EMPTY_PAGE = { data: [], links: [], from: 0, to: 0, total: 0 };
+
 export default function OperatorsIndex({ operators, filters }: Props) {
     const { props } = usePage<PageProps>();
+    const page = operators ?? EMPTY_PAGE;
+    const rows = page.data ?? [];
+    const f = filters ?? {};
     const [form, setForm] = useState({
-        q:       filters.q       ?? '',
-        faction: filters.faction ?? '',
-        rarity:  filters.rarity  ?? '',
-        role:    filters.role    ?? '',
-        trashed: filters.trashed ?? '',
+        q:       f.q       ?? '',
+        faction: f.faction ?? '',
+        rarity:  f.rarity  ?? '',
+        role:    f.role    ?? '',
+        trashed: f.trashed ?? '',
     });
 
     const submit = (e: React.FormEvent) => {
@@ -69,7 +74,7 @@ export default function OperatorsIndex({ operators, filters }: Props) {
             <header className="flex justify-between items-end mb-6 flex-wrap gap-3">
                 <div>
                     <h1 className="font-display font-bold text-2xl uppercase tracking-wide">Opérateurs</h1>
-                    <p className="font-mono text-xs text-text-low mt-1">{operators.total} entrées</p>
+                    <p className="font-mono text-xs text-text-low mt-1">{page.total} entrées</p>
                 </div>
                 <Link href="/admin/operators/create">
                     <Button variant="shard" icon={<Plus size={14} />}>Nouvel opérateur</Button>
@@ -127,9 +132,9 @@ export default function OperatorsIndex({ operators, filters }: Props) {
                         </tr>
                     </thead>
                     <tbody>
-                        {operators.data.length === 0 ? (
+                        {rows.length === 0 ? (
                             <tr><td colSpan={8} className="px-3 py-12 text-center text-text-medium font-mono text-sm">Aucun opérateur — ajuste les filtres ou crée le premier.</td></tr>
-                        ) : operators.data.map(op => (
+                        ) : rows.map(op => (
                             <tr key={op.id} className={'border-t border-border-default hover:bg-bg-elev2/50 ' + (op.deleted_at ? 'opacity-50' : '')}>
                                 <td className="px-3 py-2 font-mono text-text-low">{op.id}</td>
                                 <td className="px-3 py-2 font-mono text-text-medium">{op.codename}</td>
@@ -162,8 +167,8 @@ export default function OperatorsIndex({ operators, filters }: Props) {
                 </table>
             </section>
 
-            <p className="font-mono text-xs text-text-low mt-3">{operators.from}–{operators.to} sur {operators.total}</p>
-            <Pagination links={operators.links} />
+            <p className="font-mono text-xs text-text-low mt-3">{page.from}–{page.to} sur {page.total}</p>
+            <Pagination links={page.links} />
         </>
     );
 }

@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function Pagination({ links }: Props) {
-    if (links.length <= 3) return null;
+    if (!links || links.length <= 3) return null;
 
     return (
         <nav className="flex items-center justify-center gap-1 mt-6" aria-label="Pagination">

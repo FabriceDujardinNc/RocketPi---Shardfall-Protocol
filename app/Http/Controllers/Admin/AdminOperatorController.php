@@ -37,7 +37,9 @@ class AdminOperatorController extends Controller
 
         return Inertia::render('Admin/Operators/Index', [
             'operators' => $query->paginate(25)->withQueryString(),
-            'filters'   => $filters,
+            // Force-cast en objet pour qu'Inertia serialize `{}` plutôt que `[]`
+            // côté JS — l'Index destructure filters.q et planterait sur un array.
+            'filters'   => (object) $filters,
         ]);
     }
 
@@ -64,7 +66,9 @@ class AdminOperatorController extends Controller
         $this->authorize('view', $operator);
 
         return Inertia::render('Admin/Operators/Show', [
-            'operator' => $operator,
+            'operator' => array_merge($operator->toArray(), [
+                'lore_unlocks' => $operator->loreUnlocksWithDefaults(),
+            ]),
         ]);
     }
 
@@ -73,7 +77,11 @@ class AdminOperatorController extends Controller
         $this->authorize('update', $operator);
 
         return Inertia::render('Admin/Operators/Edit', [
-            'operator' => $operator,
+            'operator' => array_merge($operator->toArray(), [
+                // On présente toujours les 5 paliers à l'éditeur, même s'ils ne sont pas
+                // tous renseignés en BDD : ça évite la friction "ajouter palier 5 puis 8".
+                'lore_unlocks' => $operator->loreUnlocksWithDefaults(),
+            ]),
             'enums'    => $this->enums(),
         ]);
     }

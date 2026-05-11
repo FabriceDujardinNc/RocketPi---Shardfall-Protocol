@@ -125,8 +125,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::resource('operators', AdminOperatorController::class);
 
     // Bannières
-    Route::resource('banners', AdminBannerController::class);
+    Route::post('banners/{id}/restore', [AdminBannerController::class, 'restore'])
+        ->whereNumber('id')->name('banners.restore');
     Route::post('banners/{banner}/activate', [AdminBannerController::class, 'activate'])->name('banners.activate');
+    Route::resource('banners', AdminBannerController::class);
 
     // Joueurs
     Route::get('players',                    [AdminPlayerController::class, 'index'])->name('players.index');

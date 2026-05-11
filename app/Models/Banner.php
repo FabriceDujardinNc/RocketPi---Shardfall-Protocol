@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Banner extends Model
 {
+    use SoftDeletes;
+
     protected $guarded = [];
 
     protected function casts(): array
@@ -19,6 +22,11 @@ class Banner extends Model
             'starts_at'         => 'datetime',
             'ends_at'           => 'datetime',
             'is_active'         => 'boolean',
+            'pity_legendary'    => 'integer',
+            'soft_pity_start'   => 'integer',
+            'pity_epic'         => 'integer',
         ];
     }
+
+    public const TYPES = ['permanent', 'event', 'faction', 'collab'];
 }
