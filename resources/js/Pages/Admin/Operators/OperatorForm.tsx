@@ -26,6 +26,7 @@ const LORE_DEFAULT_TITLES: Record<LoreUnlock['level'], string> = {
 
 export interface OperatorFormData {
     id?: number;
+    slug?: string;
     name: string;
     codename: string;
     faction: string;

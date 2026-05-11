@@ -31,7 +31,7 @@ export default function BattlePassIndex({ battlePasses }: { battlePasses: Battle
 
     const destroy = (bp: BattlePass) => {
         if (!confirm(`Supprimer définitivement la saison « ${bp.name} » ? Les progressions joueurs seront aussi supprimées.`)) return;
-        router.delete(`/admin/battle-passes/${bp.id}`);
+        router.delete(`/admin/battle-passes/${bp.slug}`);
     };
 
     return (
@@ -89,8 +89,8 @@ export default function BattlePassIndex({ battlePasses }: { battlePasses: Battle
                                     <td className="px-3 py-2 font-mono text-xs text-text-medium">{bp.premium_price_shards.toLocaleString('fr-FR')} shards</td>
                                     <td className="px-3 py-2 text-right">
                                         <div className="inline-flex gap-1">
-                                            <Link href={`/admin/battle-passes/${bp.id}`}><Button size="sm" variant="ghost" icon={<Eye size={12} />}>Voir</Button></Link>
-                                            <Link href={`/admin/battle-passes/${bp.id}/edit`}><Button size="sm" variant="secondary" icon={<Pencil size={12} />}>Éditer</Button></Link>
+                                            <Link href={`/admin/battle-passes/${bp.slug}`}><Button size="sm" variant="ghost" icon={<Eye size={12} />}>Voir</Button></Link>
+                                            <Link href={`/admin/battle-passes/${bp.slug}/edit`}><Button size="sm" variant="secondary" icon={<Pencil size={12} />}>Éditer</Button></Link>
                                             <Button size="sm" variant="danger" icon={<Trash2 size={12} />} onClick={() => destroy(bp)}>Suppr</Button>
                                         </div>
                                     </td>

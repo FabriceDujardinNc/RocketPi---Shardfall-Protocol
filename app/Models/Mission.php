@@ -2,12 +2,18 @@
 
 namespace App\Models;
 
+use App\Concerns\HasAutoSlug;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Mission extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasAutoSlug;
+
+    public function slugSource(): string
+    {
+        return (string) $this->title;
+    }
 
     protected $guarded = [];
 

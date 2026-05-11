@@ -27,8 +27,8 @@ interface PageProps { flash?: { status?: string }; [key: string]: unknown }
 
 export default function MissionShow({ mission }: { mission: Mission }) {
     const { props } = usePage<PageProps>();
-    const archive = () => { if (confirm(`Archiver « ${mission.title} » ?`)) router.delete(`/admin/missions/${mission.id}`); };
-    const restore = () => router.post(`/admin/missions/${mission.id}/restore`);
+    const archive = () => { if (confirm(`Archiver « ${mission.title} » ?`)) router.delete(`/admin/missions/${mission.slug}`); };
+    const restore = () => router.post(`/admin/missions/${mission.slug}/restore`);
 
     return (
         <>
@@ -44,7 +44,7 @@ export default function MissionShow({ mission }: { mission: Mission }) {
                 <div className="flex gap-2">
                     {!mission.deleted_at ? (
                         <>
-                            <Link href={`/admin/missions/${mission.id}/edit`}><Button variant="secondary" icon={<Pencil size={14} />}>Éditer</Button></Link>
+                            <Link href={`/admin/missions/${mission.slug}/edit`}><Button variant="secondary" icon={<Pencil size={14} />}>Éditer</Button></Link>
                             <Button variant="danger" icon={<Archive size={14} />} onClick={archive}>Archiver</Button>
                         </>
                     ) : (

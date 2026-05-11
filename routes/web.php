@@ -125,13 +125,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     // Opérateurs
-    Route::post('operators/{id}/restore', [AdminOperatorController::class, 'restore'])
-        ->whereNumber('id')->name('operators.restore');
+    Route::post('operators/{slug}/restore', [AdminOperatorController::class, 'restore'])
+        ->name('operators.restore');
     Route::resource('operators', AdminOperatorController::class);
 
     // Bannières
-    Route::post('banners/{id}/restore', [AdminBannerController::class, 'restore'])
-        ->whereNumber('id')->name('banners.restore');
+    Route::post('banners/{slug}/restore', [AdminBannerController::class, 'restore'])
+        ->name('banners.restore');
     Route::post('banners/{banner}/activate', [AdminBannerController::class, 'activate'])->name('banners.activate');
     Route::resource('banners', AdminBannerController::class);
 
@@ -156,8 +156,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('leaderboards/{season}/reset',[AdminLeaderboardController::class, 'reset'])->name('leaderboards.reset');
 
     // Missions & événements
-    Route::post('missions/{id}/restore', [AdminMissionController::class, 'restore'])
-        ->whereNumber('id')->name('missions.restore');
+    Route::post('missions/{slug}/restore', [AdminMissionController::class, 'restore'])
+        ->name('missions.restore');
     Route::resource('missions', AdminMissionController::class);
 
     // Battle Pass — saisons + paliers
@@ -175,6 +175,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Factions — lore + page collection par faction
     Route::resource('factions', \App\Http\Controllers\Admin\AdminFactionController::class)
         ->only(['index', 'show', 'edit', 'update']);
+
+    // Achievements (honneurs)
+    Route::resource('achievements', \App\Http\Controllers\Admin\AdminAchievementController::class)
+        ->except(['show']);
+
+    // Événements (limités dans le temps, optionnellement liés à une bannière)
+    Route::resource('events', \App\Http\Controllers\Admin\AdminEventController::class)
+        ->except(['show']);
 
     // Paramètres globaux
     Route::get('settings',   [AdminSettingsController::class, 'index'])->name('settings.index');

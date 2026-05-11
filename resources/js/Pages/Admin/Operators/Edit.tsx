@@ -13,7 +13,7 @@ export default function OperatorEdit({ operator, enums }: Props) {
         <>
             <Head title={`Admin · Édition ${operator.name}`} />
             <header className="mb-6">
-                <Link href={`/admin/operators/${operator.id}`} className="font-mono text-xs text-text-low hover:text-text-medium inline-flex items-center gap-1 mb-2">
+                <Link href={`/admin/operators/${operator.slug}`} className="font-mono text-xs text-text-low hover:text-text-medium inline-flex items-center gap-1 mb-2">
                     <ArrowLeft size={12} /> Retour à la fiche
                 </Link>
                 <h1 className="font-display font-bold text-2xl uppercase tracking-wide">Édition · {operator.name}</h1>
@@ -22,7 +22,7 @@ export default function OperatorEdit({ operator, enums }: Props) {
                 initial={operator}
                 enums={enums}
                 submitLabel="Enregistrer les modifications"
-                action={{ method: 'put', url: `/admin/operators/${operator.id}` }}
+                action={{ method: 'put', url: `/admin/operators/${operator.slug}` }}
             />
         </>
     );

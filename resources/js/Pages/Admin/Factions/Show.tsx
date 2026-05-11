@@ -87,7 +87,7 @@ export default function FactionShow({ faction, byRarity, stats }: Props) {
                             <h3 className="font-display text-xs uppercase tracking-wide text-text-low mb-2">{RARITY_LABEL[rarity]} ({list.length})</h3>
                             <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-3">
                                 {list.map(op => (
-                                    <Link key={op.id} href={`/admin/operators/${op.id}`}
+                                    <Link key={op.id} href={`/admin/operators/${op.slug}`}
                                         className="rounded-md bg-bg-elev1 border border-border-default p-3 hover:bg-bg-elev2 transition-colors duration-fast">
                                         <div className="flex items-center justify-between mb-2">
                                             <span className="font-display text-text-high text-sm">{op.name}</span>

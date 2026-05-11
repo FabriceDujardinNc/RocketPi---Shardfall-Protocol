@@ -96,7 +96,7 @@ it('allows update on the same season without false overlap', function () {
 
     // Update dates en gardant le chevauchement avec elle-même → doit passer
     $this->actingAs(adminUserBP())
-        ->put("/admin/battle-passes/{$bp->id}", [
+        ->put("/admin/battle-passes/{$bp->slug}", [
             'name'                 => 'Renamed',
             'season_number'        => $bp->season_number,
             'total_tiers'          => $bp->total_tiers,
@@ -116,7 +116,7 @@ it('rejects update if it would overlap another season', function () {
 
     // Tenter de déplacer bp2 sur la période de bp1
     $this->actingAs(adminUserBP())
-        ->put("/admin/battle-passes/{$bp2->id}", [
+        ->put("/admin/battle-passes/{$bp2->slug}", [
             'name'                 => $bp2->name,
             'season_number'        => $bp2->season_number,
             'total_tiers'          => $bp2->total_tiers,
@@ -134,7 +134,7 @@ it('bulk-updates tiers', function () {
     BattlePassTier::create(['battle_pass_id' => $bp->id, 'tier_number' => 2, 'xp_required' => 200, 'free_reward' => null, 'premium_reward' => null, 'is_milestone' => false]);
 
     $this->actingAs(adminUserBP())
-        ->put("/admin/battle-passes/{$bp->id}/tiers", [
+        ->put("/admin/battle-passes/{$bp->slug}/tiers", [
             'tiers' => [
                 ['tier_number' => 1, 'xp_required' => 150, 'is_milestone' => true,  'free_reward' => [['type' => 'shards', 'amount' => 50]]],
                 ['tier_number' => 2, 'xp_required' => 300, 'is_milestone' => false, 'premium_reward' => [['type' => 'tickets_premium', 'amount' => 1]]],
@@ -157,7 +157,7 @@ it('rejects duplicate tier_number in bulk update', function () {
     $bp = makeBattlePass(['total_tiers' => 2]);
 
     $this->actingAs(adminUserBP())
-        ->put("/admin/battle-passes/{$bp->id}/tiers", [
+        ->put("/admin/battle-passes/{$bp->slug}/tiers", [
             'tiers' => [
                 ['tier_number' => 1, 'xp_required' => 100],
                 ['tier_number' => 1, 'xp_required' => 200],  // doublon
@@ -171,7 +171,7 @@ it('destroys a battle pass and cascades tiers', function () {
     BattlePassTier::create(['battle_pass_id' => $bp->id, 'tier_number' => 1, 'xp_required' => 100, 'free_reward' => null, 'premium_reward' => null, 'is_milestone' => false]);
 
     $this->actingAs(adminUserBP())
-        ->delete("/admin/battle-passes/{$bp->id}")
+        ->delete("/admin/battle-passes/{$bp->slug}")
         ->assertRedirect();
 
     expect(BattlePass::find($bp->id))->toBeNull();

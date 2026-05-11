@@ -91,7 +91,7 @@ it('rejects unknown rate_up codename', function () {
 it('updates a banner', function () {
     $b = makeBannerRow();
     $this->actingAs(adminUserBanner())
-        ->put("/admin/banners/{$b->id}", [
+        ->put("/admin/banners/{$b->slug}", [
             'name'            => 'Updated',
             'type'            => 'faction',
             'rate_legendary'  => 0.05,
@@ -113,18 +113,18 @@ it('updates a banner', function () {
 
 it('toggles activate', function () {
     $b = makeBannerRow(['is_active' => false]);
-    $this->actingAs(adminUserBanner())->post("/admin/banners/{$b->id}/activate")->assertRedirect();
+    $this->actingAs(adminUserBanner())->post("/admin/banners/{$b->slug}/activate")->assertRedirect();
     expect($b->fresh()->is_active)->toBeTrue();
-    $this->actingAs(adminUserBanner())->post("/admin/banners/{$b->id}/activate")->assertRedirect();
+    $this->actingAs(adminUserBanner())->post("/admin/banners/{$b->slug}/activate")->assertRedirect();
     expect($b->fresh()->is_active)->toBeFalse();
 });
 
 it('soft-deletes and restores a banner', function () {
     $b = makeBannerRow();
-    $this->actingAs(adminUserBanner())->delete("/admin/banners/{$b->id}")->assertRedirect();
+    $this->actingAs(adminUserBanner())->delete("/admin/banners/{$b->slug}")->assertRedirect();
     expect(Banner::find($b->id))->toBeNull();
 
-    $this->actingAs(adminUserBanner())->post("/admin/banners/{$b->id}/restore")->assertRedirect();
+    $this->actingAs(adminUserBanner())->post("/admin/banners/{$b->slug}/restore")->assertRedirect();
     expect(Banner::find($b->id))->not->toBeNull();
 });
 

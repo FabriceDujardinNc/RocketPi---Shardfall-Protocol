@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Concerns\HasAutoSlug;
 use Illuminate\Database\Eloquent\Model;
 
 class LeaderboardSeason extends Model
 {
+    use HasAutoSlug;
+
     protected $guarded = [];
 
     protected function casts(): array

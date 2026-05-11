@@ -91,7 +91,7 @@ export default function PlayerFactionShow({ faction, byRarity, stats }: Props) {
                                 {list.map(op => (
                                     <Link
                                         key={op.id}
-                                        href={op.owned ? `/operators/${op.id}` : '#'}
+                                        href={op.owned ? `/operators/${op.slug}` : '#'}
                                         onClick={(e) => { if (!op.owned) e.preventDefault(); }}
                                         className={
                                             'group rounded-lg bg-bg-elev1 border-2 overflow-hidden transition-all duration-fast ' +

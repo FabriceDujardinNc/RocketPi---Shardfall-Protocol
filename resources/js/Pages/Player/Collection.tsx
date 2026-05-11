@@ -63,7 +63,7 @@ export default function Collection({ operators, totalCount }: Props) {
             ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {operators.map(po => (
-                        <Link href={`/operators/${po.operator.id}`} key={po.id} className="flex flex-col gap-2 hover:opacity-90 transition-opacity">
+                        <Link href={`/operators/${po.operator.slug}`} key={po.id} className="flex flex-col gap-2 hover:opacity-90 transition-opacity">
                             <div className="relative">
                                 <OperatorCard
                                     name={po.operator.name}

@@ -12,6 +12,8 @@ const SECTIONS = [
     { href: '/admin/leaderboards', label: 'Classements' },
     { href: '/admin/missions',             label: 'Missions' },
     { href: '/admin/battle-passes',        label: 'Battle Pass' },
+    { href: '/admin/achievements',         label: 'Achievements' },
+    { href: '/admin/events',               label: 'Événements' },
     { href: '/admin/daily-login-rewards',  label: 'Daily login' },
     { href: '/admin/settings',             label: 'Paramètres' },
 ];

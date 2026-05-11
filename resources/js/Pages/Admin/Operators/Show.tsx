@@ -11,6 +11,7 @@ interface LoreUnlock { level: number; title: string; snippet: string | null }
 
 interface Operator {
     id: number;
+    slug: string;
     name: string;
     codename: string;
     faction: 'ORBIT' | 'FERRO' | 'VEIL';
@@ -39,9 +40,9 @@ export default function OperatorShow({ operator }: { operator: Operator }) {
     const { props } = usePage<PageProps>();
     const archive = () => {
         if (!confirm(`Archiver ${operator.name} ?`)) return;
-        router.delete(`/admin/operators/${operator.id}`);
+        router.delete(`/admin/operators/${operator.slug}`);
     };
-    const restore = () => router.post(`/admin/operators/${operator.id}/restore`);
+    const restore = () => router.post(`/admin/operators/${operator.slug}/restore`);
 
     return (
         <>
@@ -57,7 +58,7 @@ export default function OperatorShow({ operator }: { operator: Operator }) {
                 <div className="flex gap-2">
                     {!operator.deleted_at ? (
                         <>
-                            <Link href={`/admin/operators/${operator.id}/edit`}><Button variant="secondary" icon={<Pencil size={14} />}>Éditer</Button></Link>
+                            <Link href={`/admin/operators/${operator.slug}/edit`}><Button variant="secondary" icon={<Pencil size={14} />}>Éditer</Button></Link>
                             <Button variant="danger" icon={<Archive size={14} />} onClick={archive}>Archiver</Button>
                         </>
                     ) : (

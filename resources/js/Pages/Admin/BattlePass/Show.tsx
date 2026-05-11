@@ -43,7 +43,7 @@ export default function BattlePassShow({ battlePass }: { battlePass: BattlePass 
                     <h1 className="font-display font-bold text-2xl uppercase tracking-wide">{battlePass.name}</h1>
                     <p className="font-mono text-xs text-text-low mt-1">Saison {battlePass.season_number} · #{battlePass.id}</p>
                 </div>
-                <Link href={`/admin/battle-passes/${battlePass.id}/edit`}>
+                <Link href={`/admin/battle-passes/${battlePass.slug}/edit`}>
                     <Button variant="secondary" icon={<Pencil size={14} />}>Éditer</Button>
                 </Link>
             </header>

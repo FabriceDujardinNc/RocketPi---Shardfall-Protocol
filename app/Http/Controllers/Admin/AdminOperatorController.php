@@ -106,9 +106,9 @@ class AdminOperatorController extends Controller
             ->with('status', "Opérateur {$operator->name} archivé (soft delete).");
     }
 
-    public function restore(int $id): RedirectResponse
+    public function restore(string $slug): RedirectResponse
     {
-        $operator = Operator::onlyTrashed()->findOrFail($id);
+        $operator = Operator::onlyTrashed()->where('slug', $slug)->firstOrFail();
         $this->authorize('restore', $operator);
 
         $operator->restore();

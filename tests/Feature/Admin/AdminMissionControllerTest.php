@@ -83,7 +83,7 @@ it('rejects invalid objective_type', function () {
 it('updates a mission', function () {
     $m = makeMissionRow();
     $this->actingAs(adminUserMission())
-        ->put("/admin/missions/{$m->id}", [
+        ->put("/admin/missions/{$m->slug}", [
             'title'            => 'Updated',
             'type'             => 'weekly',
             'objective_type'   => 'pvp_win',
@@ -103,9 +103,9 @@ it('updates a mission', function () {
 
 it('soft-deletes and restores a mission', function () {
     $m = makeMissionRow();
-    $this->actingAs(adminUserMission())->delete("/admin/missions/{$m->id}")->assertRedirect();
+    $this->actingAs(adminUserMission())->delete("/admin/missions/{$m->slug}")->assertRedirect();
     expect(Mission::find($m->id))->toBeNull();
 
-    $this->actingAs(adminUserMission())->post("/admin/missions/{$m->id}/restore")->assertRedirect();
+    $this->actingAs(adminUserMission())->post("/admin/missions/{$m->slug}/restore")->assertRedirect();
     expect(Mission::find($m->id))->not->toBeNull();
 });

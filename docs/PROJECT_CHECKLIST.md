@@ -41,8 +41,9 @@
 
 ### Tooling
 - [x] Node.js 22 LTS
-- [x] **Pest 4.7** installé + **17 fichiers de tests (160 tests / 476 assertions, tous au vert)** — couverture services métier + policies + admin CRUD + pages joueur : XpService (6) / DailyLoginService (8 + fix SQLite `whereDate`) / GachaService (12) / MissionService (8) / AffinityService (7) / AchievementService (8) / ShopService (6) / BattlePassService (14) / **LeaderboardService (13 — Redis DB 15 isolée)** / **ReferralService (15 — incluant first-purchase)** / **AuthorizationTest (10 — Policies + Gates)** / **AdminOperatorControllerTest (9)** / **AdminBannerControllerTest (10 — incluant somme des taux = 1)** / **AdminMissionControllerTest (7)** / **AdminBattlePassControllerTest (10 — incluant anti-overlap dates)** / **AdminDailyLoginRewardControllerTest (5)** / **AdminFactionControllerTest (6)** / **Player FactionPageTest (3)**
+- [x] **Pest 4.7** installé + **19 fichiers de tests (171 tests / 503 assertions, tous au vert)** — couverture services métier + policies + admin CRUD + pages joueur. Ajout : **AdminAchievementControllerTest (6)** et **AdminEventControllerTest (5)**. Inclus aussi : XpService / DailyLoginService (+ fix SQLite) / GachaService / MissionService / AffinityService / AchievementService / ShopService / BattlePassService / LeaderboardService (Redis DB 15 isolée) / ReferralService (first-purchase) / AuthorizationTest (Policies + Gates) / AdminOperatorControllerTest / AdminBannerControllerTest (somme taux = 1) / AdminMissionControllerTest / AdminBattlePassControllerTest (anti-overlap dates) / AdminDailyLoginRewardControllerTest / AdminFactionControllerTest / Player FactionPageTest.
 - [x] **Isolation tests durcie** — `tests/bootstrap.php` force `$_SERVER`/`$_ENV`/`putenv` avant l'autoload (PHPUnit `<env force>` ne touche pas `$_SERVER`, donc Docker injection prenait le dessus → les tests `RefreshDatabase` essuyaient la dev MySQL).
+- [x] **URLs SEO-friendly via slug** — refactor 11/05/2026 : trait `App\Concerns\HasAutoSlug` + colonne `slug` sur operators/banners/missions/battle_passes/events/leaderboard_seasons (+ unique index), `getRouteKeyName` override sur ces models et sur Achievement (via `key`). Toutes les URLs admin et joueur passent maintenant par slug : `/admin/operators/vex`, `/gacha/signal-shard-standard`, `/admin/battle-passes/saison-1-eveil-des-shards`, etc. Génération automatique sur save, collision-safe (suffixe `-2`/`-3`).
 - [x] Vitest (déps installées)
 - [x] **Storybook 9 + premières stories** — `.storybook/main.ts` + `preview.tsx`, 3 stories : Button (5 variants × 3 sizes + icon/loading), OperatorCard (4 raretés + roster grid), BattlePassNode (locked/unlocked/claimed/premium + roadmap). Storybook 8 ne supporte pas Vite 8 (peer dep `^4 || ^5 || ^6`), Storybook 9 installé avec `--legacy-peer-deps` ; `npm run build-storybook` passe (9.5s).
 - [x] Code versionné GitHub
@@ -369,9 +370,12 @@
 - [x] **Battle Pass full CRUD** (saisons avec anti-overlap dates + éditeur 50 paliers en bulk-update + milestones + filter all/milestones)
 - [x] **Factions admin** (3 cards éditables avec lore + couleur OKLCH + page Show listant les ops de la faction groupés par rareté)
 - [x] **Daily login rewards** (table éditable inline avec create/edit/delete par jour + fallback service sur défaut)
+- [x] **Achievements full CRUD** (clé regex-validée + 5 catégories + rewards dynamiques + flag hidden + filtres + table avec compteur de débloqués)
+- [x] **Events full CRUD** (5 types : limited_banner/pvp/pve/story/collaboration + lien optionnel à une Banner + rewards_pool + phase scheduled/current/expired + dates strictes)
 - [x] Settings.tsx (configuration globale — stub, à câbler en Lot C)
 - [ ] Moderation.tsx (signalements, sanctions) — Phase 5
-- [ ] Events / Achievements / Leaderboard seasons CRUD — Lot B en cours
+- [ ] Leaderboard Seasons CRUD complet (Index + reset OK, manque create/update/destroy)
+- [ ] grantCurrency joueur (action existante en stub, à câbler en Lot E)
 
 ### Layouts — `resources/js/Layouts/`
 - [x] GuestLayout

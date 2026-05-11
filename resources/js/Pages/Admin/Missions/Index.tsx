@@ -46,8 +46,8 @@ export default function MissionsIndex({ missions, filters }: Props) {
         router.get('/admin/missions', Object.fromEntries(Object.entries(form).filter(([_, v]) => v)), { preserveState: true });
     };
 
-    const archive = (m: Mission) => { if (confirm(`Archiver « ${m.title} » ?`)) router.delete(`/admin/missions/${m.id}`); };
-    const restore = (m: Mission) => router.post(`/admin/missions/${m.id}/restore`);
+    const archive = (m: Mission) => { if (confirm(`Archiver « ${m.title} » ?`)) router.delete(`/admin/missions/${m.slug}`); };
+    const restore = (m: Mission) => router.post(`/admin/missions/${m.slug}/restore`);
 
     return (
         <>
@@ -133,10 +133,10 @@ export default function MissionsIndex({ missions, filters }: Props) {
                                 </td>
                                 <td className="px-3 py-2 text-right">
                                     <div className="inline-flex gap-1">
-                                        <Link href={`/admin/missions/${m.id}`}><Button size="sm" variant="ghost" icon={<Eye size={12} />}>Voir</Button></Link>
+                                        <Link href={`/admin/missions/${m.slug}`}><Button size="sm" variant="ghost" icon={<Eye size={12} />}>Voir</Button></Link>
                                         {!m.deleted_at && (
                                             <>
-                                                <Link href={`/admin/missions/${m.id}/edit`}><Button size="sm" variant="secondary" icon={<Pencil size={12} />}>Éditer</Button></Link>
+                                                <Link href={`/admin/missions/${m.slug}/edit`}><Button size="sm" variant="secondary" icon={<Pencil size={12} />}>Éditer</Button></Link>
                                                 <Button size="sm" variant="danger" icon={<Archive size={12} />} onClick={() => archive(m)}>Archiver</Button>
                                             </>
                                         )}

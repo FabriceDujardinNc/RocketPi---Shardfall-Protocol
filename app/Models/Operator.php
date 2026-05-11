@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Concerns\HasAutoSlug;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Operator extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasAutoSlug;
 
     protected $guarded = [];
 

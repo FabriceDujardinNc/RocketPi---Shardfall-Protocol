@@ -81,7 +81,7 @@ it('updates an operator', function () {
     $op = makeOperator('rare', 'ORBIT');
 
     $this->actingAs(adminUser())
-        ->put("/admin/operators/{$op->id}", [
+        ->put("/admin/operators/{$op->slug}", [
             'name'          => $op->name,
             'codename'      => $op->codename,
             'faction'       => 'FERRO',
@@ -108,7 +108,7 @@ it('soft-deletes an operator', function () {
     $op = makeOperator('common', 'FERRO');
 
     $this->actingAs(adminUser())
-        ->delete("/admin/operators/{$op->id}")
+        ->delete("/admin/operators/{$op->slug}")
         ->assertRedirect();
 
     expect(Operator::find($op->id))->toBeNull();
@@ -120,7 +120,7 @@ it('restores a soft-deleted operator', function () {
     $op->delete();
 
     $this->actingAs(adminUser())
-        ->post("/admin/operators/{$op->id}/restore")
+        ->post("/admin/operators/{$op->slug}/restore")
         ->assertRedirect();
 
     expect(Operator::find($op->id))->not->toBeNull();

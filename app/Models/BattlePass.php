@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Concerns\HasAutoSlug;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BattlePass extends Model
 {
+    use HasAutoSlug;
+
     protected $guarded = [];
 
     protected function casts(): array

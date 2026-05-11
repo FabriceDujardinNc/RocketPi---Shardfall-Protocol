@@ -32,9 +32,9 @@ interface PageProps { flash?: { status?: string }; [key: string]: unknown }
 
 export default function BannerShow({ banner }: { banner: Banner }) {
     const { props } = usePage<PageProps>();
-    const archive = () => { if (confirm(`Archiver « ${banner.name} » ?`)) router.delete(`/admin/banners/${banner.id}`); };
+    const archive = () => { if (confirm(`Archiver « ${banner.name} » ?`)) router.delete(`/admin/banners/${banner.slug}`); };
     const restore = () => router.post(`/admin/banners/${banner.id}/restore`);
-    const toggle = () => router.post(`/admin/banners/${banner.id}/activate`);
+    const toggle = () => router.post(`/admin/banners/${banner.slug}/activate`);
 
     return (
         <>
@@ -50,7 +50,7 @@ export default function BannerShow({ banner }: { banner: Banner }) {
                 <div className="flex gap-2 flex-wrap">
                     {!banner.deleted_at && (
                         <>
-                            <Link href={`/admin/banners/${banner.id}/edit`}><Button variant="secondary" icon={<Pencil size={14} />}>Éditer</Button></Link>
+                            <Link href={`/admin/banners/${banner.slug}/edit`}><Button variant="secondary" icon={<Pencil size={14} />}>Éditer</Button></Link>
                             <Button variant={banner.is_active ? 'danger' : 'shard'} icon={banner.is_active ? <PowerOff size={14} /> : <Power size={14} />} onClick={toggle}>
                                 {banner.is_active ? 'Désactiver' : 'Activer'}
                             </Button>

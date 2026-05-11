@@ -85,9 +85,9 @@ class AdminBannerController extends Controller
             ->with('status', "Bannière archivée.");
     }
 
-    public function restore(int $id): RedirectResponse
+    public function restore(string $slug): RedirectResponse
     {
-        $banner = Banner::onlyTrashed()->findOrFail($id);
+        $banner = Banner::onlyTrashed()->where('slug', $slug)->firstOrFail();
         $this->authorize('restore', $banner);
         $banner->restore();
         return redirect()->route('admin.banners.show', $banner)

@@ -42,9 +42,9 @@ export default function BannersIndex({ banners, filters }: Props) {
         router.get('/admin/banners', Object.fromEntries(Object.entries(form).filter(([_, v]) => v)), { preserveState: true });
     };
 
-    const archive = (b: Banner) => { if (confirm(`Archiver « ${b.name} » ?`)) router.delete(`/admin/banners/${b.id}`); };
-    const restore = (b: Banner) => router.post(`/admin/banners/${b.id}/restore`);
-    const toggle = (b: Banner) => router.post(`/admin/banners/${b.id}/activate`);
+    const archive = (b: Banner) => { if (confirm(`Archiver « ${b.name} » ?`)) router.delete(`/admin/banners/${b.slug}`); };
+    const restore = (b: Banner) => router.post(`/admin/banners/${b.slug}/restore`);
+    const toggle = (b: Banner) => router.post(`/admin/banners/${b.slug}/activate`);
 
     return (
         <>
@@ -127,10 +127,10 @@ export default function BannersIndex({ banners, filters }: Props) {
                                 </td>
                                 <td className="px-3 py-2 text-right">
                                     <div className="inline-flex gap-1">
-                                        <Link href={`/admin/banners/${b.id}`}><Button size="sm" variant="ghost" icon={<Eye size={12} />}>Voir</Button></Link>
+                                        <Link href={`/admin/banners/${b.slug}`}><Button size="sm" variant="ghost" icon={<Eye size={12} />}>Voir</Button></Link>
                                         {!b.deleted_at && (
                                             <>
-                                                <Link href={`/admin/banners/${b.id}/edit`}><Button size="sm" variant="secondary" icon={<Pencil size={12} />}>Éditer</Button></Link>
+                                                <Link href={`/admin/banners/${b.slug}/edit`}><Button size="sm" variant="secondary" icon={<Pencil size={12} />}>Éditer</Button></Link>
                                                 <Button size="sm" variant={b.is_active ? 'danger' : 'shard'} icon={b.is_active ? <PowerOff size={12} /> : <Power size={12} />} onClick={() => toggle(b)}>
                                                     {b.is_active ? 'Désactiver' : 'Activer'}
                                                 </Button>

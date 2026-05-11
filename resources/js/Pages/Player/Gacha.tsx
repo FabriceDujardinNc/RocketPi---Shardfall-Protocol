@@ -45,7 +45,7 @@ export default function Gacha({ banners, shards }: Props) {
             ) : (
                 <div className="grid md:grid-cols-2 gap-6">
                     {banners.map(b => (
-                        <Link key={b.id} href={`/gacha/${b.id}`} className="block">
+                        <Link key={b.id} href={`/gacha/${b.slug}`} className="block">
                             <BannerCard
                                 name={b.name}
                                 description={b.subtitle ?? b.tag ?? undefined}

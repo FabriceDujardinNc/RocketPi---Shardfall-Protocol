@@ -75,17 +75,22 @@ export default function GachaBanner({ banner, pity, shards, cost, recentPulls }:
         setAnimating(flashResults);
     }
 
+    const canSingle = shards >= cost.single;
+    const canTen    = shards >= cost.ten;
+
     const doPull = (count: 1 | 10) => {
         if (pulling) return;
+        // Garde-fou côté client en plus du `disabled` du Button : empêche un click
+        // accidentel (Enter clavier, double-click au moment d'un refresh, etc.)
+        // qui partirait quand même côté serveur. La validation finale reste serveur.
+        if (count === 1 && !canSingle) return;
+        if (count === 10 && !canTen)   return;
         setPulling(true);
-        router.post(`/gacha/${banner.id}/pull`, { count }, {
+        router.post(`/gacha/${banner.slug}/pull`, { count }, {
             preserveScroll: true,
             onFinish: () => setPulling(false),
         });
     };
-
-    const canSingle = shards >= cost.single;
-    const canTen    = shards >= cost.ten;
 
     return (
         <>

@@ -82,9 +82,9 @@ class AdminMissionController extends Controller
             ->with('status', 'Mission archivée.');
     }
 
-    public function restore(int $id): RedirectResponse
+    public function restore(string $slug): RedirectResponse
     {
-        $mission = Mission::onlyTrashed()->findOrFail($id);
+        $mission = Mission::onlyTrashed()->where('slug', $slug)->firstOrFail();
         $this->authorize('restore', $mission);
         $mission->restore();
         return redirect()->route('admin.missions.show', $mission)

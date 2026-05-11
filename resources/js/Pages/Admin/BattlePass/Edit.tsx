@@ -42,7 +42,7 @@ export default function BattlePassEdit({ battlePass }: Props) {
                 <SeasonForm
                     initial={seasonInitial}
                     submitLabel="Enregistrer les métadonnées"
-                    action={{ method: 'put', url: `/admin/battle-passes/${battlePass.id}` }}
+                    action={{ method: 'put', url: `/admin/battle-passes/${battlePass.slug}` }}
                 />
             </section>
 

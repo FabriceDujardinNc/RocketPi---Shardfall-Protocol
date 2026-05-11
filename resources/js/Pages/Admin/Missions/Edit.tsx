@@ -13,7 +13,7 @@ export default function MissionEdit({ mission, enums }: Props) {
         <>
             <Head title={`Admin · Édition ${mission.title}`} />
             <header className="mb-6">
-                <Link href={`/admin/missions/${mission.id}`} className="font-mono text-xs text-text-low hover:text-text-medium inline-flex items-center gap-1 mb-2">
+                <Link href={`/admin/missions/${mission.slug}`} className="font-mono text-xs text-text-low hover:text-text-medium inline-flex items-center gap-1 mb-2">
                     <ArrowLeft size={12} /> Retour à la fiche
                 </Link>
                 <h1 className="font-display font-bold text-2xl uppercase tracking-wide">Édition · {mission.title}</h1>
@@ -22,7 +22,7 @@ export default function MissionEdit({ mission, enums }: Props) {
                 initial={mission}
                 enums={enums}
                 submitLabel="Enregistrer"
-                action={{ method: 'put', url: `/admin/missions/${mission.id}` }}
+                action={{ method: 'put', url: `/admin/missions/${mission.slug}` }}
             />
         </>
     );

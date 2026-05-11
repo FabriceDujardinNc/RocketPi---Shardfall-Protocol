@@ -13,6 +13,7 @@ type Faction = 'ORBIT' | 'FERRO' | 'VEIL';
 
 interface Operator {
     id: number;
+    slug: string;
     name: string;
     codename: string;
     faction: Faction;
@@ -60,11 +61,11 @@ export default function OperatorsIndex({ operators, filters }: Props) {
 
     const archive = (op: Operator) => {
         if (!confirm(`Archiver ${op.name} ?`)) return;
-        router.delete(`/admin/operators/${op.id}`);
+        router.delete(`/admin/operators/${op.slug}`);
     };
 
     const restore = (op: Operator) => {
-        router.post(`/admin/operators/${op.id}/restore`);
+        router.post(`/admin/operators/${op.slug}/restore`);
     };
 
     return (
@@ -149,7 +150,7 @@ export default function OperatorsIndex({ operators, filters }: Props) {
                                 </td>
                                 <td className="px-3 py-2 text-right">
                                     <div className="inline-flex gap-1">
-                                        <Link href={`/admin/operators/${op.id}`}><Button size="sm" variant="ghost" icon={<Eye size={12} />}>Voir</Button></Link>
+                                        <Link href={`/admin/operators/${op.slug}`}><Button size="sm" variant="ghost" icon={<Eye size={12} />}>Voir</Button></Link>
                                         {!op.deleted_at && (
                                             <>
                                                 <Link href={`/admin/operators/${op.id}/edit`}><Button size="sm" variant="secondary" icon={<Pencil size={12} />}>Éditer</Button></Link>
