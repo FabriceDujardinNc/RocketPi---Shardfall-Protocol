@@ -1,7 +1,8 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Link, useForm } from '@inertiajs/react';
 import GuestLayout from '@/Layouts/GuestLayout';
 import Button from '@ui/Button';
 import Alert from '@ui/Alert';
+import SEO from '@/Components/SEO';
 import { type FormEventHandler, useState } from 'react';
 
 interface FactionOption {
@@ -54,7 +55,11 @@ export default function Register({ referralCode, factions }: Props) {
 
     return (
         <>
-            <Head title="Inscription" />
+            <SEO
+                title="Inscription"
+                description="Crée ton compte RocketPi et choisis ton allégeance parmi ORBIT, FERRO ou VEIL. Recrutement gacha, classements compétitifs, battle pass — F2P intégral."
+                noindex
+            />
             <h1 className="font-display font-bold text-3xl uppercase tracking-wide mb-2 text-center">
                 Rejoindre le Protocole
             </h1>

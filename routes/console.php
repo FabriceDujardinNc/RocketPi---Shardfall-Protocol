@@ -48,3 +48,13 @@ Schedule::command('referrals:promote-active')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/referrals-promote.log'));
+
+// ─── SEO : sitemap.xml quotidien ────────────────────────────────────
+// Régénère le cache sitemap pour que les crawlers récupèrent les nouveaux
+// opérateurs / factions / profils sans attendre l'expiration TTL (6h).
+Schedule::command('sitemap:rebuild')
+    ->dailyAt('04:00')
+    ->timezone('UTC')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/sitemap.log'));

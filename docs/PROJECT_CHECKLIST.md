@@ -682,33 +682,35 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 **Objectif** : référencement Google sur les mots-clés gacha / hero shooter / Shardfall + indexabilité des pages publiques (lore, factions, opérateurs, profils partagés).
 
 ### Méta tags & Open Graph
-- [ ] `<title>` unique et descriptif par page (actuellement `<Head title=...>` partiellement) — gabarit `{page} — RocketPi: Shardfall Protocol`
-- [ ] `<meta name="description">` (155 chars max) sur chaque page publique — Home, factions, opérateurs, profils
-- [ ] `<meta name="keywords">` (facultatif mais utile) — gacha, hero shooter, Shardfall, RocketPi
-- [ ] **Open Graph** : `og:title`, `og:description`, `og:image`, `og:url`, `og:type=website|article`
-- [ ] **Twitter Cards** : `twitter:card=summary_large_image`, `twitter:title`, `twitter:description`, `twitter:image`
-- [ ] `<link rel="canonical">` sur chaque page (évite duplicate content)
-- [ ] `<html lang="fr">` (déjà OK ? à vérifier)
+- [x] **Composant `<SEO>`** — `resources/js/Components/SEO.tsx` centralise title, description, keywords, OG, Twitter Cards, canonical, robots, JSON-LD. Lit `baseUrl` depuis Inertia shared (config app.url).
+- [x] **`<title>` template** — `{page} — RocketPi: Shardfall Protocol` (passe `title={null}` pour la home brute).
+- [x] **`<meta name="description">`** — 155 chars max, fallback générique sinon. Appliqué sur Landing, Login, Register, Forgot, Reset, VerifyEmail, Lore/Index, Lore/Faction, Lore/Operator.
+- [x] **`<meta name="keywords">`** — optionnel via prop, présent sur Landing.
+- [x] **Open Graph complet** — `og:type`, `og:site_name`, `og:title`, `og:description`, `og:url`, `og:image`, `og:image:width=1200`, `og:image:height=630`, `og:locale=fr_FR`.
+- [x] **Twitter Cards** — `summary_large_image`, title, description, image.
+- [x] **`<link rel="canonical">`** — URL absolue dérivée de `baseUrl + url`, surchargeable par prop.
+- [x] **`<html lang="fr">`** — déjà OK dans app.blade.php via `app()->getLocale()`.
 
 ### Pages publiques accessibles sans auth
-- [ ] Landing `/` — pitch + factions + CTA register, contenu indexable
-- [ ] `/factions` public — détail des 3 factions avec lore complet (déjà visible si auth, à exposer hors auth)
-- [ ] `/operators/{slug}` — fiche opérateur publique (lore, stats, faction) — *attention SEO sensible : ne pas exposer affinité joueur*
-- [ ] `/profile/{slug}` public — vitrine joueur (déjà existe, vérifier indexabilité)
-- [ ] `/leaderboard` public top 100 — argument trafic
-- [ ] `/about` / `/lore` — page narrative du Shardfall (à créer)
+- [x] **Landing `/`** — refonte SEO complète : hero pitch, 3 factions avec lore, 4 piliers gameplay (gacha/affinité/classements/BP), CTA. JSON-LD Organization + WebSite + VideoGame + SearchAction.
+- [x] **`/lore`** — index narratif des 3 factions + teaser
+- [x] **`/lore/factions/{slug}`** — lore complet + roster public (operators `is_available=true`)
+- [x] **`/lore/operators/{slug}`** — fiche complète : portrait, stats, arme signature, capacités, lore (vitrine sans data joueur)
+- [x] **`/profile/{slug}` public** — vitrine joueur déjà existante (à enrichir SEO ultérieurement)
+- [ ] `/leaderboard` public — actuellement protégé par auth, à exposer en lecture seule pour SEO (différé)
 
 ### Sitemap & robots
-- [ ] `public/sitemap.xml` généré dynamiquement (artisan command + cron) — incluant factions, opérateurs publiés, leaderboard, lore pages
-- [ ] `public/robots.txt` — Allow public pages, Disallow `/admin`, `/dashboard`, `/profile/edit`, etc.
-- [ ] Soumettre sitemap à Google Search Console
+- [x] **`/sitemap.xml`** — `SitemapController` génère dynamiquement (cache 6h) : home, /lore, /leaderboard, factions, opérateurs `is_available=true`, profils joueurs `level>=5` non bannis (limite 1000). Format urlset standard avec lastmod/changefreq/priority.
+- [x] **`public/robots.txt`** — Allow `/lore`, `/factions`, `/operators`, `/leaderboard`, `/profile/`. Disallow `/admin`, `/dashboard`, `/gacha`, `/missions`, etc. + `Sitemap:` directive.
+- [x] **Commande `sitemap:rebuild`** + scheduler quotidien 04:00 UTC.
+- [ ] Soumettre sitemap à Google Search Console (post-prod)
 
 ### Structured data (JSON-LD)
-- [ ] `Organization` schema sur la home
-- [ ] `WebSite` + `SearchAction` schema
-- [ ] `VideoGame` schema (genre, platform, publisher, gameplayMode)
-- [ ] `Person` schema sur profils publics
-- [ ] `BreadcrumbList` sur les pages internes profondes
+- [x] **`Organization`** schema sur la home (name, url, logo)
+- [x] **`WebSite` + `SearchAction`** schema sur la home (potentialAction pointe `/lore?q={search_term_string}`)
+- [x] **`VideoGame`** schema sur la home (genre Hero Shooter/Gacha, platform Web, publisher RocketPi, free offer)
+- [x] **`BreadcrumbList`** sur `/lore`, `/lore/factions/{slug}`, `/lore/operators/{slug}`
+- [ ] `Person` schema sur profils publics (différé — enrichir `Profile.tsx` plus tard)
 
 ### URLs propres
 - [x] **Slugs partout** (déjà fait) — `/operators/vex-vx-01`, `/factions/orbit`, `/profile/fabrice`

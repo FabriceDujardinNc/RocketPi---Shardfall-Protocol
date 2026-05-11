@@ -31,6 +31,10 @@ class HandleInertiaRequests extends Middleware
                 'env'  => app()->environment(),
             ],
 
+            // URL canonique du site — utilisée par <SEO> pour générer les
+            // URLs absolues dans Open Graph / Twitter Cards / canonical.
+            'baseUrl' => rtrim(config('app.url'), '/'),
+
             'auth' => [
                 'user' => fn () => $request->user()
                     ? $request->user()->only([

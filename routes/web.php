@@ -26,6 +26,11 @@ use App\Http\Controllers\Admin\AdminMissionController;
 use App\Http\Controllers\Admin\AdminSettingsController;
 use Illuminate\Support\Facades\Route;
 
+// ── SEO infrastructure ──────────────────────────────────────────────
+// Sitemap dynamique (cache 6h). robots.txt est servi en statique depuis
+// public/robots.txt (déjà géré par Nginx).
+Route::get('/sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'index'])->name('sitemap');
+
 // ── Public routes ───────────────────────────────────────────────────
 
 Route::get('/', function (\Illuminate\Http\Request $request) {
@@ -40,6 +45,15 @@ Route::get('/r/{code}', function (string $code, \Illuminate\Http\Request $reques
     $request->session()->put('referral_code', $code);
     return redirect()->route('register');
 })->name('referral.public');
+
+// ── Vitrines lore publiques (SEO) ───────────────────────────────────
+// Aucune donnée joueur exposée — uniquement le contenu narratif et fiches
+// opérateurs / factions. Routes accessibles guests + auth.
+Route::prefix('lore')->name('lore.')->group(function () {
+    Route::get('/',                       [\App\Http\Controllers\Public\LoreController::class, 'index'])->name('index');
+    Route::get('/factions/{faction}',     [\App\Http\Controllers\Public\LoreController::class, 'faction'])->name('faction');
+    Route::get('/operators/{operator}',   [\App\Http\Controllers\Public\LoreController::class, 'operator'])->name('operator');
+});
 
 // Auth
 Route::middleware('guest')->group(function () {

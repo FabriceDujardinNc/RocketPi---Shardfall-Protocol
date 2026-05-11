@@ -1,6 +1,7 @@
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import GuestLayout from '@/Layouts/GuestLayout';
 import Button from '@ui/Button';
+import SEO from '@/Components/SEO';
 import { type FormEventHandler } from 'react';
 
 export default function VerifyEmail() {
@@ -14,7 +15,7 @@ export default function VerifyEmail() {
 
     return (
         <>
-            <Head title="Vérification email" />
+            <SEO title="Vérification email" description="Vérifie ton adresse email pour activer ton compte RocketPi." noindex />
             <h1 className="font-display font-bold text-2xl uppercase tracking-wide mb-2 text-center">
                 Vérification email
             </h1>

@@ -1,6 +1,7 @@
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import GuestLayout from '@/Layouts/GuestLayout';
 import Button from '@ui/Button';
+import SEO from '@/Components/SEO';
 import { type FormEventHandler } from 'react';
 
 interface DevUser {
@@ -41,7 +42,11 @@ export default function Login() {
 
     return (
         <>
-            <Head title="Connexion" />
+            <SEO
+                title="Connexion"
+                description="Connecte-toi à RocketPi: Shardfall Protocol. Accède à ta collection d'opérateurs, ton battle pass et tes classements."
+                noindex
+            />
             <h1 className="font-display font-bold text-3xl uppercase tracking-wide mb-8 text-center">
                 Connexion
             </h1>

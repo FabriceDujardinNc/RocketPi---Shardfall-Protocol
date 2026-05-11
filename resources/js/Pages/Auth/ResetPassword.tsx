@@ -1,6 +1,7 @@
-import { Head, useForm } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import GuestLayout from '@/Layouts/GuestLayout';
 import Button from '@ui/Button';
+import SEO from '@/Components/SEO';
 import { type FormEventHandler } from 'react';
 
 interface Props {
@@ -23,7 +24,7 @@ export default function ResetPassword({ token, email }: Props) {
 
     return (
         <>
-            <Head title="Nouveau mot de passe" />
+            <SEO title="Nouveau mot de passe" description="Définis un nouveau mot de passe pour ton compte RocketPi." noindex />
             <h1 className="font-display font-bold text-2xl uppercase tracking-wide mb-8 text-center">
                 Nouveau mot de passe
             </h1>

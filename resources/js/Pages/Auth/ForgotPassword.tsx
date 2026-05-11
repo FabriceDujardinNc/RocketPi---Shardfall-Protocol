@@ -1,6 +1,7 @@
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import GuestLayout from '@/Layouts/GuestLayout';
 import Button from '@ui/Button';
+import SEO from '@/Components/SEO';
 import { type FormEventHandler } from 'react';
 
 export default function ForgotPassword() {
@@ -14,7 +15,11 @@ export default function ForgotPassword() {
 
     return (
         <>
-            <Head title="Mot de passe oublié" />
+            <SEO
+                title="Mot de passe oublié"
+                description="Récupère l'accès à ton compte RocketPi par email."
+                noindex
+            />
             <h1 className="font-display font-bold text-2xl uppercase tracking-wide mb-2 text-center">
                 Mot de passe oublié
             </h1>
