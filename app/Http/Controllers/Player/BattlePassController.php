@@ -9,6 +9,7 @@ use App\Models\Currency;
 use App\Services\BattlePassService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,9 +32,11 @@ class BattlePassController extends Controller
         }
 
         $progress = $this->service->progressFor($user, $bp);
-        $shards   = (int) (Currency::where('user_id', $user->id)
-            ->where('type', Currency::TYPE_SHARDS)
-            ->value('balance') ?? 0);
+
+        $wallet = Currency::where('user_id', $user->id)
+            ->pluck('balance', 'type')
+            ->map(fn ($b) => (int) $b)
+            ->all();
 
         return Inertia::render('Player/BattlePass', [
             'season' => [
@@ -59,7 +62,8 @@ class BattlePassController extends Controller
                 'current_tier'  => $progress->current_tier,
                 'claimed_tiers' => $progress->claimed_tiers ?? [],
             ],
-            'shards' => $shards,
+            'shards' => $wallet[Currency::TYPE_SHARDS] ?? 0,
+            'wallet' => $wallet,
         ]);
     }
 
@@ -77,7 +81,15 @@ class BattlePassController extends Controller
     {
         try {
             $result = $this->service->claim($request->user(), $tier, $request->ip());
-            $msg = "Palier {$result['tier_number']} réclamé.";
+
+            $lines = [];
+            foreach (array_merge($result['free'] ?? [], $result['premium'] ?? []) as $r) {
+                $lines[] = '+' . number_format((int) $r['amount'], 0, ',', ' ')
+                    . ' ' . Str::of($r['type'])->replace('_', ' ');
+            }
+            $msg = "Palier {$result['tier_number']} réclamé"
+                . (count($lines) ? ' — ' . implode(', ', $lines) : '.');
+
             return back()->with('status', $msg);
         } catch (\RuntimeException $e) {
             return back()->withErrors(['battlepass' => $e->getMessage()]);

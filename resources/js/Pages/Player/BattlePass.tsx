@@ -39,6 +39,7 @@ interface Props {
     tiers: Tier[];
     progress: ProgressVM | null;
     shards: number;
+    wallet: Record<string, number>;
 }
 
 interface PageProps {
@@ -47,7 +48,7 @@ interface PageProps {
     [key: string]: unknown;
 }
 
-export default function BattlePass({ season, tiers, progress, shards }: Props) {
+export default function BattlePass({ season, tiers, progress, shards, wallet }: Props) {
     const { props } = usePage<PageProps>();
 
     if (!season || !progress) {
@@ -89,7 +90,20 @@ export default function BattlePass({ season, tiers, progress, shards }: Props) {
                         {new Date(season.starts_at).toLocaleDateString('fr-FR')} → {new Date(season.ends_at).toLocaleDateString('fr-FR')}
                     </p>
                 </div>
-                <CurrencyDisplay currency="premium" amount={shards} />
+                <div className="flex flex-wrap gap-3">
+                    <CurrencyDisplay currency="premium" amount={shards} />
+                    {Object.entries(wallet ?? {})
+                        .filter(([type]) => type !== 'shards')
+                        .map(([type, amount]) => (
+                            <div
+                                key={type}
+                                className="px-3 py-1.5 rounded bg-bg-elev1 border border-border-default font-mono text-xs"
+                            >
+                                <span className="text-text-low uppercase tracking-wide">{type.replace(/_/g, ' ')}</span>
+                                <span className="ml-2 text-text-high">{amount.toLocaleString('fr-FR')}</span>
+                            </div>
+                        ))}
+                </div>
             </header>
 
             {props.flash?.status && <div className="mb-4"><Alert variant="success">{props.flash.status}</Alert></div>}
