@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="vendor/autoload.php"
+         bootstrap="tests/bootstrap.php"
          colors="true"
 >
     <testsuites>
@@ -17,27 +17,9 @@
             <directory>app</directory>
         </include>
     </source>
-    <php>
-        <!-- force="true" est CRITIQUE : Docker container injecte DB_CONNECTION=mysql
-             via docker-compose. Sans force, PHPUnit ne peut pas overrider et les
-             tests RefreshDatabase wipent la dev MySQL. -->
-        <env name="APP_ENV"               value="testing"  force="true"/>
-        <env name="APP_MAINTENANCE_DRIVER" value="file"     force="true"/>
-        <env name="BCRYPT_ROUNDS"         value="4"        force="true"/>
-        <env name="BROADCAST_CONNECTION"  value="null"     force="true"/>
-        <env name="CACHE_STORE"           value="array"    force="true"/>
-        <env name="DB_CONNECTION"         value="sqlite"   force="true"/>
-        <env name="DB_DATABASE"           value=":memory:" force="true"/>
-        <env name="DB_URL"                value=""         force="true"/>
-        <env name="MAIL_MAILER"           value="array"    force="true"/>
-        <env name="QUEUE_CONNECTION"      value="sync"     force="true"/>
-        <env name="SESSION_DRIVER"        value="array"    force="true"/>
-        <!-- Redis : DB 15 isolée pour tests (évite de wiper la session dev en DB 0) -->
-        <env name="REDIS_HOST"      value="redis" force="true"/>
-        <env name="REDIS_DB"        value="15"    force="true"/>
-        <env name="REDIS_CACHE_DB"  value="15"    force="true"/>
-        <env name="PULSE_ENABLED"     value="false" force="true"/>
-        <env name="TELESCOPE_ENABLED" value="false" force="true"/>
-        <env name="NIGHTWATCH_ENABLED" value="false" force="true"/>
-    </php>
+    <!--
+        Les overrides d'environnement (DB_CONNECTION=sqlite, DB_DATABASE=:memory:, etc.)
+        sont définis dans tests/bootstrap.php. Sans ça, docker-compose injecte DB_*
+        dans $_SERVER et Laravel les lit en priorité — les tests wipent alors la dev MySQL.
+    -->
 </phpunit>

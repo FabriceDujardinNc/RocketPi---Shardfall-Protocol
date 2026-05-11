@@ -37,15 +37,16 @@ class DailyLoginService
         $today = CarbonImmutable::now()->startOfDay()->toDateString();
 
         return DB::transaction(function () use ($user, $today) {
+            // whereDate : SQLite stocke le cast `date` avec une partie heure (00:00:00),
+            // donc un `where('login_date', '2026-05-11')` ne matcherait pas.
             $existing = DailyLogin::where('user_id', $user->id)
-                ->where('login_date', $today)
+                ->whereDate('login_date', $today)
                 ->first();
 
             if ($existing) {
                 return $existing;
             }
 
-            // Calcule streak depuis le dernier login
             $previous = DailyLogin::where('user_id', $user->id)
                 ->orderByDesc('login_date')
                 ->first();
