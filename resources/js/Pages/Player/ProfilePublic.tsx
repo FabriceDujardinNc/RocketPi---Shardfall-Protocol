@@ -1,5 +1,7 @@
 import PlayerLayout from '@/Layouts/PlayerLayout';
 import SEO from '@/Components/SEO';
+import ReportButton from '@game/ReportButton';
+import { usePage } from '@inertiajs/react';
 
 interface User {
     id: number;
@@ -56,6 +58,9 @@ const RARITY_COLOR: Record<NonNullable<Affinity['rarity']>, string> = {
 };
 
 export default function ProfilePublic({ user, stats, topAffinities, ranks }: Props) {
+    const { auth } = usePage<{ auth?: { user?: { id?: number } } }>().props;
+    const isOwnProfile = auth?.user?.id === user.id;
+
     const collectionPct  = stats.operators_total > 0
         ? Math.round((stats.operators_owned / stats.operators_total) * 100)
         : 0;
@@ -128,6 +133,15 @@ export default function ProfilePublic({ user, stats, topAffinities, ranks }: Pro
                         )}
                     </div>
                 </div>
+                {auth?.user && ! isOwnProfile && (
+                    <div className="self-start">
+                        <ReportButton
+                            reportedId={user.id}
+                            reportedName={user.display_name ?? user.name}
+                            variant="icon"
+                        />
+                    </div>
+                )}
             </header>
 
             {/* ── Stats grid ─────────────────────────────────────────── */}

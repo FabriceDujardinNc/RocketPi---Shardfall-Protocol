@@ -42,11 +42,12 @@ const NAV: NavEntry[] = [
     },
     {
         label: 'Compétition',
-        prefixes: ['/leaderboard', '/hall-of-fame'],
+        prefixes: ['/leaderboard', '/hall-of-fame', '/events'],
         items: [
             { href: '/leaderboard',         label: 'Classement actuel' },
             { href: '/hall-of-fame',        label: 'Hall of Fame' },
             { href: '/leaderboard/history', label: 'Historique' },
+            { href: '/events',              label: 'Événements' },
         ],
     },
     {

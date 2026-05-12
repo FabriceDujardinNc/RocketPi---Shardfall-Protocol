@@ -136,6 +136,9 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
         ->middleware('throttle:5,60')
         ->name('reports.store');
 
+    // Événements limités (Phase 4)
+    Route::get('/events', [\App\Http\Controllers\Player\EventController::class, 'index'])->name('events');
+
     // Cosmétiques — inventaire perso
     Route::get('/cosmetics',                       [\App\Http\Controllers\Player\CosmeticsController::class, 'index'])->name('cosmetics');
     Route::post('/cosmetics/{cosmetic}/equip',     [\App\Http\Controllers\Player\CosmeticsController::class, 'equip'])->name('cosmetics.equip');
