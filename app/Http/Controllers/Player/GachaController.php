@@ -24,7 +24,7 @@ class GachaController extends Controller
         $banners = Banner::where('is_active', true)
             ->orderByDesc('type')
             ->get([
-                'id', 'name', 'tag', 'subtitle', 'type', 'featured_operator',
+                'id', 'slug', 'name', 'tag', 'subtitle', 'type', 'featured_operator',
                 'rate_up_operators', 'banner_image_url',
                 'rate_legendary', 'rate_epic', 'rate_rare', 'rate_common',
                 'pity_legendary', 'soft_pity_start', 'pity_epic',

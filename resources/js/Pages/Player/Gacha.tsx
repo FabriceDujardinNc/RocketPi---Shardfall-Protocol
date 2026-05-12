@@ -5,6 +5,7 @@ import CurrencyDisplay from '@game/CurrencyDisplay';
 
 interface Banner {
     id: number;
+    slug: string;
     name: string;
     tag: string | null;
     subtitle: string | null;
