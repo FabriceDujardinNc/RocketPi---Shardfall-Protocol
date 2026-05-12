@@ -320,7 +320,7 @@
 - [x] Middleware `admin`
 - [x] Constantes + helpers (`isAdmin`, `isSuperAdmin`) sur User
 - [x] **Policies + Gates** — UserPolicy + ReferralRewardPolicy + 6 gates dans AppServiceProvider, appliquées sur ban/unban/claim
-- [ ] 2FA admin (recommandée)
+- [x] **2FA admin TOTP** — implémenté via `pragmarx/google2fa`, obligatoire pour les rôles admin/super_admin (middleware `2fa` sur `/admin/*`). Cf. §15 pour les détails.
 
 ### Génération auto
 - [x] Code parrainage `XXX-XXXX-XXXX` à l'inscription (booted hook sur User model)
@@ -596,7 +596,7 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] **Logs horodatés gacha (audit légal)** — table `gacha_pulls` immuable, timestamps + IP + session_id + pity_state + was_pity_hit/soft_pity/rate_up, jamais d'UPDATE/DELETE
 - [ ] Logs horodatés matchs classés (audit légal) — Phase 4 (PvP)
 - [x] **Middleware admin sur `/admin/*`** — `EnsureUserIsAdmin` vérifie role ∈ {admin, super_admin}, abort 403 sinon, monté sur tout le groupe `admin.*`
-- [ ] 2FA admin recommandée
+- [x] **2FA admin TOTP** — `pragmarx/google2fa` + `bacon-qr-code` ; route `/2fa/setup` avec QR + manual secret, confirmation par code à 6 chiffres, 8 codes de secours générés et téléchargeables (.txt). Challenge post-login via `/2fa/challenge` (TOTP ou recovery code, single-use). Middleware `EnsureTwoFactorPassed` monté sur `/admin/*` force setup pour admins sans 2FA + challenge à chaque nouvelle session. Cast `encrypted` sur secret + recovery. 12 tests Pest.
 - [x] **Logs actions admin** — `Transaction::reason='admin_grant'` log chaque grantCurrency avec admin#id + IP + description, `User::is_banned/ban_reason/banned_at` audite chaque ban
 - [x] **Routes admin séparées** — groupe `Route::middleware(['auth','admin'])->prefix('admin')->name('admin.')->group(...)` isole toute l'admin sous `/admin/*`
 - [ ] phpMyAdmin auth HTTP (dev + prod)

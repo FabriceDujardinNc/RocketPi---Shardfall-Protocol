@@ -44,7 +44,25 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_banned' => 'boolean',
             'account_level' => 'integer',
             'account_xp' => 'integer',
+            // 2FA TOTP — secret + recovery codes chiffrés en BDD, jamais exposés au front.
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function hasTwoFactorEnabled(): bool
+    {
+        return $this->two_factor_confirmed_at !== null;
+    }
+
+    /**
+     * Pour les rôles admin / super_admin, la 2FA est obligatoire.
+     * Le middleware bascule vers le setup tant que ce n'est pas confirmé.
+     */
+    public function requiresTwoFactor(): bool
+    {
+        return $this->isAdmin() && ! $this->hasTwoFactorEnabled();
     }
 
     protected static function booted(): void

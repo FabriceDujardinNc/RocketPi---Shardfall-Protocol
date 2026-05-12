@@ -73,6 +73,18 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
+// ── 2FA TOTP ────────────────────────────────────────────────────────
+// Setup obligatoire pour les admins (forcé par middleware 2fa sur /admin).
+// Optionnel pour les joueurs.
+Route::middleware('auth')->group(function () {
+    Route::get('/2fa/setup',     [\App\Http\Controllers\Auth\TwoFactorController::class, 'showSetup'])->name('2fa.setup');
+    Route::post('/2fa/setup',    [\App\Http\Controllers\Auth\TwoFactorController::class, 'confirmSetup']);
+    Route::get('/2fa/recovery',  [\App\Http\Controllers\Auth\TwoFactorController::class, 'showRecovery'])->name('2fa.recovery');
+    Route::get('/2fa/challenge', [\App\Http\Controllers\Auth\TwoFactorController::class, 'showChallenge'])->name('2fa.challenge');
+    Route::post('/2fa/challenge',[\App\Http\Controllers\Auth\TwoFactorController::class, 'verifyChallenge'])->middleware('throttle:5,1');
+    Route::post('/2fa/disable',  [\App\Http\Controllers\Auth\TwoFactorController::class, 'disable'])->name('2fa.disable');
+});
+
 // Email verification
 Route::get('/email/verify',             fn() => inertia('Auth/VerifyEmail'))->middleware('auth')->name('verification.notice');
 Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['auth', 'signed'])->name('verification.verify');
@@ -146,7 +158,7 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
 
 // ── Admin routes ────────────────────────────────────────────────────
 // Middleware admin vérifie role=admin|super_admin + logs les accès
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin', '2fa'])->prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 

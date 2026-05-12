@@ -10,6 +10,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 pest()->extend(Tests\TestCase::class)
     ->use(RefreshDatabase::class)
+    // Tous les tests Admin/* sont supposés avoir déjà passé le 2FA — le
+    // middleware EnsureTwoFactorPassed bloquerait sinon les admin sans
+    // setup TOTP. On marque la session comme déjà validée.
+    ->beforeEach(function () {
+        session()->put('2fa.passed', true);
+    })
     ->in('Feature');
 
 pest()->extend(Tests\TestCase::class)
@@ -33,12 +39,23 @@ expect()->extend('toBeOne', function () {
 
 function makeUser(array $attrs = []): \App\Models\User
 {
-    return \App\Models\User::factory()->create(array_merge([
+    $defaults = [
         'role'              => \App\Models\User::ROLE_USER,
         'account_level'     => 1,
         'account_xp'        => 0,
         'email_verified_at' => now(),
-    ], $attrs));
+    ];
+
+    // En tests, les users admin sont créés avec 2FA déjà confirmée pour
+    // simplifier — le flow 2FA est testé séparément dans TwoFactorTest.
+    $role = $attrs['role'] ?? $defaults['role'];
+    if (in_array($role, [\App\Models\User::ROLE_ADMIN, \App\Models\User::ROLE_SUPER_ADMIN], true)) {
+        $defaults['two_factor_secret'] = 'TESTONLY2FASECRET32CHARSXXXXXXXX';
+        $defaults['two_factor_confirmed_at'] = now();
+        $defaults['two_factor_recovery_codes'] = ['TEST1-TEST1'];
+    }
+
+    return \App\Models\User::factory()->create(array_merge($defaults, $attrs));
 }
 
 function makeOperator(string $rarity = 'common', string $faction = 'ORBIT'): \App\Models\Operator

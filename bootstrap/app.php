@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin'      => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'not.banned' => \App\Http\Middleware\EnsureUserIsNotBanned::class,
+            '2fa'        => \App\Http\Middleware\EnsureTwoFactorPassed::class,
         ]);
 
         // Redirige les users déjà authentifiés qui visitent login/register
