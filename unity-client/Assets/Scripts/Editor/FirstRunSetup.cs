@@ -67,10 +67,6 @@ namespace Rocketpi.Editor
 
         private static void CreateSentinel()
         {
-            var so = ScriptableObject.CreateInstance<TextAsset>();
-            // On utilise un simple TextAsset comme sentinel : pas besoin de payload.
-            // (Workaround : ScriptableObject.CreateInstance<TextAsset> ne marche pas
-            //  directement, on écrit un fichier vide à la place.)
             File.WriteAllText(SentinelAssetPath, "Created by FirstRunSetup");
             AssetDatabase.Refresh();
         }

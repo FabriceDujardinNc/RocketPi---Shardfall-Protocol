@@ -5,7 +5,8 @@
         "Rocketpi.Bridge",
         "Rocketpi.Gameplay",
         "Rocketpi.UI",
-        "Rocketpi.RestClient"
+        "Rocketpi.RestClient",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Editor"
