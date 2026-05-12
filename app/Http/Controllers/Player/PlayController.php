@@ -8,6 +8,7 @@ use App\Services\RankingService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * Page /play — host Unity WebGL + UX classement compétitif.
@@ -58,6 +59,37 @@ class PlayController extends Controller
             ],
             'history'     => $history,
             'photonAppId' => config('services.photon.app_id'),
+            'unityConfig' => $this->buildUnityConfig($request),
         ]);
+    }
+
+    /**
+     * Génère un token Sanctum éphémère (TTL 1h) pour le client Unity WebGL.
+     * Le token est revoqué au prochain chargement de /play (cleanup) pour éviter
+     * d'engorger personal_access_tokens. Sécurité : usage strict côté client
+     * Unity, jamais stocké en localStorage (cf. unity-client/CLAUDE.md).
+     */
+    private function buildUnityConfig(Request $request): array
+    {
+        $user = $request->user();
+
+        // Purge des anciens tokens unity-webgl du user pour éviter l'accumulation.
+        PersonalAccessToken::where('tokenable_type', $user::class)
+            ->where('tokenable_id', $user->id)
+            ->where('name', 'unity-webgl')
+            ->delete();
+
+        $token = $user->createToken(
+            name: 'unity-webgl',
+            abilities: ['unity:*'],
+            expiresAt: now()->addHour(),
+        )->plainTextToken;
+
+        return [
+            'api_base_url' => rtrim(config('app.url'), '/'),
+            'api_token'    => $token,
+            'user_id'      => $user->id,
+            'locale'       => app()->getLocale(),
+        ];
     }
 }

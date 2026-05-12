@@ -1,0 +1,42 @@
+# Unity-generated folders (build cache, IDE files, temporary state)
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# IDE / OS
+.idea/
+.vs/
+.vscode/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+.DS_Store
+Thumbs.db
+
+# Unity Asset Store / packages cache
+[Pp]ackages/[Pp]ackages-lock.json.meta
+sysinfo.txt
+crashlytics-build.properties
+
+# Build artifacts (we copy WebGL output into ../public/unity/ from the build script)
+WebGLBuild/
+
+# WebGL build symbols (optional — keep if you want sourcemaps)
+*.symbols.json.unityweb

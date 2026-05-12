@@ -11,3 +11,4 @@ export { default as OperatorCard }       from './OperatorCard';
 export { default as PityCounter }        from './PityCounter';
 export { default as RankBadge }          from './RankBadge';
 export { default as RarityBadge }        from './RarityBadge';
+export { default as UnityCanvas }        from './UnityCanvas';

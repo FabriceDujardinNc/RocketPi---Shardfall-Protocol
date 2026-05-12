@@ -197,7 +197,7 @@
 - [x] Progress (4 variantes)
 - [x] Alert (4 variantes avec icônes Lucide)
 
-### Game spécifiques — `resources/js/Components/Game/` (12/12 stubs)
+### Game spécifiques — `resources/js/Components/Game/` (13/13 stubs)
 - [x] OperatorCard (variantes par rareté avec glow)
 - [x] BannerCard (avec mode featured)
 - [x] GachaPullAnimation (Framer Motion, reveal séquentiel)
@@ -210,11 +210,12 @@
 - [x] BattlePassNode (free/premium, claimed states)
 - [x] AffinityMeter (gradient shard)
 - [x] CurrencyDisplay (3 monnaies avec icônes)
+- [x] UnityCanvas (chargement build WebGL + bridge `window.rocketpi.*` + 3 ratios)
 
 ### Storybook
 - [x] **Configuration `.storybook/`** — `main.ts` (glob `Components/**/*.stories.tsx`) + `preview.tsx` (Tailwind 4 chargé, backgrounds dark/elev1/light)
 - [x] **Première story** (`Button.stories.tsx` — 5 variants × 3 sizes + icon + loading + roster comparatif)
-- [x] **Stories pour tous les composants** — **32 stories / 32 composants** (100% couverture). UI : Alert, Avatar, Badge, Button, Card, Checkbox, Drawer, Input, Modal, Pagination, Progress, Radio, Select, Skeleton, Spinner, Table, Tabs, Toast, Toggle, Tooltip. Game : AffinityMeter, BannerCard, BattlePassNode, CurrencyDisplay, FactionBadge, GachaPullAnimation, LeaderboardRow, MissionCard, OperatorCard, PityCounter, RankBadge, RarityBadge. Build storybook clean.
+- [x] **Stories pour tous les composants** — **33 stories / 33 composants** (100% couverture). UI : Alert, Avatar, Badge, Button, Card, Checkbox, Drawer, Input, Modal, Pagination, Progress, Radio, Select, Skeleton, Spinner, Table, Tabs, Toast, Toggle, Tooltip. Game : AffinityMeter, BannerCard, BattlePassNode, CurrencyDisplay, FactionBadge, GachaPullAnimation, LeaderboardRow, MissionCard, OperatorCard, PityCounter, RankBadge, RarityBadge, UnityCanvas. Build storybook clean.
 
 ### MCP Design System (phase 3+)
 - [ ] `list_components()`
@@ -563,8 +564,8 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [ ] MCP Design System custom (Phase 3+ ou plus tard)
 
 ### Phase 4 — Intégration Unity + compétitif
-- [~] **Page `/play`** — refonte UX compétitive : carte rang (tier + progression vers le suivant), carte limite quotidienne (50 ranked/jour avec barre couleur), historique 10 derniers matchs (mode, victoire/MVP, K/D/A, durée, Δ pts). Canvas Unity reste placeholder en attendant le build externe.
-- [ ] Communication JS ↔ Unity (`SendMessage`, jslib bridge) — à câbler quand le build Unity arrive
+- [~] **Page `/play`** — refonte UX compétitive : carte rang (tier + progression vers le suivant), carte limite quotidienne (50 ranked/jour avec barre couleur), historique 10 derniers matchs (mode, victoire/MVP, K/D/A, durée, Δ pts). Composant `<UnityCanvas/>` câblé : charge le build WebGL depuis `/unity/`, affiche placeholder propre si build absent.
+- [x] **Communication JS ↔ Unity (scaffold)** — sous-dossier `unity-client/` avec : `RocketpiBridge.cs` (singleton MonoBehaviour), `RocketpiBridge.jslib` (bridge WebGL), DTOs `ConfigPayload`/`SessionPayload`/`MatchResultPayload`, script `Tools > RocketPi > Build WebGL`, CLAUDE.md projet. Côté Laravel : `resources/js/lib/rocketpi-bridge.ts` installe `window.rocketpi.*`, `<UnityCanvas/>` consomme un token Sanctum éphémère (TTL 1h, ability `unity:*`) injecté par `PlayController`. Reste à câbler côté Unity : créer scène `Bootstrap` + gameplay (à faire dans l'éditeur Unity, externe à ce repo).
 - [x] **Tokens session signés Sanctum** — `MatchService::start` génère un `session_token` SHA-256 64-char à passer à Unity. TTL 35min, single-use, lié au user. Signature HMAC du payload final stockée dans `result_signature` pour audit.
 - [x] **Validation autoritaire résultats** — `MatchService::finish` enroule tout dans `DB::transaction` + `lockForUpdate` sur User+Session. Sanity checks (anti-cheat, durée/score/kills plausibles), calcul rank via `RankingService`, écriture immuable `match_results`.
 - [x] **Événements limités** — page `/events` listant events actifs groupés par phase (current/scheduled/expired), badges colorés, J-N restant si imminent, rewards préview, lien vers bannière liée. Filtre : events expirés depuis < 7 jours toujours visibles pour rétrospective. Entrée dans menu Compétition. 3 tests Pest.

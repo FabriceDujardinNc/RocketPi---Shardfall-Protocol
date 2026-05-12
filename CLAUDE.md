@@ -127,6 +127,6 @@ Respecter en particulier :
 ## Compteurs actuels (2026-05-12)
 
 - **Tests Pest** : 264 / 937 assertions verts (26 fichiers)
-- **Stories Storybook** : 32 / 32 composants couverts
+- **Stories Storybook** : 33 / 33 composants couverts
 - **Routes publiques SEO** : 5 (Landing, /lore, /lore/factions/{slug}, /lore/operators/{slug}, /top)
 - **Migrations** : 30 (dernière : `add_two_factor_to_users_table`)

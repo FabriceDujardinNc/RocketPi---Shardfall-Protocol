@@ -1,5 +1,6 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import PlayerLayout from '@/Layouts/PlayerLayout';
+import UnityCanvas from '@game/UnityCanvas';
 
 interface Rank {
     points: number;
@@ -27,11 +28,19 @@ interface HistoryEntry {
     rank_points_delta: number;
 }
 
+interface UnityConfig {
+    api_base_url: string;
+    api_token: string;
+    user_id: number;
+    locale: string;
+}
+
 interface Props {
     rank: Rank;
     daily: Daily;
     history: HistoryEntry[];
     photonAppId: string | null;
+    unityConfig: UnityConfig | null;
 }
 
 const TIER_LABEL: Record<string, string> = {
@@ -66,7 +75,7 @@ function formatDuration(s: number | null): string {
     return `${m}:${String(r).padStart(2, '0')}`;
 }
 
-export default function Play({ rank, daily, history, photonAppId }: Props) {
+export default function Play({ rank, daily, history, photonAppId, unityConfig }: Props) {
     const tierColor = TIER_COLOR[rank.tier] ?? 'text-text-medium';
     const progress = rank.next_tier_threshold
         ? Math.min(100, Math.round((rank.points / rank.next_tier_threshold) * 100))
@@ -124,14 +133,23 @@ export default function Play({ rank, daily, history, photonAppId }: Props) {
                 </article>
             </section>
 
-            <section className="rounded-lg bg-bg-elev1 border border-border-default p-12 text-center text-text-medium mb-6">
-                <p className="font-display text-xs uppercase tracking-mega text-shard-400 mb-2">Unity 6 WebGL</p>
-                <p className="font-body text-sm">
-                    Le build du jeu sera intégré ici prochainement.
-                </p>
-                <p className="font-mono text-xs text-text-low mt-3">
-                    {photonAppId ? 'Photon configuré.' : 'Photon non configuré — Phase 5.'}
-                </p>
+            <section className="mb-6">
+                {unityConfig ? (
+                    <UnityCanvas
+                        apiBaseUrl={unityConfig.api_base_url}
+                        apiToken={unityConfig.api_token}
+                        userId={unityConfig.user_id}
+                        locale={unityConfig.locale}
+                        photonAppId={photonAppId}
+                        onMatchFinished={() => router.reload({ only: ['history', 'rank', 'daily'] })}
+                        onRequestReload={() => router.reload()}
+                    />
+                ) : (
+                    <div className="rounded-lg bg-bg-elev1 border border-border-default p-12 text-center text-text-medium">
+                        <p className="font-display text-xs uppercase tracking-mega text-shard-400 mb-2">Unity 6 WebGL</p>
+                        <p className="font-body text-sm">Configuration Unity indisponible.</p>
+                    </div>
+                )}
             </section>
 
             <section>
