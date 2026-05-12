@@ -167,9 +167,9 @@
 ### Règles non-négociables (appliquer au code)
 - [x] **Aucune couleur hex hors tokens.json** — enforced par Stylelint + ESLint (échec build CI à venir)
 - [x] **Aucune valeur arbitraire `mt-[13px]`, `bg-[#FF5733]`** — enforced par ESLint
-- [ ] Toute story Storybook obligatoire pour nouveau composant
-- [ ] Toute doc Markdown obligatoire pour nouveau composant
-- [ ] Réutiliser variantes existantes plutôt que créer un composant
+- [x] **Toute story Storybook obligatoire pour nouveau composant** — règle inscrite dans `CLAUDE.md` (Workflow obligatoire / Règles design system / Composants UI)
+- [x] **Toute doc Markdown obligatoire pour nouveau composant** — règle inscrite dans `CLAUDE.md` (composants stateful/complexes uniquement)
+- [x] **Réutiliser variantes existantes plutôt que créer un composant** — règle inscrite dans `CLAUDE.md` (Réutilisation > création)
 
 ---
 
