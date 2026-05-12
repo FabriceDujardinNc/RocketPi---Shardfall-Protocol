@@ -75,7 +75,7 @@ class ProfileController extends Controller
 
         return Inertia::render('Player/ProfilePublic', [
             'user' => array_merge(
-                $user->only(['id', 'name', 'display_name', 'avatar_url', 'account_level', 'account_xp']),
+                $user->only(['id', 'slug', 'name', 'display_name', 'avatar_url', 'account_level', 'account_xp', 'faction']),
                 ['member_since' => $user->created_at?->toDateString()],
             ),
             'stats' => [

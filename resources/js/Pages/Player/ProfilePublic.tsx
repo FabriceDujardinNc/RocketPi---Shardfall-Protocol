@@ -1,14 +1,16 @@
-import { Head } from '@inertiajs/react';
 import PlayerLayout from '@/Layouts/PlayerLayout';
+import SEO from '@/Components/SEO';
 
 interface User {
     id: number;
+    slug: string | null;
     name: string;
     display_name: string | null;
     avatar_url: string | null;
     account_level: number;
     account_xp: number;
     member_since: string | null;
+    faction: 'ORBIT' | 'FERRO' | 'VEIL' | null;
 }
 
 interface Stats {
@@ -61,9 +63,44 @@ export default function ProfilePublic({ user, stats, topAffinities, ranks }: Pro
         ? Math.round((stats.achievements_done / stats.achievements_total) * 100)
         : 0;
 
+    const displayName = user.display_name ?? user.name;
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://rocketpi.pro';
+    const profileUrl = user.slug ? `${baseUrl}/profile/${user.slug}` : baseUrl;
+
+    const personLd = {
+        '@context': 'https://schema.org',
+        '@type': 'Person',
+        name: displayName,
+        url: profileUrl,
+        ...(user.avatar_url ? { image: user.avatar_url } : {}),
+        identifier: user.slug ?? String(user.id),
+        memberOf: user.faction
+            ? { '@type': 'Organization', name: user.faction }
+            : undefined,
+    };
+
+    const breadcrumbLd = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Accueil', item: baseUrl },
+            { '@type': 'ListItem', position: 2, name: 'Profils', item: `${baseUrl}/top` },
+            { '@type': 'ListItem', position: 3, name: displayName, item: profileUrl },
+        ],
+    };
+
+    const seoDesc = `Profil de ${displayName} (niveau ${user.account_level}${user.faction ? `, faction ${user.faction}` : ''}) sur RocketPi: Shardfall Protocol. ${stats.operators_owned}/${stats.operators_total} opérateurs recrutés, ${stats.achievements_done}/${stats.achievements_total} honneurs débloqués.`;
+
     return (
         <>
-            <Head title={user.display_name ?? user.name} />
+            <SEO
+                title={displayName}
+                description={seoDesc}
+                type="profile"
+                image={user.avatar_url ?? undefined}
+                canonical={profileUrl}
+                jsonLd={[personLd, breadcrumbLd]}
+            />
 
             {/* ── Header ─────────────────────────────────────────────── */}
             <header className="rounded-lg bg-bg-elev1 border border-border-default p-6 md:p-8 flex flex-wrap items-center gap-6 mb-6">
