@@ -30,28 +30,15 @@ Client WebGL embarqué dans la page Inertia `/play` du backend Laravel.
 
 ## Ce que tu dois encore faire MANUELLEMENT dans l'éditeur Unity
 
-Le scaffolding crée la structure et les GameObjects principaux, mais quelques liens visuels
-sont à brancher à la main car les **références entre GameObjects** dépendent de prefabs et
-de placement libre, peu serializable hors éditeur :
+Voir **[docs/MANUAL_SETUP.md](./docs/MANUAL_SETUP.md)** — checklist pas-à-pas (~30 min) :
 
-1. **Dans `Training.unity`** :
-   - Sur le `Player`, glisser dans le champ `Operator` du `PlayerController` un OperatorData
-     (ex. `Op_VX01_Vex.asset`)
-   - Sur le `Player`, glisser dans `WeaponSocket` le GameObject enfant `Camera/WeaponSocket`
-   - Sur le `Canvas` (HudController/MainMenuController/MatchSummaryController), brancher
-     les TMP_Text / Slider / Button enfants en draguant les références dans l'inspector
-2. **Créer un prefab de cible** :
-   - `GameObject > 3D Object > Cube`, nommer `PracticeTarget`
-   - Ajouter `HealthSystem` (10 HP), `PracticeTarget`, tag "PracticeTarget", layer "PracticeTarget"
-   - Sauver comme prefab dans `Assets/Prefabs/`
-   - L'assigner au `TargetSpawner._targetPrefab` dans la scène Training
-3. **Créer un prefab d'arme** :
-   - `GameObject > Create Empty`, nommer `Weapon_AssaultRifle`
-   - Ajouter `HitscanWeapon` (paramètres par défaut conviennent)
-   - Sauver comme prefab dans `Assets/Prefabs/`
-   - L'assigner au `OperatorData._WeaponPrefab` de chaque opérateur souhaité
+- Phase A : installer Unity + ouvrir le projet + Switch Platform WebGL
+- Phase B : lancer les 2 scaffolders (`Roster`, `Scenes`)
+- Phase C : créer 2 prefabs (cible + arme)
+- Phase D : brancher les refs UI dans l'Inspector
+- Phase E : premier build + test sur `/play`
 
-Une fois ces 3 étapes faites, le mode training est jouable.
+Plus un troubleshooting des erreurs fréquentes.
 
 ## Build CLI (CI / déploiement)
 

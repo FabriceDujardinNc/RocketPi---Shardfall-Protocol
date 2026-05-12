@@ -138,8 +138,8 @@ des fichiers `.loader.js` / `.framework.js.unityweb` / `.data.unityweb` / `.wasm
 **Mode Training scaffoldé end-to-end.** Le client Unity est ouvrable en l'état :
 les scaffolders Editor (`Tools > RocketPi > ...`) génèrent les scènes, les 8
 opérateurs, configurent le build WebGL. Un développeur Unity doit encore
-brancher manuellement quelques références UI/prefabs (cf. README.md section
-"Setup en 5 minutes") avant de pouvoir build et jouer.
+brancher manuellement quelques références UI/prefabs avant de pouvoir build
+et jouer — checklist détaillée dans [docs/MANUAL_SETUP.md](./docs/MANUAL_SETUP.md).
 
 Côté Laravel, [resources/js/Components/Game/UnityCanvas.tsx](../resources/js/Components/Game/UnityCanvas.tsx)
 charge le build WebGL et installe `window.rocketpi.*` via
