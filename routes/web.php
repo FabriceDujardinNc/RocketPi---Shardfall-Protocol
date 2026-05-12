@@ -131,6 +131,11 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
     Route::post('/shop/purchase',[ShopController::class, 'purchase'])->name('shop.purchase');
     Route::post('/shop/fragments/{operator}/redeem', [ShopController::class, 'redeemFragments'])->name('shop.fragments.redeem');
 
+    // Signalements joueurs (Phase 4 — anti-toxicité/cheat). Rate limit 5/h.
+    Route::post('/reports', [\App\Http\Controllers\Player\ReportController::class, 'store'])
+        ->middleware('throttle:5,60')
+        ->name('reports.store');
+
     // Cosmétiques — inventaire perso
     Route::get('/cosmetics',                       [\App\Http\Controllers\Player\CosmeticsController::class, 'index'])->name('cosmetics');
     Route::post('/cosmetics/{cosmetic}/equip',     [\App\Http\Controllers\Player\CosmeticsController::class, 'equip'])->name('cosmetics.equip');
@@ -183,6 +188,12 @@ Route::middleware(['auth', 'admin', '2fa'])->prefix('admin')->name('admin.')->gr
     // Logs Gacha (audit légal)
     Route::get('gacha-logs',                 [AdminGachaLogController::class, 'index'])->name('gacha-logs.index');
     Route::get('gacha-logs/export',          [AdminGachaLogController::class, 'export'])->name('gacha-logs.export');
+
+    // Modération — signalements joueurs
+    Route::get('moderation',                       [\App\Http\Controllers\Admin\AdminModerationController::class, 'index'])->name('moderation.index');
+    Route::post('moderation/{report}/dismiss',     [\App\Http\Controllers\Admin\AdminModerationController::class, 'dismiss'])->name('moderation.dismiss');
+    Route::post('moderation/{report}/sanction',    [\App\Http\Controllers\Admin\AdminModerationController::class, 'sanction'])->name('moderation.sanction');
+    Route::post('moderation/{report}/reviewed',    [\App\Http\Controllers\Admin\AdminModerationController::class, 'markReviewed'])->name('moderation.reviewed');
 
     // Parrainages
     Route::get('referrals',                  [AdminReferralController::class, 'index'])->name('referrals.index');

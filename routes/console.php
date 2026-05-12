@@ -58,3 +58,13 @@ Schedule::command('sitemap:rebuild')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/sitemap.log'));
+
+// ─── Notifications saison se terminant (J-3) ────────────────────────
+// Envoie un email aux participants 3 jours avant la fin d'une saison
+// hebdo/mensuelle/saisonnière. Filtré aux participants actifs (top 500).
+Schedule::command('seasons:notify-ending --days=3')
+    ->dailyAt('09:00')
+    ->timezone('UTC')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/seasons-notify.log'));

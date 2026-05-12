@@ -7,6 +7,7 @@ use App\Models\MatchSession;
 use App\Models\Operator;
 use App\Models\PlayerOperator;
 use App\Models\User;
+use App\Notifications\RankPromoted;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -145,10 +146,19 @@ class MatchService
 
             $rankDelta = 0;
             $rankAfter = $user->rank_points;
+            $tierBefore = $this->ranking->tierFor($user->rank_points);
             if ($session->rank_type === 'ranked') {
                 $rankDelta = $this->ranking->pointsDelta($won, $isMvp, $user->rank_points);
                 $rankAfter = $this->ranking->applyDelta($user, $rankDelta);
                 $this->bumpDailyCounter($user);
+            }
+            $tierAfter = $this->ranking->tierFor($rankAfter);
+
+            // Notification de promotion si le tier change vers le haut.
+            // (Pas de notif sur démotion — moins motivant, et trop fréquent en
+            // haut de classement où une mauvaise série fait yo-yo.)
+            if ($tierBefore !== $tierAfter && $this->isPromotion($tierBefore, $tierAfter)) {
+                $user->notify(new RankPromoted($tierBefore, $tierAfter, $rankAfter));
             }
 
             $session->update([
@@ -254,6 +264,15 @@ class MatchService
                 'daily_matches_played' => $user->daily_matches_played + 1,
             ])->save();
         }
+    }
+
+    /**
+     * Compare l'ordre des tiers : true si $after > $before dans la hiérarchie.
+     */
+    private function isPromotion(string $before, string $after): bool
+    {
+        $order = ['bronze' => 0, 'silver' => 1, 'gold' => 2, 'platinum' => 3, 'diamond' => 4, 'master' => 5];
+        return ($order[$after] ?? 0) > ($order[$before] ?? 0);
     }
 
     private function validateAntiCheat(int $duration, int $score, int $kills): void

@@ -376,7 +376,7 @@
 - [x] **Achievements full CRUD** (clé regex-validée + 5 catégories + rewards dynamiques + flag hidden + filtres + table avec compteur de débloqués)
 - [x] **Events full CRUD** (5 types : limited_banner/pvp/pve/story/collaboration + lien optionnel à une Banner + rewards_pool + phase scheduled/current/expired + dates strictes)
 - [x] Settings.tsx (configuration globale — BDD-backed via Setting model, cache 10 min, invalidé sur save)
-- [ ] Moderation.tsx (signalements, sanctions) — Phase 5
+- [x] **Moderation.tsx (signalements, sanctions)** — `/admin/moderation` : filtres status (pending/reviewed/dismissed/sanctioned) + reason (cheat/toxic/afk/smurf/other), table + modal détails. Actions : dismiss (avec notes), sanction (ban auto avec `report #N, admin#M` dans `ban_reason`), markReviewed. Refuse de bannir un admin. 8 tests Pest.
 - [x] **Leaderboard Seasons CRUD complet** (Create/Edit/Show + reset, anti-suppression si rewards distribués)
 - [x] **grantCurrency joueur** (atomique avec lockForUpdate, débit/crédit, anti-balance-négatif, Transaction audit log incl. admin#id + IP)
 - [x] **Cosmetics catalogue admin** (CRUD + 5 types skin/title/voiceline/banner/border + lien operator pour skins + slug-validé)
@@ -453,7 +453,7 @@
 - [x] **Détection auto anomalies** — `MatchService::validateAntiCheat` vérifie durée plausible (30s–30min), score ≤ 100 pts/sec, kills ≤ 1.5 /sec. Toute violation invalide la session.
 - [x] **Limite 50 matchs classés/jour** — `MatchService::assertDailyLimit` via `users.daily_matches_played` + reset minuit UTC. Constante `RankingService::DAILY_MATCH_LIMIT`.
 - [~] Cooldown anti-smurf — partiellement : zombie sessions auto-abandonnées (TTL 35min), abandon ranked compte comme défaite. Détection multi-compte par IP/fingerprint à câbler en Phase 5.
-- [x] **Système de signalement joueur** — schéma `player_reports` (reporter, reported, session?, reason ∈ cheat/toxic/afk/smurf/other, status pending→reviewed→dismissed/sanctioned, unique reporter+reported+session). UI admin Moderation.tsx restant à câbler.
+- [x] **Système de signalement joueur** — endpoint `POST /reports` (rate limit 5/h), refuse self-report, refuse session non-participée, refuse doublon (unique reporter+reported+session). Schéma `player_reports` + admin UI `/admin/moderation`. 6 tests Pest.
 
 ### Architecture
 - [x] **Redis Sorted Sets actifs** — `LeaderboardService` utilise `Redis::zincrby/zrevrange/zrevrank/zscore`
@@ -569,7 +569,7 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] **Validation autoritaire résultats** — `MatchService::finish` enroule tout dans `DB::transaction` + `lockForUpdate` sur User+Session. Sanity checks (anti-cheat, durée/score/kills plausibles), calcul rank via `RankingService`, écriture immuable `match_results`.
 - [ ] Événements limités (3-4 sem) — table `events` prête, UI à finaliser
 - [x] **Classement compétitif saisonnier (Bronze → Master)** — `RankingService` dérive le tier depuis `users.rank_points`. 6 tiers : Bronze (0-199) → Argent (200) → Or (500) → Platine (1000) → Diamant (1500) → Maître (2200+). Win +25, Loss -15 (floor 0), MVP bonus +10. Hook leaderboard saisonnier en plus des points sur match.
-- [ ] Notifications email intelligentes (Phase 4 plus tard)
+- [x] **Notifications email intelligentes** — 3 notifications Laravel (mail + database) : `RankPromoted` (fired par MatchService quand tier change vers le haut, jamais sur démotion), `MatchInvalidated` (anti-cheat reject), `SeasonEndingSoon` (J-3 via commande `seasons:notify-ending` schedulée 09:00 UTC, top 500 participants). Migration `notifications` table créée. 3 tests Pest (fire on promotion, no fire same tier, no fire demotion).
 
 ### Phase 5 — Multijoueur, social, long terme
 - [ ] Matchmaking Photon Fusion

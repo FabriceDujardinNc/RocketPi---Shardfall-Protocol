@@ -9,6 +9,7 @@ const SECTIONS = [
     { href: '/admin/factions',     label: 'Factions' },
     { href: '/admin/banners',      label: 'Bannières' },
     { href: '/admin/players',      label: 'Joueurs' },
+    { href: '/admin/moderation',   label: 'Modération' },
     { href: '/admin/gacha-logs',   label: 'Logs Gacha' },
     { href: '/admin/referrals',    label: 'Parrainages' },
     { href: '/admin/leaderboards', label: 'Classements' },
