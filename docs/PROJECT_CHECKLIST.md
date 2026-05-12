@@ -450,10 +450,10 @@
 ### Anti-triche
 - [x] Validation autoritaire serveur (toutes les sources de points en backend, jamais côté client)
 - [x] Logs détaillés via `transactions` table (chaque distribution de reward loggée)
-- [ ] Détection auto anomalies
-- [ ] Limite 50 matchs classés/jour (PvP — phase 4)
-- [ ] Cooldown anti-smurf
-- [ ] Système de signalement joueur
+- [x] **Détection auto anomalies** — `MatchService::validateAntiCheat` vérifie durée plausible (30s–30min), score ≤ 100 pts/sec, kills ≤ 1.5 /sec. Toute violation invalide la session.
+- [x] **Limite 50 matchs classés/jour** — `MatchService::assertDailyLimit` via `users.daily_matches_played` + reset minuit UTC. Constante `RankingService::DAILY_MATCH_LIMIT`.
+- [~] Cooldown anti-smurf — partiellement : zombie sessions auto-abandonnées (TTL 35min), abandon ranked compte comme défaite. Détection multi-compte par IP/fingerprint à câbler en Phase 5.
+- [x] **Système de signalement joueur** — schéma `player_reports` (reporter, reported, session?, reason ∈ cheat/toxic/afk/smurf/other, status pending→reviewed→dismissed/sanctioned, unique reporter+reported+session). UI admin Moderation.tsx restant à câbler.
 
 ### Architecture
 - [x] **Redis Sorted Sets actifs** — `LeaderboardService` utilise `Redis::zincrby/zrevrange/zrevrank/zscore`
@@ -563,13 +563,13 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [ ] MCP Design System custom (Phase 3+ ou plus tard)
 
 ### Phase 4 — Intégration Unity + compétitif
-- [ ] Page `/play` Unity 6 WebGL
-- [ ] Communication JS ↔ Unity
-- [ ] Tokens session signés Sanctum
-- [ ] Validation autoritaire résultats
-- [ ] Événements limités (3-4 sem)
-- [ ] Classement compétitif saisonnier (Bronze → Master, reset trimestriel)
-- [ ] Notifications email intelligentes
+- [~] **Page `/play`** — refonte UX compétitive : carte rang (tier + progression vers le suivant), carte limite quotidienne (50 ranked/jour avec barre couleur), historique 10 derniers matchs (mode, victoire/MVP, K/D/A, durée, Δ pts). Canvas Unity reste placeholder en attendant le build externe.
+- [ ] Communication JS ↔ Unity (`SendMessage`, jslib bridge) — à câbler quand le build Unity arrive
+- [x] **Tokens session signés Sanctum** — `MatchService::start` génère un `session_token` SHA-256 64-char à passer à Unity. TTL 35min, single-use, lié au user. Signature HMAC du payload final stockée dans `result_signature` pour audit.
+- [x] **Validation autoritaire résultats** — `MatchService::finish` enroule tout dans `DB::transaction` + `lockForUpdate` sur User+Session. Sanity checks (anti-cheat, durée/score/kills plausibles), calcul rank via `RankingService`, écriture immuable `match_results`.
+- [ ] Événements limités (3-4 sem) — table `events` prête, UI à finaliser
+- [x] **Classement compétitif saisonnier (Bronze → Master)** — `RankingService` dérive le tier depuis `users.rank_points`. 6 tiers : Bronze (0-199) → Argent (200) → Or (500) → Platine (1000) → Diamant (1500) → Maître (2200+). Win +25, Loss -15 (floor 0), MVP bonus +10. Hook leaderboard saisonnier en plus des points sur match.
+- [ ] Notifications email intelligentes (Phase 4 plus tard)
 
 ### Phase 5 — Multijoueur, social, long terme
 - [ ] Matchmaking Photon Fusion
@@ -594,7 +594,7 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [ ] Stripe webhooks (achats) — Phase 5 avec Cashier
 - [x] **Rate limiting API sensibles** — `throttle:6,1` sur résend email, `throttle:60,60` sur gacha, `throttle:10,1` sur auth (login/register)
 - [x] **Logs horodatés gacha (audit légal)** — table `gacha_pulls` immuable, timestamps + IP + session_id + pity_state + was_pity_hit/soft_pity/rate_up, jamais d'UPDATE/DELETE
-- [ ] Logs horodatés matchs classés (audit légal) — Phase 4 (PvP)
+- [x] **Logs horodatés matchs classés (audit légal)** — tables `match_sessions` (token + start/finish + ip/fingerprint + result_signature HMAC) et `match_results` (kills/deaths/assists/score/won/MVP/rank_delta) — `validated_at` rempli au commit final, jamais modifié après.
 - [x] **Middleware admin sur `/admin/*`** — `EnsureUserIsAdmin` vérifie role ∈ {admin, super_admin}, abort 403 sinon, monté sur tout le groupe `admin.*`
 - [x] **2FA admin TOTP** — `pragmarx/google2fa` + `bacon-qr-code` ; route `/2fa/setup` avec QR + manual secret, confirmation par code à 6 chiffres, 8 codes de secours générés et téléchargeables (.txt). Challenge post-login via `/2fa/challenge` (TOTP ou recovery code, single-use). Middleware `EnsureTwoFactorPassed` monté sur `/admin/*` force setup pour admins sans 2FA + challenge à chaque nouvelle session. Cast `encrypted` sur secret + recovery. 12 tests Pest.
 - [x] **Logs actions admin** — `Transaction::reason='admin_grant'` log chaque grantCurrency avec admin#id + IP + description, `User::is_banned/ban_reason/banned_at` audite chaque ban

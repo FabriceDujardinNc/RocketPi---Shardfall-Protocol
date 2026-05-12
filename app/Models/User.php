@@ -19,6 +19,7 @@ use Laravel\Sanctum\HasApiTokens;
     'display_name', 'slug', 'avatar_url',
     'role', 'account_level', 'account_xp',
     'faction',
+    'rank_points', 'daily_matches_played', 'daily_matches_reset_at',
     'referral_code', 'referred_by_user_id',
     'last_active_at', 'is_banned', 'ban_reason', 'banned_at',
 ])]
@@ -44,6 +45,9 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_banned' => 'boolean',
             'account_level' => 'integer',
             'account_xp' => 'integer',
+            'rank_points' => 'integer',
+            'daily_matches_played' => 'integer',
+            'daily_matches_reset_at' => 'date',
             // 2FA TOTP — secret + recovery codes chiffrés en BDD, jamais exposés au front.
             'two_factor_secret' => 'encrypted',
             'two_factor_recovery_codes' => 'encrypted:array',
