@@ -1,0 +1,14 @@
+{
+    "name": "Rocketpi.Bridge",
+    "rootNamespace": "Rocketpi.Bridge",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

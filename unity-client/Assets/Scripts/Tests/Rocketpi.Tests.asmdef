@@ -1,0 +1,24 @@
+{
+    "name": "Rocketpi.Tests",
+    "rootNamespace": "Rocketpi.Tests",
+    "references": [
+        "Rocketpi.Bridge",
+        "Rocketpi.Gameplay",
+        "Rocketpi.RestClient",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,17 @@
+{
+    "name": "Rocketpi.RestClient",
+    "rootNamespace": "Rocketpi.RestClient",
+    "references": [
+        "Rocketpi.Bridge",
+        "Unity.Nuget.Newtonsoft.Json"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,21 @@
+{
+    "name": "Rocketpi.Editor",
+    "rootNamespace": "Rocketpi.Editor",
+    "references": [
+        "Rocketpi.Bridge",
+        "Rocketpi.Gameplay",
+        "Rocketpi.UI",
+        "Rocketpi.RestClient"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

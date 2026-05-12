@@ -135,11 +135,25 @@ des fichiers `.loader.js` / `.framework.js.unityweb` / `.data.unityweb` / `.wasm
 
 ## Phase actuelle
 
-Le client Unity n'est **pas encore branché** sur un build réel. Le scaffolding (bridge,
-DTOs, script de build) est en place pour permettre à un développeur Unity d'ouvrir le
-projet, créer la scène Bootstrap, et itérer sur le gameplay sans avoir à câbler
-l'intégration Laravel.
+**Mode Training scaffoldé end-to-end.** Le client Unity est ouvrable en l'état :
+les scaffolders Editor (`Tools > RocketPi > ...`) génèrent les scènes, les 8
+opérateurs, configurent le build WebGL. Un développeur Unity doit encore
+brancher manuellement quelques références UI/prefabs (cf. README.md section
+"Setup en 5 minutes") avant de pouvoir build et jouer.
 
 Côté Laravel, [resources/js/Components/Game/UnityCanvas.tsx](../resources/js/Components/Game/UnityCanvas.tsx)
 charge le build WebGL et installe `window.rocketpi.*` via
 [resources/js/lib/rocketpi-bridge.ts](../resources/js/lib/rocketpi-bridge.ts).
+Le token Sanctum éphémère est généré par [PlayController](../app/Http/Controllers/Player/PlayController.php)
+(ability `unity:*`, TTL 1h, purge à chaque visite).
+
+## Modules implémentés
+
+| Module | Contenu |
+|---|---|
+| Bridge | RocketpiBridge singleton + DTOs + jslib WebGL |
+| RestClient | RocketpiApiClient (UnityWebRequest + Bearer auth) + DTOs Laravel |
+| Gameplay | PlayerController FPS, HealthSystem, DamageHitbox, WeaponBase + Hitscan/Projectile, AbilityBase + Dash/Shield/Scan, PracticeTarget, TargetSpawner, TrainingMatchManager |
+| UI | HudController (HP/ammo/timer/score), MainMenuController, MatchSummaryController |
+| Editor | FirstRunSetup, RosterScaffolder (8 SO), SceneScaffolder (2 scènes), BuildWebGL |
+| Tests | HealthSystemTests + BridgePayloadTests (NUnit EditMode) |
