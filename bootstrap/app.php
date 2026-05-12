@@ -24,6 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\TrackUserActivity::class,
         ]);
+
+        // Trailing slash redirect 301 global (SEO : évite duplicate /lore et /lore/).
+        // Préfixé pour s'exécuter avant le routing.
+        $middleware->prepend(\App\Http\Middleware\RedirectTrailingSlash::class);
         $middleware->alias([
             'admin'      => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'not.banned' => \App\Http\Middleware\EnsureUserIsNotBanned::class,

@@ -88,7 +88,7 @@ export default function PlayerLayout({ children }: PropsWithChildren) {
             : 'text-text-medium hover:text-text-high hover:bg-bg-elev1');
 
     const groupTriggerClass = (group: NavGroup) =>
-        'px-3 py-2 rounded-md transition-all font-display text-sm uppercase tracking-wide inline-flex items-center gap-1 cursor-pointer outline-none ' +
+        'px-3 py-2 rounded-md transition-all font-display text-sm uppercase tracking-wide inline-flex items-center gap-1 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-shard-500 ' +
         (group.prefixes.some(p => url.startsWith(p))
             ? 'text-shard-400 bg-bg-elev2'
             : 'text-text-medium hover:text-text-high hover:bg-bg-elev1');

@@ -106,7 +106,7 @@ export default function CosmeticsIndex({ cosmetics, filters }: Props) {
                                 <tr key={c.id} className={'border-t border-border-default hover:bg-bg-elev2/50 ' + (!c.is_active ? 'opacity-60' : '')}>
                                     <td className="px-3 py-2">
                                         {c.preview_url
-                                            ? <img src={c.preview_url} alt="" loading="lazy" className="w-12 h-12 object-cover rounded border border-border-default" />
+                                            ? <img src={c.preview_url} alt="" width={48} height={48} loading="lazy" className="w-12 h-12 object-cover rounded border border-border-default" />
                                             : <div className="w-12 h-12 rounded border border-border-default bg-bg-elev2" />}
                                     </td>
                                     <td className="px-3 py-2 font-mono text-xs text-text-low">{c.slug}</td>

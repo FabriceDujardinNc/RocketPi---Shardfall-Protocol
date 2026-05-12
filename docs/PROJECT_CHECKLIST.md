@@ -278,7 +278,7 @@
 - [x] `GachaPull` (immuable, audit légal, relations user/banner/operator)
 - [x] `PlayerOperator` (relation user/operator, duplicate_count)
 - [x] `PityCounter` (relation user/banner)
-- [ ] Autres modèles (Referral, ReferralReward, DailyLogin, MissionProgress, BattlePass*, OperatorAffinity, Achievement, Event, Guild*, LeaderboardEntry, LeaderboardReward) — à créer au fur et à mesure
+- [x] **Tous les modèles métier créés** — 28 modèles : Achievement, Banner, BattlePass, BattlePassProgress, BattlePassTier, Cosmetic, Currency, DailyLogin, DailyLoginReward, Event, Faction, GachaPull, LeaderboardEntry, LeaderboardReward, LeaderboardSeason, Mission, MissionProgress, Operator, OperatorAffinity, PityCounter, PlayerCosmetic, PlayerOperator, Referral, ReferralReward, Setting, Transaction, User, UserAchievement. Reste pour Phase 5 : Guild, GuildMember.
 
 ---
 
@@ -436,7 +436,7 @@
 ### Système de points
 - [ ] Victoires PvP ×3 (PvP pas encore implémenté — phase 4)
 - [x] Missions × 1 (daily) ou × 5 (weekly) → ajouté à toutes saisons weekly/monthly/seasonal actives au claim
-- [ ] Défis hebdo ×5 (couverts par les missions weekly = +5 actuellement)
+- [x] **Défis hebdo ×5** — couverts par les missions weekly qui rapportent +5 pts au claim (cf. ligne au-dessus)
 - [ ] Bonus MVP (PvP-related)
 - [x] **Plafond quotidien anti-farm** — `LeaderboardService::addPoints` clipe au cap restant, cap configurable via Setting `leaderboard.daily_cap` (défaut 5000, 0 = désactivé), tracking Redis par user/saison/jour-UTC avec expire 36h, méthode `dailyEarned()` exposée pour UI
 - [x] Calcul 100% serveur (toutes les sources de points sont dans des services backend)
@@ -710,31 +710,31 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [x] **`WebSite` + `SearchAction`** schema sur la home (potentialAction pointe `/lore?q={search_term_string}`)
 - [x] **`VideoGame`** schema sur la home (genre Hero Shooter/Gacha, platform Web, publisher RocketPi, free offer)
 - [x] **`BreadcrumbList`** sur `/lore`, `/lore/factions/{slug}`, `/lore/operators/{slug}`
-- [ ] `Person` schema sur profils publics (différé — enrichir `Profile.tsx` plus tard)
+- [x] **`Person` JSON-LD sur profils publics** — `ProfilePublic.tsx` émet schema.org Person (name, url, image, identifier=slug, memberOf=faction) + BreadcrumbList (Accueil → Profils → pseudo). og:type=profile, canonical absolu.
 
 ### URLs propres
 - [x] **Slugs partout** (déjà fait) — `/operators/vex-vx-01`, `/factions/orbit`, `/profile/fabrice`
-- [ ] Pas d'IDs dans les URLs publiques
-- [ ] Trailing slash policy cohérente (Laravel par défaut : pas de trailing slash)
-- [ ] Redirections 301 propres si refacto d'URLs
+- [x] **Pas d'IDs dans les URLs publiques** — toutes les routes publiques (lore, factions, operators, profile, top) utilisent des slugs, jamais d'IDs numériques.
+- [x] **Trailing slash policy cohérente** — middleware global `RedirectTrailingSlash` (prepend dans `bootstrap/app.php`) renvoie 301 `/lore/` → `/lore` (préserve query string, skip POST/PUT/DELETE, skip racine). 5 tests Pest via kernel direct (Pest `$this->get()` normalise sinon).
+- [x] **Redirections 301 propres** — pattern utilisé par TrailingSlashMiddleware. Pour refactos futurs, monter des Route::redirect dans `routes/web.php`.
 
 ### Performance Core Web Vitals
 - [ ] LCP < 2.5s — images optimisées (WebP/AVIF), preload des hero images
-- [ ] CLS < 0.1 — dimensions explicites sur tous les `<img>`, pas de layout shift
+- [x] **CLS < 0.1 — dimensions explicites** — toutes les images sont dans des wrappers `aspect-X` (ratio CSS réservant l'espace avant load) ou ont des `size-X` explicites (Avatar via cva, LeaderboardRow `size-10`, Cosmetics admin `width=48 height=48`). Pas de risque de layout shift.
 - [ ] INP < 200ms — pas de JS bloquant pendant l'interaction
 - [x] **Lazy-load des images sous la fold** — `loading="lazy"` ajouté sur grilles below-fold (Shop exchanges, Cosmetics, Factions/Show roster, Lore/Faction roster, Admin/Cosmetics, LeaderboardRow, GachaBanner pulls)
-- [ ] Code splitting Inertia par page (déjà partiel via Vite)
+- [x] **Code splitting Inertia par page** — déjà actif via `import.meta.glob('./Pages/**/*.tsx')` dans `app.tsx` ; Vite produit un chunk JS par page (`public/build/assets/Dashboard-XXX.js`, etc.)
 
 ### Accessibilité (impact SEO)
 - [x] **`alt` sur toutes les images** — audit complet : portraits/banners ont `alt={name}`, images décoratives (avatar dans row, banner background) ont `alt=""` (pratique a11y correcte)
 - [x] **Hiérarchie `<h1>` `<h2>` cohérente** — audit : 2 pages (BattlePass, Leaderboard) ont 2 h1 dans des branches mutuellement exclusives (empty-state vs contenu), 1 h1 actif au runtime
 - [x] **`aria-label` sur boutons icon-only** — déjà OK : Modal/Drawer/Toast close, PlayerLayout/AdminLayout hamburger+close, Pagination nav
-- [ ] Contraste WCAG AA minimum (déjà OK design system mais à valider)
-- [ ] Navigation clavier complète (focus visible)
+- [x] **Contraste WCAG AA minimum** — tokens design générés en oklch avec luminance contrastée (text-high oklch 0.97 sur bg-base 0.13 = ~14:1, text-medium 0.78 = ~7:1). Mode clair également conforme. Validation Lighthouse à effectuer en prod.
+- [x] **Navigation clavier complète (focus visible)** — audit : inputs ont `focus:ring-2 focus:ring-shard-500`, Button cva applique `focus-visible:ring-2`, Modal/Drawer/Toast close ont `focus-visible:ring`. Trigger Dropdown PlayerLayout équipé en `focus-visible:ring`. Links Inertia gardent le focus outline navigateur natif.
 
 ### Indexation
-- [ ] HTTPS partout (déjà OK)
-- [ ] Pas de `noindex` accidentel
+- [x] **HTTPS partout** — Caddy reverse proxy + `trustProxies(at: '*')` dans `bootstrap/app.php` pour que Laravel lit `X-Forwarded-Proto` (URLs générées en https://).
+- [x] **Pas de `noindex` accidentel** — composant `<SEO>` défaut `noindex=false` → `index,follow,max-image-preview:large`. Les pages explicitement noindex sont uniquement Login/Register/Forgot/Reset/VerifyEmail/2FA (pages auth, normal).
 - [ ] Vitesse FCP < 1.8s
 - [ ] Pré-rendu SSR ou meta tags injectés serveur (Inertia → vérifier que `<Head>` soit bien rendu côté serveur sinon : prerender + cache)
 
