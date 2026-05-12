@@ -2,6 +2,10 @@ import '../css/app.css';
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { applyTheme, resolveInitialTheme } from './theme';
+
+// Applique le thème avant le premier render pour éviter le flash dark → light.
+applyTheme(resolveInitialTheme());
 
 createInertiaApp({
     title: (title) => `${title} — RocketPi`,

@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
+import ThemeToggle from '@ui/ThemeToggle';
 
 export default function GuestLayout({ children }: PropsWithChildren) {
     return (
@@ -12,13 +13,14 @@ export default function GuestLayout({ children }: PropsWithChildren) {
                     >
                         ROCKETPI<span className="text-shard-500">.</span>
                     </Link>
-                    <nav className="flex items-center gap-4 font-display text-sm uppercase tracking-wide">
+                    <nav className="flex items-center gap-3 font-display text-sm uppercase tracking-wide">
                         <Link href="/login" className="text-text-medium hover:text-text-high">
                             Connexion
                         </Link>
                         <Link href="/register" className="text-shard-400 hover:text-shard-300">
                             Rejoindre
                         </Link>
+                        <ThemeToggle />
                     </nav>
                 </div>
             </header>

@@ -165,6 +165,33 @@
   --z-tooltip:  700;
 }
 
+/* ── Mode clair (override tokens via .theme-light sur <html>) ──────
+ * Le mode sombre reste le défaut (cohérent avec l'identité Shardfall).
+ * Le mode clair inverse uniquement les surfaces UI + textes — les
+ * couleurs de marque (shard/factions/raretés) restent identiques pour
+ * préserver l'identité visuelle dans les deux thèmes.
+ */
+html.theme-light {
+  /* Surfaces : blanc cassé légèrement teinté shard */
+  --color-bg-base:  oklch(0.98 0.005 245);
+  --color-bg-elev1: oklch(0.96 0.008 245);
+  --color-bg-elev2: oklch(0.92 0.010 245);
+  --color-bg-elev3: oklch(0.88 0.012 245);
+
+  /* Textes : sombre vers clair */
+  --color-text-high:   oklch(0.20 0.02 245);
+  --color-text-medium: oklch(0.40 0.02 245);
+  --color-text-low:    oklch(0.55 0.02 245);
+  --color-text-dim:    oklch(0.70 0.02 245);
+  --color-text-on-shard: oklch(0.98 0 0);
+
+  /* Bordures plus marquées en clair pour visibilité */
+  --color-border-subtle:  oklch(0.85 0.01 245 / 0.7);
+  --color-border-default: oklch(0.75 0.02 245 / 0.8);
+  --color-border-strong:  oklch(0.55 0.04 245);
+  --color-border-shard:   oklch(0.62 0.17 188 / 0.6);
+}
+
 /* ── Global reset & base styles ─────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 

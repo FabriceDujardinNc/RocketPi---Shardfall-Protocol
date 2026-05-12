@@ -145,7 +145,7 @@
 - [x] Raretés common / rare / epic / legendary
 - [x] UI : background, surface, text, border, success, warning, danger, info
 - [x] Mode sombre par défaut (sci-fi)
-- [ ] Mode clair (option)
+- [x] **Mode clair (option)** — override `.theme-light` sur `<html>` qui surcharge bg/text/border tokens (couleurs de marque préservées). `resources/js/theme.ts` applique avant le 1er render (anti-flash FOUC). `ThemeToggle` Lucide Sun/Moon dans les 3 layouts (Player/Admin/Guest). Préférence localStorage `rocketpi.theme`, fallback `prefers-color-scheme: light` OS, défaut dark.
 - [x] `font-display` (Chakra Petch — équivalent Orbitron/Rajdhani gaming)
 - [x] `font-body` (Inter)
 - [x] `font-mono` (JetBrains Mono)

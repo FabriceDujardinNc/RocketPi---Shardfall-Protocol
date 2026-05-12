@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { type PropsWithChildren, useEffect, useState } from 'react';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
 import { Menu, X, ChevronDown } from 'lucide-react';
+import ThemeToggle from '@ui/ThemeToggle';
 
 interface NavLeaf  { href: string; label: string }
 interface NavGroup { label: string; items: NavLeaf[]; prefixes: string[] }
@@ -154,6 +155,7 @@ export default function PlayerLayout({ children }: PropsWithChildren) {
                     </nav>
 
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <ThemeToggle />
                         <Link
                             href="/profile"
                             className="text-sm font-display tracking-wide text-text-medium hover:text-text-high flex items-center gap-2 min-w-0"

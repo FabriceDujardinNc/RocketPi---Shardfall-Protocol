@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { type PropsWithChildren, useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
+import ThemeToggle from '@ui/ThemeToggle';
 
 const SECTIONS = [
     { href: '/admin',              label: 'Tableau de bord' },
@@ -52,13 +53,14 @@ export default function AdminLayout({ children }: PropsWithChildren) {
                     </Link>
                 ))}
             </nav>
-            <div className="mt-8 pt-4 border-t border-border-default">
+            <div className="mt-8 pt-4 border-t border-border-default flex items-center justify-between">
                 <Link
                     href="/dashboard"
                     className="text-xs font-display uppercase tracking-wide text-text-low hover:text-text-medium"
                 >
                     ← Retour côté joueur
                 </Link>
+                <ThemeToggle />
             </div>
         </>
     );
@@ -70,14 +72,17 @@ export default function AdminLayout({ children }: PropsWithChildren) {
                 <Link href="/admin" className="font-display font-bold uppercase tracking-wide text-sm">
                     ROCKETPI<span className="text-danger">.</span>ADMIN
                 </Link>
-                <button
-                    type="button"
-                    onClick={() => setOpen(true)}
-                    className="inline-flex items-center justify-center size-10 rounded-md text-text-medium hover:text-text-high hover:bg-bg-elev2"
-                    aria-label="Ouvrir le menu admin"
-                >
-                    <Menu size={20} />
-                </button>
+                <div className="flex items-center gap-1">
+                    <ThemeToggle />
+                    <button
+                        type="button"
+                        onClick={() => setOpen(true)}
+                        className="inline-flex items-center justify-center size-10 rounded-md text-text-medium hover:text-text-high hover:bg-bg-elev2"
+                        aria-label="Ouvrir le menu admin"
+                    >
+                        <Menu size={20} />
+                    </button>
+                </div>
             </header>
 
             {/* Sidebar desktop */}
