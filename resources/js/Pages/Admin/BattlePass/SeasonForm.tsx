@@ -3,6 +3,7 @@ import Button from '@ui/Button';
 
 export interface SeasonFormData {
     id?: number;
+    slug?: string;
     name: string;
     season_number: number;
     total_tiers: number;

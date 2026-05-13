@@ -6,6 +6,7 @@ import { ArrowLeft, Pencil, Archive, RotateCcw, Power, PowerOff } from 'lucide-r
 
 interface Banner {
     id: number;
+    slug: string;
     name: string;
     tag: string | null;
     subtitle: string | null;
@@ -33,7 +34,7 @@ interface PageProps { flash?: { status?: string }; [key: string]: unknown }
 export default function BannerShow({ banner }: { banner: Banner }) {
     const { props } = usePage<PageProps>();
     const archive = () => { if (confirm(`Archiver « ${banner.name} » ?`)) router.delete(`/admin/banners/${banner.slug}`); };
-    const restore = () => router.post(`/admin/banners/${banner.id}/restore`);
+    const restore = () => router.post(`/admin/banners/${banner.slug}/restore`);
     const toggle = () => router.post(`/admin/banners/${banner.slug}/activate`);
 
     return (

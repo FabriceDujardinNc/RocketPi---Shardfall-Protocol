@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 
 export interface BannerFormData {
     id?: number;
+    slug?: string;
     name: string;
     tag: string | null;
     subtitle: string | null;

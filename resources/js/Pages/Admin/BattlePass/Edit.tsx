@@ -47,7 +47,7 @@ export default function BattlePassEdit({ battlePass }: Props) {
             </section>
 
             <section>
-                <TiersEditor battlePassId={battlePass.id!} tiers={battlePass.tiers ?? []} />
+                <TiersEditor battlePassSlug={battlePass.slug!} tiers={battlePass.tiers ?? []} />
             </section>
         </>
     );

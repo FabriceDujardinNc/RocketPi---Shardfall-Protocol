@@ -16,7 +16,7 @@ export interface Tier {
 }
 
 interface Props {
-    battlePassId: number;
+    battlePassSlug: string;
     tiers: Tier[];
 }
 
@@ -29,7 +29,7 @@ const REWARD_TYPE_SUGGESTIONS = [
     'cosmetic_title_apex',
 ];
 
-export default function TiersEditor({ battlePassId, tiers }: Props) {
+export default function TiersEditor({ battlePassSlug, tiers }: Props) {
     const { data, setData, errors, processing, put } = useForm<{ tiers: Tier[] }>({
         tiers: tiers.map(t => ({
             ...t,
@@ -70,7 +70,7 @@ export default function TiersEditor({ battlePassId, tiers }: Props) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(`/admin/battle-passes/${battlePassId}/tiers`, { preserveScroll: true });
+        put(`/admin/battle-passes/${battlePassSlug}/tiers`, { preserveScroll: true });
     };
 
     return (

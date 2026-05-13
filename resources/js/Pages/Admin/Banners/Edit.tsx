@@ -16,7 +16,7 @@ export default function BannerEdit({ banner, enums, operators }: Props) {
         <>
             <Head title={`Admin · Édition ${banner.name}`} />
             <header className="mb-6">
-                <Link href={`/admin/banners/${banner.id}`} className="font-mono text-xs text-text-low hover:text-text-medium inline-flex items-center gap-1 mb-2">
+                <Link href={`/admin/banners/${banner.slug}`} className="font-mono text-xs text-text-low hover:text-text-medium inline-flex items-center gap-1 mb-2">
                     <ArrowLeft size={12} /> Retour à la fiche
                 </Link>
                 <h1 className="font-display font-bold text-2xl uppercase tracking-wide">Édition · {banner.name}</h1>
@@ -26,7 +26,7 @@ export default function BannerEdit({ banner, enums, operators }: Props) {
                 enums={enums}
                 operators={operators ?? []}
                 submitLabel="Enregistrer"
-                action={{ method: 'put', url: `/admin/banners/${banner.id}` }}
+                action={{ method: 'put', url: `/admin/banners/${banner.slug}` }}
             />
         </>
     );
