@@ -1,0 +1,9 @@
+﻿<Solution>
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Rocketpi.Gameplay.csproj" />
+  <Project Path="Rocketpi.Bridge.csproj" />
+  <Project Path="Rocketpi.Editor.csproj" />
+  <Project Path="Rocketpi.Tests.csproj" />
+  <Project Path="Rocketpi.UI.csproj" />
+  <Project Path="Rocketpi.RestClient.csproj" />
+</Solution>
