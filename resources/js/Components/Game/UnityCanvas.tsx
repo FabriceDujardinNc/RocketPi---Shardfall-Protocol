@@ -34,10 +34,20 @@ declare global {
 }
 
 interface UnityBuildManifest {
-    version: string;
-    buildGuid: string;
-    builtAt: string;
-    isDevelopmentBuild: boolean;
+    version?: string;
+    buildGuid?: string;
+    builtAt?: string;
+    isDevelopmentBuild?: boolean;
+    /**
+     * URLs relatives au buildPath. Si absent on tombe sur les défauts
+     * "Build/Build.{loader.js, data.unityweb, framework.js.unityweb, wasm.unityweb}".
+     */
+    urls?: {
+        loader?: string;
+        data?: string;
+        framework?: string;
+        code?: string;
+    };
 }
 
 interface Props extends WrapperProps {
@@ -115,9 +125,13 @@ export default function UnityCanvas({
                     return;
                 }
                 const manifest = (await manifestResp.json()) as UnityBuildManifest;
-                const cacheBust = encodeURIComponent(manifest.buildGuid);
+                const cacheBust = encodeURIComponent(manifest.buildGuid ?? 'dev');
+                const loaderRel = manifest.urls?.loader ?? 'Build/Build.loader.js';
+                const dataRel = manifest.urls?.data ?? 'Build/Build.data.unityweb';
+                const frameworkRel = manifest.urls?.framework ?? 'Build/Build.framework.js.unityweb';
+                const codeRel = manifest.urls?.code ?? 'Build/Build.wasm.unityweb';
 
-                const loaderUrl = `${buildPath}/Build/Build.loader.js?v=${cacheBust}`;
+                const loaderUrl = `${buildPath}/${loaderRel}?v=${cacheBust}`;
                 const script = document.createElement('script');
                 script.src = loaderUrl;
                 script.async = true;
@@ -133,9 +147,9 @@ export default function UnityCanvas({
                         instanceRef.current = await window.createUnityInstance(
                             canvasRef.current,
                             {
-                                dataUrl: `${buildPath}/Build/Build.data.unityweb?v=${cacheBust}`,
-                                frameworkUrl: `${buildPath}/Build/Build.framework.js.unityweb?v=${cacheBust}`,
-                                codeUrl: `${buildPath}/Build/Build.wasm.unityweb?v=${cacheBust}`,
+                                dataUrl: `${buildPath}/${dataRel}?v=${cacheBust}`,
+                                frameworkUrl: `${buildPath}/${frameworkRel}?v=${cacheBust}`,
+                                codeUrl: `${buildPath}/${codeRel}?v=${cacheBust}`,
                                 streamingAssetsUrl: `${buildPath}/StreamingAssets`,
                                 companyName: 'RocketPi',
                                 productName: 'Shardfall Protocol',
@@ -185,6 +199,7 @@ export default function UnityCanvas({
         <div className={wrapperStyles({ ratio })} data-status={status.kind}>
             <canvas
                 ref={canvasRef}
+                id="unity-canvas"
                 className="w-full h-full block"
                 aria-label="Canvas de jeu Unity"
             />

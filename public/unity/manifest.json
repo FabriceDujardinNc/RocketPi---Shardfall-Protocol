@@ -1,0 +1,12 @@
+{
+  "version": "0.1.0",
+  "buildGuid": "first-dev-build-2026-05-13",
+  "builtAt": "2026-05-13T02:09:00Z",
+  "isDevelopmentBuild": true,
+  "urls": {
+    "loader": "Build/unity.loader.js",
+    "data": "Build/unity.data",
+    "framework": "Build/unity.framework.js",
+    "code": "Build/unity.wasm"
+  }
+}
