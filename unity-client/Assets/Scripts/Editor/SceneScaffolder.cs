@@ -93,7 +93,9 @@ namespace Rocketpi.Editor
             var player = playerGo.AddComponent<PlayerController>();
             playerGo.AddComponent<HealthSystem>();
             playerGo.tag = "Player";
-            playerGo.layer = LayerMask.NameToLayer("Player");
+            var playerLayer = LayerMask.NameToLayer("Player");
+            if (playerLayer >= 0) playerGo.layer = playerLayer;
+            else Debug.LogWarning("[RocketPi] Layer 'Player' absent — Player reste sur Default. Crée-le via Edit > Project Settings > Tags & Layers.");
             playerGo.transform.position = new Vector3(0f, 0.1f, 0f);
 
             var camGo = new GameObject("Camera");
