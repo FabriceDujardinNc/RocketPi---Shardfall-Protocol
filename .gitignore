@@ -60,3 +60,4 @@ desktop.ini
 *.cert
 *.p12
 secrets.json
+/public/unity/
