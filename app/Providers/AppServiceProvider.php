@@ -28,6 +28,10 @@ use App\Policies\OperatorPolicy;
 use App\Policies\ReferralRewardPolicy;
 use App\Policies\SettingPolicy;
 use App\Policies\UserPolicy;
+use App\Services\Meshy\Contracts\MeshyClientInterface;
+use App\Services\Meshy\FakeMeshyClient;
+use App\Services\Meshy\MeshyHttpClient;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -35,7 +39,25 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Bind MeshyClientInterface en fonction de la config :
+        //  - MESHY_FAKE=true OU pas de clé API → FakeMeshyClient (placeholders)
+        //  - sinon → MeshyHttpClient (vrai API)
+        // FakeMeshyClient est en singleton pour permettre forceFailure()/forcePending()
+        // depuis les tests sans avoir à le re-binder.
+        $this->app->singleton(MeshyClientInterface::class, function ($app) {
+            $cfg = $app['config']->get('services.meshy', []);
+            $useFake = ($cfg['fake'] ?? false) || empty($cfg['api_key']);
+
+            if ($useFake) {
+                return new FakeMeshyClient();
+            }
+
+            return new MeshyHttpClient(
+                http: $app->make(HttpFactory::class),
+                apiKey: (string) $cfg['api_key'],
+                baseUrl: (string) ($cfg['base_url'] ?? 'https://api.meshy.ai'),
+            );
+        });
     }
 
     public function boot(): void
