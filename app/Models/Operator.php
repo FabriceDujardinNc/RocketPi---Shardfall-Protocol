@@ -4,11 +4,15 @@ namespace App\Models;
 
 use App\Concerns\HasAutoSlug;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Operator extends Model
 {
     use SoftDeletes, HasAutoSlug;
+
+    public const GENERATION_STATUSES = ['pending', 'queued', 'generating', 'ready', 'failed'];
 
     protected $guarded = [];
 
@@ -63,4 +67,21 @@ class Operator extends Model
     public const FACTIONS = ['ORBIT', 'FERRO', 'VEIL'];
     public const ROLES    = ['sniper', 'healer', 'scout', 'tank', 'explosives', 'assault', 'infiltrator', 'hacker'];
     public const RARITIES = ['common', 'rare', 'epic', 'legendary'];
+
+    public function skins(): HasMany
+    {
+        return $this->hasMany(OperatorSkin::class);
+    }
+
+    public function accessories(): BelongsToMany
+    {
+        return $this->belongsToMany(Accessory::class, 'operator_accessories')
+            ->withPivot('is_default')
+            ->withTimestamps();
+    }
+
+    public function isBaseModelReady(): bool
+    {
+        return $this->base_generation_status === 'ready' && filled($this->base_model_url);
+    }
 }
