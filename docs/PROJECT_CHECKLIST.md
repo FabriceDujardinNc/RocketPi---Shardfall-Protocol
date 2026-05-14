@@ -585,6 +585,62 @@ Pour chacun : nom ✅, faction ✅, rôle ✅, rareté ✅, lore ✅, stats (HP/
 - [ ] Replay (kill cam, partage Discord/Twitter)
 - [ ] Hall of Fame annuel (après 6+ mois)
 
+### Phase 6 — Pipeline 3D modulaire (Meshy + Unity assembly)
+
+Système modulaire opérateurs : 1 mesh de base + skins (textures) + armes + accessoires
+assemblés au runtime côté Unity. Génération via Meshy.ai, stockage Laravel, MCP custom
+pour expose le catalogue à Claude Desktop.
+
+#### Phase 0 — Contrat rig & sockets
+- [x] **`unity-client/docs/RIG_CONTRACT.md`** — squelette Humanoid Mecanim figé : T-pose, échelle 1u=1m, hauteur ~1.85m, 7 sockets nommés (`Hand_R/L`, `Head_Top`, `Face_Front`, `Back_Center`, `Hip_R/L`), format `.glb` glTF 2.0 + Draco + KTX2/Basis. Versioning `base_rig_version` (humanoid-v1).
+- [ ] Placeholder `.glb` Mixamo dropé dans `storage/app/public/models/_placeholder/base.glb`
+- [ ] Script éditeur `Tools > RocketPi > Validate Rig` (vérif sockets + scale + T-pose)
+
+#### Phase 1 — Schéma BDD (tables dédiées)
+- [x] **Migration `add_3d_columns_to_operators_table`** — colonnes `base_model_url`, `base_rig_version`, `base_generation_status` (enum pending/queued/generating/ready/failed), `base_meshy_task_id`.
+- [x] **Migration `create_operator_skins_table`** — slug, name, rarity, palette_json, texture_url, material_overrides, generation_status, meshy_task_id, preview_url, is_active, is_default. FK operator cascade.
+- [x] **Migration `create_weapons_table`** — slug, category (7 types), rarity, base_model_url, socket_name (def `Hand_R`), generation_status, stats. + table `weapon_skins` jointe (texture variant).
+- [x] **Migration `create_accessories_table`** — slug, slot (head/face/back/hands/legs), socket_name, base_model_url, generation_status. + pivot `operator_accessories` (is_default).
+- [x] **Migration `create_player_loadouts_table`** — unique(user, operator), FKs nullable vers skin/weapon/weapon_skin/head/face/back accessory (nullOnDelete).
+- [x] **Modèles Eloquent** — `OperatorSkin`, `Weapon`, `WeaponSkin`, `Accessory`, `PlayerLoadout` avec `HasAutoSlug` + relations + `isReady()` helpers + casts JSON + constantes statuts. `Operator.php` étendu (`skins()`, `accessories()`, `isBaseModelReady()`).
+- [x] **Factories** — 5 factories avec états `ready()` pour les tests, `slot()` pour `AccessoryFactory`.
+- [x] **Tests Pest** — `tests/Feature/Models/Asset3dTest.php` : 18 tests (slug auto, statuts, relations, cascades, unique constraints, nullOnDelete). À valider en CI après `docker compose up`.
+
+#### Phase 2 — Service Meshy
+- [x] **`MeshyClientInterface` + `FakeMeshyClient` + `MeshyHttpClient`** — contract dans `app/Services/Meshy/Contracts/`, fake renvoie task `ready` immédiat avec URLs placeholders, helpers `forceFailure()` / `forcePending()` pour tester les états non-nominaux. HTTP réel câblé sur Meshy v2 (text-to-3d + retexture pour skins), retry 3×, mapping statuts Meshy → internes.
+- [x] **DTOs** `MeshyGenerationRequest` (kind base/skin/weapon/accessory) + `MeshyTaskStatus` (helpers `isReady()`, `isFailed()`, `isTerminal()`). `MeshyException` extends RuntimeException.
+- [x] **`MeshyPromptBuilder`** — prompts cohérents avec préfixe stylistique RocketPi 2087 + flavor par faction (ORBIT cyan, FERRO rouille, VEIL violet/noir) + negative prompts communs.
+- [x] **`MeshyGenerationService`** — orchestrateur transactionnel (`DB::transaction` + `lockForUpdate`), polymorphe sur 4 types d'entités, idempotent (refuse retry sur ready sauf `--force`), dispatch `PollMeshyTaskJob` en queue `meshy`.
+- [x] **`PollMeshyTaskJob`** — Horizon queue `meshy`, lockForUpdate, re-dispatch retardé tant que pas terminal, télécharge .glb/.png et persiste sur `Storage::disk('public')` avec layout `models/operators|weapons|accessories/{slug}/...`. Hook `failed()` marque la row failed après épuisement retries.
+- [x] **Service container binding** — `AppServiceProvider::register()` bind `MeshyClientInterface` → fake si `MESHY_FAKE` ou pas de clé, sinon HTTP réel. Singleton pour tester via forceFailure() sans re-binder.
+- [x] **Config `services.meshy`** — `api_key`, `base_url`, `fake`, `task_timeout_seconds`, `poll_interval_seconds`. Env vars correspondantes.
+- [x] **Commande Artisan `operator:generate-assets`** — flags `--base --skins --weapons --accessories --all --force --dry-run`, résolution opérateur via slug OU codename, confirm interactif avant batch, rapport OK/skipped/failed.
+- [x] **Tests Pest pipeline** — `tests/Feature/Services/Meshy/MeshyGenerationServiceTest.php` (7 tests : status transitions, force, idempotence, 4 types entités) + `PollMeshyTaskJobTest.php` (6 tests : ready/failed/pending, storage layouts par type). À valider en CI après `docker compose up`.
+
+#### Phase 3 — API Laravel + MCP Node.js
+- [x] **API Resources** — `app/Http/Resources/Asset3d/` : `OperatorAsset3dResource`, `OperatorSkinResource`, `WeaponResource`, `WeaponSkinResource`, `AccessoryResource`. Exposent les champs 3D pertinents (URLs, sockets, statuts) + `whenLoaded` pour eager loading optionnel.
+- [x] **Controller `Asset3dApiController`** — 7 endpoints : `listOperators`, `showOperator($slug ou codename)`, `listSkins`, `listWeapons` (filtre `category`), `listAccessories` (filtre `slot`), `generationStatus`, `triggerGeneration`. Reuse `MeshyGenerationService` pour le trigger.
+- [x] **Form Request** — `TriggerGenerationRequest` valide `entity_type ∈ {operator, operator_skin, weapon, accessory}` + `slug`, méthode `resolveEntity()` polymorphique.
+- [x] **Routes** — `routes/api.php` prefix `/api/asset3d/*` :
+  - Lecture sous `auth:sanctum + abilities:mcp:read`
+  - Écriture (trigger) sous `auth:sanctum + abilities:mcp:write` + `throttle:20,60` (20 générations/h max)
+- [x] **Tests Feature** — `tests/Feature/Api/Asset3dApiTest.php` : **12 tests** couvrant auth refusée, ability check (mcp:read vs mcp:write), format réponse, filtres, codename fallback, validation payload, 409 sur retry ready sans force.
+- [x] **Serveur MCP Node.js** — `tools/mcp-rocketpi/` : package.json (ESM + tsx), tsconfig strict, `RocketpiClient` HTTP minimal (fetch native Node 22+ via `Bearer`), `server.ts` exposant **7 tools MCP** (`list_operators`, `get_operator`, `list_operator_skins`, `list_weapons`, `list_accessories`, `get_generation_status`, `trigger_generation`) via `@modelcontextprotocol/sdk` v1 stdio transport, schémas zod par tool.
+- [x] **README MCP** — `tools/mcp-rocketpi/README.md` : install, génération token Sanctum (mcp:read + mcp:write), exemple `claude_desktop_config.json` Win/Mac, table des tools/abilities, procédure de révocation token, rate-limits côté Laravel.
+
+#### Phase 4 — Unity runtime (à faire)
+- [ ] Package `com.unity.cloud.gltfast` ajouté
+- [ ] `OperatorLoader.cs` — fetch loadout API + download GLB
+- [ ] `OperatorAssembler.cs` — instancie base, applique texture skin via MaterialPropertyBlock, attache weapon/accessoires aux sockets
+- [ ] `AttachmentPointManager.cs` — registry sockets sur le rig humanoid
+- [ ] `RuntimeMaterialCache.cs` — cache textures (économise bande passante WebGL)
+- [ ] Tests EditMode (DTO loadout + résolution sockets)
+
+#### Phase 5 — Admin UI (à faire)
+- [ ] Pages Inertia : `Admin/Operators/Assets.tsx` (liste statuts, bouton générer/regénérer)
+- [ ] Stories Storybook (`AllVariants` matrice statuts)
+- [ ] Tests Feature controllers admin
+
 ---
 
 ## 15. Sécurité — règles non-négociables

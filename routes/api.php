@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Asset3dApiController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\GachaApiController;
 use App\Http\Controllers\Api\LeaderboardApiController;
@@ -55,5 +56,31 @@ Route::middleware(['auth:sanctum', 'not.banned'])->group(function () {
             ->middleware('throttle:30,60')  // Max 30 matchs/heure
             ->name('match.result');
         Route::post('/score/submit',     [UnityApiController::class, 'submitScore'])->name('score.submit');
+    });
+});
+
+// ── Pipeline 3D modulaire — consommé par MCP Node.js (Claude Desktop) ──
+// Token Sanctum admin avec ability mcp:read (lecture) ou mcp:write (trigger).
+// Pas de 2fa imposé ici car l'auth se fait via token persistant côté MCP.
+// La granularité de sécurité repose sur les abilities Sanctum + la portée
+// admin du token (créé par un admin authentifié via /admin).
+Route::prefix('asset3d')->name('api.asset3d.')->group(function () {
+
+    // Lecture : ability mcp:read OU mcp:* OU unity:* (Unity charge aussi
+    // les loadouts via cette API).
+    Route::middleware(['auth:sanctum', 'abilities:mcp:read'])->group(function () {
+        Route::get('/operators',                 [Asset3dApiController::class, 'listOperators'])->name('operators.index');
+        Route::get('/operators/{slug}',          [Asset3dApiController::class, 'showOperator'])->name('operators.show');
+        Route::get('/operators/{slug}/skins',    [Asset3dApiController::class, 'listSkins'])->name('operators.skins');
+        Route::get('/weapons',                   [Asset3dApiController::class, 'listWeapons'])->name('weapons.index');
+        Route::get('/accessories',               [Asset3dApiController::class, 'listAccessories'])->name('accessories.index');
+        Route::get('/status/{entityType}/{slug}', [Asset3dApiController::class, 'generationStatus'])->name('status');
+    });
+
+    // Écriture : ability mcp:write — déclenche un job Meshy facturable.
+    Route::middleware(['auth:sanctum', 'abilities:mcp:write'])->group(function () {
+        Route::post('/generate', [Asset3dApiController::class, 'triggerGeneration'])
+            ->middleware('throttle:20,60') // 20 générations/heure max
+            ->name('generate');
     });
 });
