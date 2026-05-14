@@ -9,6 +9,7 @@ TagManager:
   - Projectile
   - Pickup
   - PracticeTarget
+  - Hitbox
   layers:
   - Default
   - TransparentFX

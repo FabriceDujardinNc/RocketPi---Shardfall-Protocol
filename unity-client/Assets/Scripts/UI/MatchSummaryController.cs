@@ -66,6 +66,11 @@ namespace Rocketpi.UI
         private void HandleError(string err)
         {
             if (_root != null) _root.SetActive(true);
+            // Peupler les stats locales même en cas d'erreur réseau (utile en éditeur sans backend).
+            if (_scoreLabel != null && _match != null) _scoreLabel.text = $"Score : {_match.CurrentScore:N0}";
+            if (_killsLabel != null && _match != null) _killsLabel.text = $"Kills : {_match.CurrentKills}";
+            if (_deltaLabel != null) _deltaLabel.text = "—";
+            if (_tierLabel  != null) _tierLabel.text  = "—";
             if (_errorLabel != null) _errorLabel.text = err;
         }
 

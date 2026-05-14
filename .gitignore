@@ -33,6 +33,19 @@ desktop.ini
 
 # Claude Code local settings (machine-specific)
 .claude/settings.local.json
+unity-client/.claude/
+unity-client/.mcp.json
+
+# Unity AI Assistant local instructions + MCP Unity local settings
+unity-client/Assets/AssistantCustomInstructions.txt
+unity-client/Assets/AssistantCustomInstructions.txt.meta
+unity-client/ProjectSettings/McpUnitySettings.json
+
+# Unity Performance Test runner locals
+unity-client/Assets/Resources/PerformanceTestRunInfo.json
+unity-client/Assets/Resources/PerformanceTestRunInfo.json.meta
+unity-client/Assets/Resources/PerformanceTestRunSettings.json
+unity-client/Assets/Resources/PerformanceTestRunSettings.json.meta
 
 # ── Docker ───────────────────────────────────────────────────────────
 # docker-compose.override.yml EST committé : c'est le compose dev standard
@@ -40,9 +53,12 @@ desktop.ini
 .docker-secrets/
 
 # ── Build outputs ────────────────────────────────────────────────────
-# Unity WebGL build (public/unity/) EST committé — c'est le binaire qui sert
-# directement à Laravel via nginx. Les .br/.gz sont les artefacts compressés
-# normaux d'un build WebGL (Brotli activé dans FirstRunSetup.cs).
+# Unity WebGL build : binaires trop volumineux pour GitHub (unity.wasm > 100 Mo).
+# Déploiement via scp direct vers /root/RocketPi-Shardfall-Protocol/public/unity/.
+# Seul public/unity/manifest.json reste tracké (léger, sert au cache-busting React).
+public/unity/Build/
+public/unity/TemplateData/
+public/unity/index.html
 
 # ── Tests ────────────────────────────────────────────────────────────
 .phpunit.result.cache
