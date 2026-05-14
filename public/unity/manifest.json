@@ -1,7 +1,8 @@
 {
   "version": "0.1.0",
-  "buildGuid": "training-dev-2026-05-14",
-  "builtAt": "2026-05-14T11:02:00Z",
+  "buildGuid": "e5f8c1a80e7f408aa883f93aabc49e2d",
+  "builtAt": "2026-05-14T01:44:48.4181178Z",
+  "sizeBytes": 135620228,
   "isDevelopmentBuild": true,
   "urls": {
     "loader": "Build/unity.loader.js",
