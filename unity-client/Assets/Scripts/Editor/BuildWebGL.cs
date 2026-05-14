@@ -75,19 +75,57 @@ namespace Rocketpi.Editor
 
         /// <summary>
         /// Génère public/unity/manifest.json consommé par UnityCanvas.tsx pour
-        /// le cache-busting. Format minimal mais extensible.
+        /// le cache-busting et la résolution des URLs des artefacts WebGL.
+        /// Scan le dossier Build/ pour récupérer les vrais noms de fichiers
+        /// (Unity peut nommer en "{ProductName}.loader.js" ou "unity.loader.js"
+        /// selon les versions / Player Settings).
         /// </summary>
         private static void WriteManifest(string outputPath, BuildSummary summary)
         {
-            var manifest = new
+            var buildDir = Path.Combine(outputPath, "Build");
+            string loader = "Build/Build.loader.js";
+            string data = "Build/Build.data";
+            string framework = "Build/Build.framework.js";
+            string code = "Build/Build.wasm";
+
+            if (Directory.Exists(buildDir))
             {
-                version = Application.version,
-                buildGuid = summary.guid.ToString(),
-                builtAt = DateTime.UtcNow.ToString("o"),
-                sizeBytes = (long)summary.totalSize,
-                isDevelopmentBuild = (summary.options & BuildOptions.Development) != 0,
-            };
-            var json = JsonUtility.ToJson(manifest, prettyPrint: true);
+                foreach (var file in Directory.GetFiles(buildDir))
+                {
+                    var name = Path.GetFileName(file);
+                    if (name.EndsWith(".loader.js"))      loader    = $"Build/{name}";
+                    else if (name.EndsWith(".framework.js") || name.EndsWith(".framework.js.unityweb"))
+                                                          framework = $"Build/{name}";
+                    else if (name.EndsWith(".wasm") || name.EndsWith(".wasm.unityweb"))
+                                                          code      = $"Build/{name}";
+                    else if (name.EndsWith(".data") || name.EndsWith(".data.unityweb"))
+                                                          data      = $"Build/{name}";
+                }
+            }
+
+            // JsonUtility ne sait pas sérialiser des anonymous types → on construit la string manuellement.
+            // Ordre indenté pour rester lisible côté ops.
+            var guid = summary.guid.ToString();
+            var version = Application.version;
+            var builtAt = DateTime.UtcNow.ToString("o");
+            var sizeBytes = (long)summary.totalSize;
+            var isDev = (summary.options & BuildOptions.Development) != 0 ? "true" : "false";
+
+            var json =
+                "{\n" +
+                $"  \"version\": \"{version}\",\n" +
+                $"  \"buildGuid\": \"{guid}\",\n" +
+                $"  \"builtAt\": \"{builtAt}\",\n" +
+                $"  \"sizeBytes\": {sizeBytes},\n" +
+                $"  \"isDevelopmentBuild\": {isDev},\n" +
+                "  \"urls\": {\n" +
+                $"    \"loader\": \"{loader}\",\n" +
+                $"    \"data\": \"{data}\",\n" +
+                $"    \"framework\": \"{framework}\",\n" +
+                $"    \"code\": \"{code}\"\n" +
+                "  }\n" +
+                "}\n";
+
             File.WriteAllText(Path.Combine(outputPath, "manifest.json"), json);
         }
     }

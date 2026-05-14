@@ -7,8 +7,11 @@
 // NetworkBehaviour avec input replication.
 
 using System;
+using Rocketpi.Bridge;
+using Rocketpi.Gameplay.Match;
 using Rocketpi.Gameplay.Weapons;
 using Rocketpi.Gameplay.Operators;
+using Rocketpi.RestClient;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -35,6 +38,9 @@ namespace Rocketpi.Gameplay
         [SerializeField] private OperatorData _operator;
         [SerializeField] private Transform _weaponSocket;
 
+        [Header("Match (optionnel — pour unlock curseur en fin de match)")]
+        [SerializeField] private TrainingMatchManager _match;
+
         public OperatorData Operator => _operator;
         public HealthSystem Health { get; private set; }
         public WeaponBase   Weapon { get; private set; }
@@ -60,6 +66,7 @@ namespace Rocketpi.Gameplay
             _cc = GetComponent<CharacterController>();
             Health = GetComponent<HealthSystem>();
             if (_cameraOverride == null) _cameraOverride = GetComponentInChildren<Camera>();
+            if (_match == null) _match = FindAnyObjectByType<TrainingMatchManager>();
 
             // L'Input System est mappé par défaut sur les bindings standard FPS.
             // Pour un projet réel, créer un InputActionAsset et l'assigner ;
@@ -93,9 +100,20 @@ namespace Rocketpi.Gameplay
             _ability2Action.Enable();
             _ultimateAction.Enable();
 
-            // En WebGL, le pointer lock se gère sur clic dans le canvas (cf. UI).
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible   = false;
+            // Curseur LIBRE par défaut : on ne le lock qu'au démarrage effectif du match
+            // pour laisser le joueur cliquer sur le MainMenu / MatchSummary.
+            ReleaseCursor();
+
+            if (RocketpiBridge.Instance != null)
+            {
+                RocketpiBridge.Instance.OnSessionStarted += HandleSessionStarted;
+                RocketpiBridge.Instance.OnSessionAborted += HandleSessionAborted;
+            }
+            if (_match != null)
+            {
+                _match.OnMatchSubmitted += HandleMatchSubmitted;
+                _match.OnMatchError     += HandleMatchError;
+            }
         }
 
         private void OnDisable()
@@ -110,8 +128,18 @@ namespace Rocketpi.Gameplay
             _ability2Action.Disable();
             _ultimateAction.Disable();
 
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible   = true;
+            if (RocketpiBridge.Instance != null)
+            {
+                RocketpiBridge.Instance.OnSessionStarted -= HandleSessionStarted;
+                RocketpiBridge.Instance.OnSessionAborted -= HandleSessionAborted;
+            }
+            if (_match != null)
+            {
+                _match.OnMatchSubmitted -= HandleMatchSubmitted;
+                _match.OnMatchError     -= HandleMatchError;
+            }
+
+            ReleaseCursor();
         }
 
         private void Start()
@@ -120,13 +148,38 @@ namespace Rocketpi.Gameplay
             EquipOperatorWeapon();
         }
 
+        // ── Curseur ────────────────────────────────────────────────────────
+
+        private static void LockCursor()
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible   = false;
+        }
+
+        private static void ReleaseCursor()
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible   = true;
+        }
+
+        private void HandleSessionStarted(SessionPayload _) => LockCursor();
+        private void HandleSessionAborted()                  => ReleaseCursor();
+        private void HandleMatchSubmitted(MatchResultResponse _) => ReleaseCursor();
+        private void HandleMatchError(string _)                  => ReleaseCursor();
+
         private void Update()
         {
             if (Health.IsDead) return;
 
-            HandleLook();
+            // Si le curseur est libre (menu affiché), on ignore look/fire pour ne pas
+            // bouger la caméra ni tirer pendant que le joueur navigue en UI.
+            var matchActive = Cursor.lockState == CursorLockMode.Locked;
+            if (matchActive)
+            {
+                HandleLook();
+                HandleFire();
+            }
             HandleMove();
-            HandleFire();
         }
 
         // ── Operator / Weapon ──────────────────────────────────────────────

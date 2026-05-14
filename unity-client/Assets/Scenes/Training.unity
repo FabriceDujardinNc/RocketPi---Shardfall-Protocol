@@ -938,6 +938,7 @@ MonoBehaviour:
   _airControl: 0.55
   _operator: {fileID: 11400000, guid: 2719166de44b7234aacfbf6f31985aeb, type: 2}
   _weaponSocket: {fileID: 123547678}
+  _match: {fileID: 0}
 --- !u!114 &239007913
 MonoBehaviour:
   m_ObjectHideFlags: 0
