@@ -124,9 +124,9 @@ Respecter en particulier :
 
 - **No AI attribution in commits** (`feedback_no_ai_attribution.md`)
 
-## Compteurs actuels (2026-05-12)
+## Compteurs actuels (2026-05-15)
 
-- **Tests Pest** : 264 / 937 assertions verts (26 fichiers)
+- **Tests Pest** : 356 / 1167 assertions verts (29 fichiers — +3 fichiers asset3d : `Asset3dTest`, `MeshyGenerationServiceTest`, `PollMeshyTaskJobTest`, `Asset3dApiTest`)
 - **Stories Storybook** : 33 / 33 composants couverts
 - **Routes publiques SEO** : 5 (Landing, /lore, /lore/factions/{slug}, /lore/operators/{slug}, /top)
-- **Migrations** : 30 (dernière : `add_two_factor_to_users_table`)
+- **Migrations** : 35 (dernière : `2026_05_15_100400_create_player_loadouts_table` — pipeline 3D modulaire phase 1)
