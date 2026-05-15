@@ -5,6 +5,7 @@ import Button from '@ui/Button';
 import Card from '@ui/Card';
 import Alert from '@ui/Alert';
 import GenerationStatusBadge, { type GenerationStatus } from '@game/GenerationStatusBadge';
+import GlbViewer from '@game/GlbViewer';
 import { ArrowLeft, RotateCw, Boxes, Shirt, Wrench } from 'lucide-react';
 
 interface OperatorAsset {
@@ -106,7 +107,7 @@ export default function OperatorAssets() {
 
             {/* ─── Mesh de base ───────────────────────────────────────── */}
             <Card className="mb-6">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
                     <div>
                         <div className="flex items-center gap-2 mb-2">
                             <Boxes className="h-5 w-5 text-text-medium" />
@@ -140,6 +141,13 @@ export default function OperatorAssets() {
                         </Button>
                     </div>
                 </div>
+                {operator.base_model_url && operator.base_generation_status === 'ready' && (
+                    <GlbViewer
+                        src={`/storage/${operator.base_model_url}`}
+                        alt={`Mesh de base ${operator.name}`}
+                        height={420}
+                    />
+                )}
             </Card>
 
             {/* ─── Skins ──────────────────────────────────────────────── */}
