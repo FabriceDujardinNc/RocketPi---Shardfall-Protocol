@@ -6,6 +6,7 @@ use App\Models\OperatorSkin;
 use App\Models\PlayerLoadout;
 use App\Models\Weapon;
 use App\Models\WeaponSkin;
+use Illuminate\Database\QueryException;
 
 beforeEach(function () {
     $this->op = makeOperator('legendary');
@@ -111,7 +112,7 @@ it('associates weapon skins and cascades on weapon delete', function () {
 
 it('rejects invalid weapon category', function () {
     expect(fn () => Weapon::factory()->create(['category' => 'plasma_cannon']))
-        ->toThrow(Throwable::class);
+        ->toThrow(QueryException::class);
 });
 
 // -----------------------------------------------------------------------------
@@ -143,7 +144,7 @@ it('rejects duplicate operator_accessory link', function () {
     $this->op->accessories()->attach($a->id);
 
     expect(fn () => $this->op->accessories()->attach($a->id))
-        ->toThrow(Throwable::class);
+        ->toThrow(QueryException::class);
 });
 
 // -----------------------------------------------------------------------------
@@ -184,7 +185,7 @@ it('enforces one loadout per (user, operator)', function () {
     expect(fn () => PlayerLoadout::factory()->create([
         'user_id'     => $user->id,
         'operator_id' => $this->op->id,
-    ]))->toThrow(Throwable::class);
+    ]))->toThrow(QueryException::class);
 });
 
 it('nullifies loadout slots when cosmetic is deleted', function () {

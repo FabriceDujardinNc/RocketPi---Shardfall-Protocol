@@ -1,10 +1,12 @@
 <?php
 
+use App\Jobs\PollMeshyTaskJob;
 use App\Models\Accessory;
 use App\Models\Operator;
 use App\Models\OperatorSkin;
 use App\Models\User;
 use App\Models\Weapon;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -43,6 +45,7 @@ it('rejects generate trigger when token only has mcp:read', function () {
 });
 
 it('accepts generate trigger with mcp:write ability', function () {
+    Queue::fake([PollMeshyTaskJob::class]);
     Sanctum::actingAs($this->admin, ['mcp:write']);
     $op = makeOperator('legendary');
 
@@ -54,6 +57,7 @@ it('accepts generate trigger with mcp:write ability', function () {
         ->assertJsonStructure(['entity_type', 'slug', 'meshy_task_id', 'status']);
 
     expect($op->fresh()->base_generation_status)->toBe('queued');
+    Queue::assertPushed(PollMeshyTaskJob::class);
 });
 
 // ─── Endpoints ────────────────────────────────────────────────────────

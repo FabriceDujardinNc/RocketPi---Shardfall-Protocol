@@ -32,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin'      => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'not.banned' => \App\Http\Middleware\EnsureUserIsNotBanned::class,
             '2fa'        => \App\Http\Middleware\EnsureTwoFactorPassed::class,
+            'abilities'  => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
+            'ability'    => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
         ]);
 
         // Redirige les users déjà authentifiés qui visitent login/register

@@ -64,13 +64,15 @@ function makeOperator(string $rarity = 'common', string $faction = 'ORBIT'): \Ap
     $counter++;
 
     return \App\Models\Operator::create([
-        'name'         => "Op{$counter}",
-        'codename'     => sprintf('OP-%04d', $counter),
-        'faction'      => $faction,
-        'role'         => 'assault',
-        'rarity'       => $rarity,
-        'is_available' => true,
-        'is_rate_up'   => false,
+        'name'                   => "Op{$counter}",
+        'codename'               => sprintf('OP-%04d', $counter),
+        'faction'                => $faction,
+        'role'                   => 'assault',
+        'rarity'                 => $rarity,
+        'is_available'           => true,
+        'is_rate_up'             => false,
+        'base_rig_version'       => 'humanoid-v1',
+        'base_generation_status' => 'pending',
     ]);
 }
 
