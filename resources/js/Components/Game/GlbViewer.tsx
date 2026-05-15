@@ -64,7 +64,28 @@ export default function GlbViewer({ src, alt = 'Aperçu 3D', height = 320, class
             // eslint-disable-next-line no-console
             console.error('[GlbViewer] error:', detail);
         };
-        const onLoad = () => setError(null);
+        const onLoad = async () => {
+            setError(null);
+            // Workaround pour les meshes Meshy mode=preview : POSITION seul,
+            // pas de NORMAL ni de matériau. Sans normales, three.js rend en
+            // noir → on les recalcule à la volée pour avoir au moins une
+            // surface ombrée visible.
+            const anyEl = el as unknown as { model?: { materials: unknown[]; raw?: { scene?: unknown } } };
+            const raw = anyEl.model?.raw?.scene as { traverse?: (cb: (n: unknown) => void) => void } | undefined;
+            if (raw?.traverse) {
+                const { Mesh, MeshStandardMaterial } = await import('three');
+                raw.traverse((node) => {
+                    const n = node as { isMesh?: boolean; geometry?: { attributes?: Record<string, unknown>; computeVertexNormals?: () => void }; material?: unknown };
+                    if (!n.isMesh) return;
+                    if (n.geometry?.attributes && !('normal' in n.geometry.attributes) && n.geometry.computeVertexNormals) {
+                        n.geometry.computeVertexNormals();
+                    }
+                    if (!n.material) {
+                        n.material = new MeshStandardMaterial({ color: 0xcccccc, roughness: 0.6, metalness: 0.1 });
+                    }
+                });
+            }
+        };
         el.addEventListener('error', onError as EventListener);
         el.addEventListener('load', onLoad);
         return () => {
