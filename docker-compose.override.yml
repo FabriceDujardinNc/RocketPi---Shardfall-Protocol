@@ -37,11 +37,15 @@ services:
         else
           echo '✓ APP_KEY déjà défini';
         fi;
-        if [ ! -d node_modules ]; then
-          echo '→ node_modules/ absent — npm install...';
-          npm install --no-audit --no-fund;
+        # On teste VIDE (pas seulement existant) car le named volume Docker
+        # crée toujours le dossier — `[ ! -d ]` serait toujours faux.
+        if [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
+          echo '→ node_modules/ vide — npm install...';
+          # --legacy-peer-deps : Storybook 9 déclare peer vite ^5||^6||^7
+          # alors qu'on est sur Vite 8 (cf. CLAUDE.md + PROJECT_CHECKLIST.md).
+          npm install --no-audit --no-fund --legacy-peer-deps;
         else
-          echo '✓ node_modules/ déjà présent';
+          echo '✓ node_modules/ déjà peuplé';
         fi;
         echo '→ migrate (idempotent)';
         php artisan migrate --force --no-interaction;
@@ -53,6 +57,10 @@ services:
         condition: service_healthy
     volumes:
       - .:/var/www/html:delegated
+      # node_modules dans un volume Docker (pas un bind mount) pour
+      # contourner le bug Docker Desktop Windows + WSL2 sur les symlinks npm
+      # (.bin/vite, .bin/tsc, etc. n'apparaissent pas côté hôte NTFS).
+      - node_modules_data:/var/www/html/node_modules
     environment:
       APP_ENV: local
       DB_CONNECTION: mysql
@@ -153,6 +161,8 @@ services:
         condition: service_completed_successfully
     volumes:
       - .:/var/www/html:delegated
+      # cf. installer : node_modules en named volume (bug symlinks Windows)
+      - node_modules_data:/var/www/html/node_modules
     ports:
       - "127.0.0.1:5173:5173"
     networks:
@@ -179,3 +189,10 @@ networks:
   internal:
     driver: bridge
     internal: false
+
+# Volume nommé pour node_modules — contournement bug Docker Desktop
+# Windows/WSL2 sur les symlinks (.bin/vite, .bin/tsc ne sortent pas vers
+# le host NTFS). Géré par Docker, partagé entre installer + vite.
+# Pour reset propre : `docker compose down -v` (efface aussi mysql, redis).
+volumes:
+  node_modules_data:
