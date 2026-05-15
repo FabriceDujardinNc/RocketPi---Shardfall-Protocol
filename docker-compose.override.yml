@@ -131,6 +131,10 @@ services:
       APP_DEBUG: "true"
     volumes:
       - .:/var/www/html:delegated
+      # Override le named volume app_storage du base compose : sans ce mount,
+      # Horizon écrit dans le volume Docker (invisible côté host & nginx) →
+      # les .glb téléchargés par PollMeshyTaskJob renvoient 404 en HTTP.
+      - ./storage:/var/www/html/storage
       - ./docker/php.dev.ini:/usr/local/etc/php/conf.d/zz-rocketpi-dev.ini:ro
 
   scheduler:
@@ -145,6 +149,7 @@ services:
       APP_ENV: local
     volumes:
       - .:/var/www/html:delegated
+      - ./storage:/var/www/html/storage
       - ./docker/php.dev.ini:/usr/local/etc/php/conf.d/zz-rocketpi-dev.ini:ro
 
   # ── Vite HMR server ──────────────────────────────────────────────
