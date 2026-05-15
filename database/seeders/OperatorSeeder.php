@@ -20,6 +20,12 @@ class OperatorSeeder extends Seeder
                 'lore'    => 'Ancienne coordinatrice de trajectoires de la station RocketPi, Vex a développé une précision surhumaine après une exposition massive aux Shards. Elle voit les trajectoires balistiques comme des équations lumineuses.',
                 'weapon_name' => 'Railgun Quantique ORBIT-7',
                 'weapon_description' => 'Fusil de précision à accélération magnétique. Traverse les obstacles légers.',
+                // Asset 3D — mesh généré via Meshy.ai 2026-05-15, .glb persiste dans storage/app/public.
+                // Le seeder rétablit l'état "ready" pour qu'un migrate:fresh --seed ne perde pas la génération payée.
+                'base_generation_status' => 'ready',
+                'base_meshy_task_id'     => '019e2991-b0f9-7eb1-8129-54dc073c528a',
+                'base_model_url'         => 'models/operators/vex/base.glb',
+                'base_rig_version'       => 'humanoid-v1',
                 'abilities' => [
                     ['name' => 'Calcul Balistique', 'type' => 'active', 'description' => 'Marque une cible. +25% de dégâts sur le prochain tir.'],
                     ['name' => 'Protocole Ghost', 'type' => 'active', 'description' => 'Invisibilité statique de 3 secondes en mode visée.'],
