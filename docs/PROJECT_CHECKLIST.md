@@ -604,7 +604,7 @@ pour expose le catalogue à Claude Desktop.
 - [x] **Migration `create_player_loadouts_table`** — unique(user, operator), FKs nullable vers skin/weapon/weapon_skin/head/face/back accessory (nullOnDelete).
 - [x] **Modèles Eloquent** — `OperatorSkin`, `Weapon`, `WeaponSkin`, `Accessory`, `PlayerLoadout` avec `HasAutoSlug` + relations + `isReady()` helpers + casts JSON + constantes statuts. `Operator.php` étendu (`skins()`, `accessories()`, `isBaseModelReady()`).
 - [x] **Factories** — 5 factories avec états `ready()` pour les tests, `slot()` pour `AccessoryFactory`.
-- [x] **Tests Pest** — `tests/Feature/Models/Asset3dTest.php` : 18 tests (slug auto, statuts, relations, cascades, unique constraints, nullOnDelete). À valider en CI après `docker compose up`.
+- [x] **Tests Pest** — `tests/Feature/Models/Asset3dTest.php` : 18 tests verts (slug auto, statuts, relations, cascades, unique constraints, nullOnDelete). ✓ Validation Docker 2026-05-15.
 
 #### Phase 2 — Service Meshy
 - [x] **`MeshyClientInterface` + `FakeMeshyClient` + `MeshyHttpClient`** — contract dans `app/Services/Meshy/Contracts/`, fake renvoie task `ready` immédiat avec URLs placeholders, helpers `forceFailure()` / `forcePending()` pour tester les états non-nominaux. HTTP réel câblé sur Meshy v2 (text-to-3d + retexture pour skins), retry 3×, mapping statuts Meshy → internes.
@@ -615,7 +615,7 @@ pour expose le catalogue à Claude Desktop.
 - [x] **Service container binding** — `AppServiceProvider::register()` bind `MeshyClientInterface` → fake si `MESHY_FAKE` ou pas de clé, sinon HTTP réel. Singleton pour tester via forceFailure() sans re-binder.
 - [x] **Config `services.meshy`** — `api_key`, `base_url`, `fake`, `task_timeout_seconds`, `poll_interval_seconds`. Env vars correspondantes.
 - [x] **Commande Artisan `operator:generate-assets`** — flags `--base --skins --weapons --accessories --all --force --dry-run`, résolution opérateur via slug OU codename, confirm interactif avant batch, rapport OK/skipped/failed.
-- [x] **Tests Pest pipeline** — `tests/Feature/Services/Meshy/MeshyGenerationServiceTest.php` (7 tests : status transitions, force, idempotence, 4 types entités) + `PollMeshyTaskJobTest.php` (6 tests : ready/failed/pending, storage layouts par type). À valider en CI après `docker compose up`.
+- [x] **Tests Pest pipeline** — `tests/Feature/Services/Meshy/MeshyGenerationServiceTest.php` (7 tests verts : status transitions, force, idempotence, 4 types entités) + `PollMeshyTaskJobTest.php` (6 tests verts : ready/failed/pending, storage layouts par type). ✓ Validation Docker 2026-05-15.
 
 #### Phase 3 — API Laravel + MCP Node.js
 - [x] **API Resources** — `app/Http/Resources/Asset3d/` : `OperatorAsset3dResource`, `OperatorSkinResource`, `WeaponResource`, `WeaponSkinResource`, `AccessoryResource`. Exposent les champs 3D pertinents (URLs, sockets, statuts) + `whenLoaded` pour eager loading optionnel.
@@ -624,22 +624,58 @@ pour expose le catalogue à Claude Desktop.
 - [x] **Routes** — `routes/api.php` prefix `/api/asset3d/*` :
   - Lecture sous `auth:sanctum + abilities:mcp:read`
   - Écriture (trigger) sous `auth:sanctum + abilities:mcp:write` + `throttle:20,60` (20 générations/h max)
-- [x] **Tests Feature** — `tests/Feature/Api/Asset3dApiTest.php` : **12 tests** couvrant auth refusée, ability check (mcp:read vs mcp:write), format réponse, filtres, codename fallback, validation payload, 409 sur retry ready sans force.
+- [x] **Tests Feature** — `tests/Feature/Api/Asset3dApiTest.php` : **12 tests verts** couvrant auth refusée, ability check (mcp:read vs mcp:write), format réponse, filtres, codename fallback, validation payload, 409 sur retry ready sans force. ✓ Validation Docker 2026-05-15 (après fix middleware Sanctum `abilities`).
 - [x] **Serveur MCP Node.js** — `tools/mcp-rocketpi/` : package.json (ESM + tsx), tsconfig strict, `RocketpiClient` HTTP minimal (fetch native Node 22+ via `Bearer`), `server.ts` exposant **7 tools MCP** (`list_operators`, `get_operator`, `list_operator_skins`, `list_weapons`, `list_accessories`, `get_generation_status`, `trigger_generation`) via `@modelcontextprotocol/sdk` v1 stdio transport, schémas zod par tool.
 - [x] **README MCP** — `tools/mcp-rocketpi/README.md` : install, génération token Sanctum (mcp:read + mcp:write), exemple `claude_desktop_config.json` Win/Mac, table des tools/abilities, procédure de révocation token, rate-limits côté Laravel.
 
-#### Phase 4 — Unity runtime (à faire)
-- [ ] Package `com.unity.cloud.gltfast` ajouté
-- [ ] `OperatorLoader.cs` — fetch loadout API + download GLB
-- [ ] `OperatorAssembler.cs` — instancie base, applique texture skin via MaterialPropertyBlock, attache weapon/accessoires aux sockets
-- [ ] `AttachmentPointManager.cs` — registry sockets sur le rig humanoid
-- [ ] `RuntimeMaterialCache.cs` — cache textures (économise bande passante WebGL)
-- [ ] Tests EditMode (DTO loadout + résolution sockets)
+#### Phase 3.5 — Validation Docker bout-en-bout *(2026-05-15)*
+- [x] **Suite Pest complète verte** — 356 tests / 1167 assertions / 6s sur Docker. Filtre `Asset3dTest|Meshy|Asset3dApi` : 40/40 passants.
+- [x] **Fixes Pest découverts** — `Throwable::class` → `QueryException::class` (3 occurrences), `withCasts` sur BelongsToMany inopérant → custom Pivot `OperatorAccessoryPivot` avec cast `is_default => boolean`, `makeOperator()` set explicite `base_rig_version` + `base_generation_status` (defaults DB pas remontés), `Queue::fake([PollMeshyTaskJob::class])` pour test `trigger_generation` (sinon sync queue + FakeMeshyClient flippait `queued` → `ready`).
+- [x] **Middleware Sanctum** — `bootstrap/app.php` enregistre les aliases `abilities` + `ability` (sans ça `BindingResolutionException` sur toutes les routes `/api/asset3d/*`).
+- [x] **Fix infra `CACHE_STORE=redis`** — Laravel 11+ renomme `CACHE_DRIVER` → `CACHE_STORE` dans `config/cache.php`. Sans cette env, Horizon crash en boucle sur lookup `cache` MySQL inexistante.
+- [x] **Fix infra supervisor-meshy** — `config/horizon.php` n'incluait que `queue=['default']`. Ajout `supervisor-meshy` (tries=3, timeout=1800s). Sans ça, `PollMeshyTaskJob` dispatché sur queue `meshy` restait pending éternel.
+- [x] **Fix infra mount storage worker/scheduler** — `docker-compose.override.yml` : ajout `./storage:/var/www/html/storage` sur `queue-worker` + `scheduler` (sinon named volume Docker isole les `.glb` téléchargés → invisibles host/nginx → 404 HTTP).
+- [x] **Fix infra nginx `/storage` deny** — `docker/nginx/laravel.conf` : retire `storage` du bloc `location ~ ^/(storage|bootstrap/cache|vendor)/ { deny }`. `public/storage` est le symlink Laravel standard, intentionnel.
+- [x] **Token Sanctum admin créé** — utilisateur `admin@rocketpi.pro` (super_admin), token nommé `mcp-claude-desktop`, abilities `mcp:read,mcp:write`.
+- [x] **Premier vrai appel Meshy validé** — `vex --base` → task `019e2991-b0f9-7eb1-8129-54dc073c528a` → 11.7 MB `base.glb` téléchargé → `models/operators/vex/base.glb` → 200 sur `https://rocketpi.pro/storage/models/operators/vex/base.glb`.
 
-#### Phase 5 — Admin UI (à faire)
-- [ ] Pages Inertia : `Admin/Operators/Assets.tsx` (liste statuts, bouton générer/regénérer)
-- [ ] Stories Storybook (`AllVariants` matrice statuts)
-- [ ] Tests Feature controllers admin
+#### Phase 4 — Unity runtime (à faire)
+- [ ] Package `com.unity.cloud.gltfast` (`6.4.0`) ajouté dans `unity-client/Packages/manifest.json`
+- [ ] `OperatorLoader.cs` — fetch loadout via `RocketpiApiClient` → `GET /api/asset3d/operators/{slug}`, download GLB via GLTFast
+- [ ] `OperatorAssembler.cs` — instancie base, applique texture skin via MaterialPropertyBlock, attache weapon/accessoires aux sockets selon `socket_name`
+- [ ] `AttachmentPointManager.cs` — registry sockets sur le rig humanoid, expose dict `socketName → Transform`
+- [ ] `RuntimeMaterialCache.cs` — cache textures déjà downloadées (économise bande passante WebGL)
+- [ ] Tests EditMode NUnit (DTO loadout + résolution sockets, mock `RocketpiApiClient`)
+- [ ] Vérifier que les 7 sockets `Hand_R/L`, `Head_Top`, `Face_Front`, `Back_Center`, `Hip_R/L` sont présents en empty transforms dans le rig (cf. `RIG_CONTRACT.md`)
+- [ ] Smoke test in-game : charger Vex via API et afficher le mesh dans la scène Training
+
+#### Phase 5 — Admin UI Inertia (à faire)
+- [ ] Page `resources/js/Pages/Admin/Operators/Assets.tsx` — liste statuts assets, bouton "Générer / Regénérer" par entité, polling statuts (3-5s)
+- [ ] Controller `app/Http/Controllers/Admin/AdminAsset3dController.php` sous middleware `2fa` + gate `manage-content`
+- [ ] Routes admin `/admin/operators/{operator}/assets` dans `routes/web.php`
+- [ ] Stories Storybook `AllVariants` — matrice statuts (pending/queued/generating/ready/failed)
+- [ ] Tests Feature controllers admin (auth, gate, déclenchement)
+
+#### Phase 6 — Configuration runtime / déploiement
+- [x] Variables `MESHY_*` ajoutées au `.env.example`
+- [x] Symlink `php artisan storage:link` actif (`public/storage` → `storage/app/public`)
+- [x] Queue Horizon `meshy` déclarée (cf. Phase 3.5 supervisor-meshy)
+- [x] Token Sanctum admin avec abilities `mcp:read,mcp:write` créé (cf. Phase 3.5)
+- [ ] `npm install && npx tsc --noEmit` dans `tools/mcp-rocketpi/` côté local (typecheck Node)
+- [ ] `claude_desktop_config.json` configuré côté local avec `ROCKETPI_API_TOKEN` + base URL
+- [ ] Restart Claude Desktop local et tester `list_operators` via MCP
+- [ ] **Clé Meshy `msy_****OBpo`** : à révoquer via dashboard Meshy après validation bout-en-bout (clé de test utilisateur)
+- [ ] Décision build : passer `mode: 'preview'` → `mode: 'refine'` une fois le pipeline validé (meilleure qualité, plus cher)
+
+#### Phase 7 — Batch génération & qualité assets
+- [~] **1/8 opérateurs générés** — Vex (ready). Reste : `halo`, `drift`, `crag`, `brick`, `iron`, `wraith`, `echo` (~$1.50–4 total).
+- [ ] Inspecter le GLB Vex dans un viewer (`https://gltf-viewer.donmccurdy.com/`) pour vérifier mesh + matérials
+- [ ] Vérifier rig Mecanim-compatible — sinon activer plan B Mixamo Auto-Rigger (cf. risques résiduels)
+- [ ] Générer skins (`--skins`) pour ≥ 1 opérateur et valider le retexture
+- [ ] Générer armes (`--weapons`) et accessoires (`--accessories`) pour ≥ 1 opérateur
+- [ ] Compression assets : pipeline build Unity transcoder PNG → KTX2, Draco sur meshes
+- [ ] Cache CDN : ajouter headers `Cache-Control: public, max-age=31536000, immutable` sur `/storage/models/*` côté Caddy (les `.glb` ne changent pas après génération)
+- [ ] Style consistency : tester `style_image_url` Meshy (image-to-3d) une fois la stabilité validée
 
 ---
 
