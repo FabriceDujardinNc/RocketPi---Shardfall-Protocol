@@ -4,7 +4,7 @@ import Button from '@ui/Button';
 import RarityBadge from '@game/RarityBadge';
 import FactionBadge from '@game/FactionBadge';
 import Alert from '@ui/Alert';
-import { ArrowLeft, Pencil, Archive, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Pencil, Archive, RotateCcw, Boxes } from 'lucide-react';
 
 interface Ability { name: string; type: 'active' | 'passive' | 'ultimate'; description: string }
 interface LoreUnlock { level: number; title: string; snippet: string | null }
@@ -58,6 +58,7 @@ export default function OperatorShow({ operator }: { operator: Operator }) {
                 <div className="flex gap-2">
                     {!operator.deleted_at ? (
                         <>
+                            <Link href={`/admin/operators/${operator.slug}/assets`}><Button variant="ghost" icon={<Boxes size={14} />}>Assets 3D</Button></Link>
                             <Link href={`/admin/operators/${operator.slug}/edit`}><Button variant="secondary" icon={<Pencil size={14} />}>Éditer</Button></Link>
                             <Button variant="danger" icon={<Archive size={14} />} onClick={archive}>Archiver</Button>
                         </>

@@ -16,6 +16,7 @@ use App\Http\Controllers\Player\ProfileController;
 use App\Http\Controllers\Player\BattlePassController;
 use App\Http\Controllers\Player\PlayController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminAsset3dController;
 use App\Http\Controllers\Admin\AdminOperatorController;
 use App\Http\Controllers\Admin\AdminBannerController;
 use App\Http\Controllers\Admin\AdminPlayerController;
@@ -173,6 +174,13 @@ Route::middleware(['auth', 'admin', '2fa'])->prefix('admin')->name('admin.')->gr
     // Opérateurs
     Route::post('operators/{slug}/restore', [AdminOperatorController::class, 'restore'])
         ->name('operators.restore');
+    // Asset 3D : gestion mesh + skins + accessoires d'un opérateur.
+    // Déclaré AVANT le resource pour que les routes nommées ne soient pas
+    // capturées par operators.show/{operator}.
+    Route::get('operators/{operator:slug}/assets', [AdminAsset3dController::class, 'show'])
+        ->name('operators.assets');
+    Route::post('operators/{operator:slug}/assets/generate', [AdminAsset3dController::class, 'trigger'])
+        ->name('operators.assets.generate');
     Route::resource('operators', AdminOperatorController::class);
 
     // Bannières

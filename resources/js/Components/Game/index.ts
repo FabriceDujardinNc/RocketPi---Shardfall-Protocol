@@ -5,6 +5,7 @@ export { default as BattlePassNode }     from './BattlePassNode';
 export { default as CurrencyDisplay }    from './CurrencyDisplay';
 export { default as FactionBadge }       from './FactionBadge';
 export { default as GachaPullAnimation } from './GachaPullAnimation';
+export { default as GenerationStatusBadge } from './GenerationStatusBadge';
 export { default as LeaderboardRow }     from './LeaderboardRow';
 export { default as MissionCard }        from './MissionCard';
 export { default as OperatorCard }       from './OperatorCard';
