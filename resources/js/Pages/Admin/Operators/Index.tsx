@@ -6,7 +6,7 @@ import FactionBadge from '@game/FactionBadge';
 import Pagination from '@ui/Pagination';
 import Alert from '@ui/Alert';
 import { useState } from 'react';
-import { Plus, Pencil, Eye, Archive, RotateCcw } from 'lucide-react';
+import { Plus, Pencil, Eye, Archive, RotateCcw, Boxes } from 'lucide-react';
 
 type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 type Faction = 'ORBIT' | 'FERRO' | 'VEIL';
@@ -153,6 +153,7 @@ export default function OperatorsIndex({ operators, filters }: Props) {
                                         <Link href={`/admin/operators/${op.slug}`}><Button size="sm" variant="ghost" icon={<Eye size={12} />}>Voir</Button></Link>
                                         {!op.deleted_at && (
                                             <>
+                                                <Link href={`/admin/operators/${op.slug}/assets`}><Button size="sm" variant="ghost" icon={<Boxes size={12} />}>3D</Button></Link>
                                                 <Link href={`/admin/operators/${op.slug}/edit`}><Button size="sm" variant="secondary" icon={<Pencil size={12} />}>Éditer</Button></Link>
                                                 <Button size="sm" variant="danger" icon={<Archive size={12} />} onClick={() => archive(op)}>Archiver</Button>
                                             </>
