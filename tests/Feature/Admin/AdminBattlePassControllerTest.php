@@ -12,13 +12,14 @@ function adminUserBP(): User
 function makeBattlePass(array $attrs = []): BattlePass
 {
     return BattlePass::create(array_merge([
-        'name'                 => 'Saison test',
-        'season_number'        => 1,
-        'total_tiers'          => 5,
-        'premium_price_shards' => 1000,
-        'starts_at'            => now()->subDay(),
-        'ends_at'              => now()->addWeek(),
-        'is_active'            => true,
+        'name'                  => 'Saison test',
+        'season_number'         => 1,
+        'total_tiers'           => 5,
+        'premium_price_shards'  => 1000,
+        'premium_price_tickets' => 5,
+        'starts_at'             => now()->subDay(),
+        'ends_at'               => now()->addWeek(),
+        'is_active'             => true,
     ], $attrs));
 }
 
@@ -33,7 +34,8 @@ it('creates a season + seeds default tiers', function () {
             'name'                 => 'Saison 1 — Test',
             'season_number'        => 1,
             'total_tiers'          => 10,
-            'premium_price_shards' => 1000,
+            'premium_price_shards'  => 1000,
+            'premium_price_tickets' => 5,
             'starts_at'            => now()->addDay()->toDateTimeString(),
             'ends_at'              => now()->addWeeks(8)->toDateTimeString(),
             'is_active'            => false,
@@ -59,7 +61,8 @@ it('rejects an overlapping period on create', function () {
             'name'                 => 'Conflicting',
             'season_number'        => 2,
             'total_tiers'          => 5,
-            'premium_price_shards' => 1000,
+            'premium_price_shards'  => 1000,
+            'premium_price_tickets' => 5,
             'starts_at'            => now()->toDateTimeString(),       // chevauche
             'ends_at'              => now()->addMonth()->toDateTimeString(),
             'is_active'            => false,
@@ -80,7 +83,8 @@ it('accepts a period right after an existing season (no overlap)', function () {
             'name'                 => 'Next season',
             'season_number'        => 2,
             'total_tiers'          => 5,
-            'premium_price_shards' => 1000,
+            'premium_price_shards'  => 1000,
+            'premium_price_tickets' => 5,
             'starts_at'            => now()->toDateTimeString(),
             'ends_at'              => now()->addWeek()->toDateTimeString(),
             'is_active'            => false,
@@ -100,9 +104,10 @@ it('allows update on the same season without false overlap', function () {
             'name'                 => 'Renamed',
             'season_number'        => $bp->season_number,
             'total_tiers'          => $bp->total_tiers,
-            'premium_price_shards' => $bp->premium_price_shards,
-            'starts_at'            => now()->toDateTimeString(),
-            'ends_at'              => now()->addWeeks(2)->toDateTimeString(),
+            'premium_price_shards'  => $bp->premium_price_shards,
+            'premium_price_tickets' => $bp->premium_price_tickets,
+            'starts_at'             => now()->toDateTimeString(),
+            'ends_at'               => now()->addWeeks(2)->toDateTimeString(),
             'is_active'            => true,
         ])
         ->assertRedirect();
@@ -120,7 +125,8 @@ it('rejects update if it would overlap another season', function () {
             'name'                 => $bp2->name,
             'season_number'        => $bp2->season_number,
             'total_tiers'          => $bp2->total_tiers,
-            'premium_price_shards' => $bp2->premium_price_shards,
+            'premium_price_shards'  => $bp2->premium_price_shards,
+            'premium_price_tickets' => $bp2->premium_price_tickets,
             'starts_at'            => now()->subMonth()->toDateTimeString(),
             'ends_at'              => now()->subWeek()->toDateTimeString(),
             'is_active'            => $bp2->is_active,

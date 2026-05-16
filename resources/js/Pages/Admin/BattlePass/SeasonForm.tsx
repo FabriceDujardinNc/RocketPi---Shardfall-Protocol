@@ -8,6 +8,7 @@ export interface SeasonFormData {
     season_number: number;
     total_tiers: number;
     premium_price_shards: number;
+    premium_price_tickets: number;
     starts_at: string;
     ends_at: string;
     is_active: boolean;
@@ -45,6 +46,9 @@ export default function SeasonForm({ initial, submitLabel, action }: Props) {
                     </Field>
                     <Field label="Prix premium (shards)" error={errors.premium_price_shards} required>
                         <input type="number" min={0} value={data.premium_price_shards} onChange={(e) => setData('premium_price_shards', parseInt(e.target.value || '0'))} className={inputCls} />
+                    </Field>
+                    <Field label="Prix premium (tickets premium)" error={errors.premium_price_tickets} required hint="Alternative F2P : nombre de tickets premium à dépenser pour activer le pass.">
+                        <input type="number" min={0} value={data.premium_price_tickets} onChange={(e) => setData('premium_price_tickets', parseInt(e.target.value || '0'))} className={inputCls} />
                     </Field>
                 </div>
             </fieldset>

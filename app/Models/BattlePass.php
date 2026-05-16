@@ -17,7 +17,8 @@ class BattlePass extends Model
         return [
             'season_number'        => 'integer',
             'total_tiers'          => 'integer',
-            'premium_price_shards' => 'integer',
+            'premium_price_shards'  => 'integer',
+            'premium_price_tickets' => 'integer',
             'starts_at'            => 'datetime',
             'ends_at'              => 'datetime',
             'is_active'            => 'boolean',

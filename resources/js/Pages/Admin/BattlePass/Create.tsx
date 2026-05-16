@@ -26,6 +26,7 @@ export default function BattlePassCreate() {
                     name: '', season_number: 1,
                     total_tiers: 50,
                     premium_price_shards: 1000,
+                    premium_price_tickets: 5,
                     starts_at: inOneWeek.toISOString().slice(0, 16),
                     ends_at:   inNineWeeks.toISOString().slice(0, 16),
                     is_active: false,

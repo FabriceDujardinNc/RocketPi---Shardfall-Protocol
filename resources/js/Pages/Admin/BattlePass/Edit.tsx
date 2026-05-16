@@ -20,6 +20,7 @@ export default function BattlePassEdit({ battlePass }: Props) {
         season_number: battlePass.season_number,
         total_tiers: battlePass.total_tiers,
         premium_price_shards: battlePass.premium_price_shards,
+        premium_price_tickets: battlePass.premium_price_tickets,
         starts_at: battlePass.starts_at,
         ends_at: battlePass.ends_at,
         is_active: battlePass.is_active,

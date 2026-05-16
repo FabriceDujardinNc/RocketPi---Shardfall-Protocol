@@ -11,13 +11,14 @@ function makeBP(array $attrs = []): BattlePass
     static $i = 0;
     $i++;
     return BattlePass::create(array_merge([
-        'name'                 => "Saison test {$i}",
-        'season_number'        => $i,
-        'total_tiers'          => 5,
-        'premium_price_shards' => 1000,
-        'starts_at'            => now()->subDay(),
-        'ends_at'              => now()->addWeek(),
-        'is_active'            => true,
+        'name'                  => "Saison test {$i}",
+        'season_number'         => $i,
+        'total_tiers'           => 5,
+        'premium_price_shards'  => 1000,
+        'premium_price_tickets' => 5,
+        'starts_at'             => now()->subDay(),
+        'ends_at'               => now()->addWeek(),
+        'is_active'             => true,
     ], $attrs));
 }
 
@@ -117,6 +118,44 @@ it('purchase throws on inactive BP', function () {
 
     expect(fn () => app(BattlePassService::class)->purchase($user, $bp))
         ->toThrow(RuntimeException::class, 'non actif');
+});
+
+it('purchase debits exactly the configured tickets when paying with tickets_premium', function () {
+    $user = makeUser();
+    giveCurrency($user, 'tickets_premium', 10);
+    giveCurrency($user, 'shards', 0);
+    $bp = makeBP(['premium_price_tickets' => 5]);
+
+    app(BattlePassService::class)->purchase($user, $bp, null, Currency::TYPE_TICKETS_PREMIUM);
+
+    expect(Currency::where('user_id', $user->id)->where('type', 'tickets_premium')->value('balance'))->toBe(5);
+    // Shards intacts puisque pas utilisés comme moyen de paiement
+    expect(Currency::where('user_id', $user->id)->where('type', 'shards')->value('balance'))->toBe(0);
+    expect(BattlePassProgress::first())
+        ->is_premium->toBeTrue()
+        ->purchased_at->not->toBeNull();
+});
+
+it('purchase with tickets throws on insufficient ticket balance', function () {
+    $user = makeUser();
+    giveCurrency($user, 'tickets_premium', 2);
+    $bp = makeBP(['premium_price_tickets' => 5]);
+
+    expect(fn () => app(BattlePassService::class)->purchase($user, $bp, null, Currency::TYPE_TICKETS_PREMIUM))
+        ->toThrow(RuntimeException::class, 'Solde insuffisant');
+
+    // Pas de débit en cas d'échec
+    expect(Currency::where('user_id', $user->id)->where('type', 'tickets_premium')->value('balance'))->toBe(2);
+    expect(BattlePassProgress::where('is_premium', true)->exists())->toBeFalse();
+});
+
+it('purchase rejects unsupported currency', function () {
+    $user = makeUser();
+    giveCurrency($user, 'credits', 9999);
+    $bp = makeBP();
+
+    expect(fn () => app(BattlePassService::class)->purchase($user, $bp, null, 'credits'))
+        ->toThrow(RuntimeException::class, 'Currency invalide');
 });
 
 it('claim refuses tier not yet reached', function () {

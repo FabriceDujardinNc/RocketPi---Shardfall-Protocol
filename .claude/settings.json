@@ -5,7 +5,8 @@
       "WebFetch(domain:docs.meshy.ai)",
       "Bash(grep -rEn \"\\\\\\\\$\\\\{[a-zA-Z_]+\\\\.id\\\\}|/missions/|/battlepass/|/cosmetics/|/operators/|/banners/|/factions/|/achievements/|/referral/|/shop/\" /root/RocketPi-Shardfall-Protocol/resources/js/Pages/Player/)",
       "Bash(grep -rEn \"\\\\\\\\$\\\\{[a-zA-Z_]+\\\\.id\\\\}|/admin/[a-z-]+/\\\\\\\\$\\\\{\" /root/RocketPi-Shardfall-Protocol/resources/js/Pages/Admin/)",
-      "Bash(grep -rEn \"admin/leaderboards/\\\\\\\\$\\\\{|season\\\\.id\\\\|season\\\\.slug\" /root/RocketPi-Shardfall-Protocol/resources/js/Pages/Admin/Leaderboards/)"
+      "Bash(grep -rEn \"admin/leaderboards/\\\\\\\\$\\\\{|season\\\\.id\\\\|season\\\\.slug\" /root/RocketPi-Shardfall-Protocol/resources/js/Pages/Admin/Leaderboards/)",
+      "Bash(grep -c \".php$\")"
     ]
   }
 }

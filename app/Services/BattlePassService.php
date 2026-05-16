@@ -78,21 +78,37 @@ class BattlePassService
 
     /**
      * Achète l'upgrade premium pour la saison active.
+     *
+     * @param string $currency Currency::TYPE_SHARDS (cash equivalent) ou
+     *                         Currency::TYPE_TICKETS_PREMIUM (parcours F2P).
      */
-    public function purchase(User $user, BattlePass $bp, ?string $ipAddress = null): BattlePassProgress
-    {
+    public function purchase(
+        User $user,
+        BattlePass $bp,
+        ?string $ipAddress = null,
+        string $currency = Currency::TYPE_SHARDS,
+    ): BattlePassProgress {
         if (! $bp->is_active) {
             throw new RuntimeException('Battle Pass non actif.');
         }
 
-        return DB::transaction(function () use ($user, $bp, $ipAddress) {
+        if (! in_array($currency, [Currency::TYPE_SHARDS, Currency::TYPE_TICKETS_PREMIUM], true)) {
+            throw new RuntimeException("Currency invalide pour l'achat du Battle Pass.");
+        }
+
+        $cost = $currency === Currency::TYPE_TICKETS_PREMIUM
+            ? $bp->premium_price_tickets
+            : $bp->premium_price_shards;
+        $unit = $currency === Currency::TYPE_TICKETS_PREMIUM ? 'tickets premium' : 'shards';
+
+        return DB::transaction(function () use ($user, $bp, $ipAddress, $currency, $cost, $unit) {
             $wallet = Currency::where('user_id', $user->id)
-                ->where('type', Currency::TYPE_SHARDS)
+                ->where('type', $currency)
                 ->lockForUpdate()
                 ->first();
 
-            if (! $wallet || $wallet->balance < $bp->premium_price_shards) {
-                throw new RuntimeException("Solde insuffisant. Requis : {$bp->premium_price_shards} shards.");
+            if (! $wallet || $wallet->balance < $cost) {
+                throw new RuntimeException("Solde insuffisant. Requis : {$cost} {$unit}.");
             }
 
             $progress = $this->progressFor($user, $bp);
@@ -100,16 +116,16 @@ class BattlePassService
                 throw new RuntimeException('Battle Pass premium déjà acheté.');
             }
 
-            $wallet->decrement('balance', $bp->premium_price_shards);
+            $wallet->decrement('balance', $cost);
             Transaction::create([
                 'user_id'        => $user->id,
-                'currency_type'  => Currency::TYPE_SHARDS,
-                'amount'         => -$bp->premium_price_shards,
+                'currency_type'  => $currency,
+                'amount'         => -$cost,
                 'balance_after'  => $wallet->balance,
                 'reason'         => 'battlepass_purchase',
                 'reference_id'   => $bp->id,
                 'reference_type' => BattlePass::class,
-                'description'    => "Achat Battle Pass premium — {$bp->name}",
+                'description'    => "Achat Battle Pass premium — {$bp->name} ({$cost} {$unit})",
                 'ip_address'     => $ipAddress,
             ]);
 
