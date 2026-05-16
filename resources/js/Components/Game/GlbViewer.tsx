@@ -47,9 +47,10 @@ function Model({ src, textureOverrideUrl }: { src: string; textureOverrideUrl?: 
         };
     }, [textureOverrideUrl]);
 
-    // Applique l'override sur tous les materials des Mesh quand la texture change.
-    // On clone le material pour ne pas polluer le cache GLTF (sinon une 2e instance
-    // du même .glb hérite du dernier override).
+    // MeshStandardMaterial + env HDRI (cf. Stage environment="city") = rendu PBR
+    // qui restitue les ombres et reflets propres aux skins sombres (Eclipse, etc.).
+    // Sans env map, ce material rendrait tout noir — la `environment` du <Stage>
+    // est donc indispensable.
     useEffect(() => {
         if (! overrideTexture) return;
         const cleanups: Array<() => void> = [];
@@ -58,8 +59,8 @@ function Model({ src, textureOverrideUrl }: { src: string; textureOverrideUrl?: 
                 const original = obj.material;
                 const mat = new MeshStandardMaterial({
                     map: overrideTexture,
-                    metalness: 0.1,
                     roughness: 0.7,
+                    metalness: 0.3,
                 });
                 obj.material = mat;
                 cleanups.push(() => {
@@ -103,7 +104,7 @@ export default function GlbViewer({ src, textureOverrideUrl, alt = 'Aperçu 3D',
                 <Canvas shadows dpr={[1, 2]} camera={{ fov: 35, position: [0, 1, 4] }}>
                     <GlbErrorBoundary onError={setError}>
                         <Suspense fallback={null}>
-                            <Stage environment={null} intensity={1.5} adjustCamera shadows="contact">
+                            <Stage environment="city" intensity={0.5} adjustCamera shadows="contact">
                                 <Model src={src} textureOverrideUrl={textureOverrideUrl} />
                             </Stage>
                         </Suspense>
