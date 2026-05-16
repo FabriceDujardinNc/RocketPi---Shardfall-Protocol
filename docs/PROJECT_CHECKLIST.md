@@ -333,12 +333,13 @@
 - [x] **`/`** (landing) : redirige vers `/admin` ou `/dashboard` si user connecté
 - [x] `redirectGuestsTo('/login')` configuré globalement
 
-### Dev quick login (mode local uniquement)
+### Dev quick login (gated env + password)
 - [x] Section "⚡ Mode dev — connexion rapide" sur la page `/login`
 - [x] Liste les comptes existants avec rôle visuel (super_admin/admin/banned)
 - [x] Click → POST `/login` standard avec flag `dev=true` (pas de route séparée)
 - [x] Backend ignore le flag si `APP_ENV !== local` (env check côté serveur)
 - [x] Inertia partage `app.env` + `auth.user` + `flash` + `devUsers` via `HandleInertiaRequests`
+- [x] **Password gate + host whitelist** *(2026-05-16)* — La feature est désormais accessible aussi hors `APP_ENV=local` si le host est dans `DEV_LOGIN_ALLOWED_HOSTS` (défaut `localhost,127.0.0.1`) ET `DEV_LOGIN_PASSWORD` est défini. Pattern utilisé : rocketpi.pro et rocketpi-test.pro partagent le même backend Laravel, on n'active la feature que sur le domaine de test. Saisie obligatoire du password via input dédié (`dev_password`), session-stored (`dev_login.unlocked`). 7 tests Pest `DevQuickLoginTest` (allowed/refused selon host, password ok/ko, env check, dev flag refusé en prod).
 
 ---
 
@@ -629,7 +630,7 @@ pour expose le catalogue à Claude Desktop.
 - [x] **README MCP** — `tools/mcp-rocketpi/README.md` : install, génération token Sanctum (mcp:read + mcp:write), exemple `claude_desktop_config.json` Win/Mac, table des tools/abilities, procédure de révocation token, rate-limits côté Laravel.
 
 #### Phase 3.5 — Validation Docker bout-en-bout *(2026-05-15)*
-- [x] **Suite Pest complète verte** — 356 tests / 1167 assertions / 6s sur Docker. Filtre `Asset3dTest|Meshy|Asset3dApi` : 40/40 passants. *(Mise à jour 2026-05-16 : **398 tests / 1366 assertions / 7s** avec `AdminOperatorSkinControllerTest`, `AdminAccessoryControllerTest`, `MeshyRefineTest`.)*
+- [x] **Suite Pest complète verte** — 356 tests / 1167 assertions / 6s sur Docker. Filtre `Asset3dTest|Meshy|Asset3dApi` : 40/40 passants. *(Mise à jour 2026-05-16 : **401 tests / 1378 assertions / 7s** — ajouts `AdminOperatorSkinControllerTest`, `AdminAccessoryControllerTest`, `MeshyRefineTest`, `DevQuickLoginTest`, extension `PollMeshyTaskJobTest` pour model_url skin.)*
 - [x] **Fixes Pest découverts** — `Throwable::class` → `QueryException::class` (3 occurrences), `withCasts` sur BelongsToMany inopérant → custom Pivot `OperatorAccessoryPivot` avec cast `is_default => boolean`, `makeOperator()` set explicite `base_rig_version` + `base_generation_status` (defaults DB pas remontés), `Queue::fake([PollMeshyTaskJob::class])` pour test `trigger_generation` (sinon sync queue + FakeMeshyClient flippait `queued` → `ready`).
 - [x] **Middleware Sanctum** — `bootstrap/app.php` enregistre les aliases `abilities` + `ability` (sans ça `BindingResolutionException` sur toutes les routes `/api/asset3d/*`).
 - [x] **Fix infra `CACHE_STORE=redis`** — Laravel 11+ renomme `CACHE_DRIVER` → `CACHE_STORE` dans `config/cache.php`. Sans cette env, Horizon crash en boucle sur lookup `cache` MySQL inexistante.
@@ -666,6 +667,8 @@ pour expose le catalogue à Claude Desktop.
 - [x] **Previews backfill + colonne `base_preview_url`** *(2026-05-16)* — Migration `add_base_preview_url_to_operators_table` ajoute la colonne. `PollMeshyTaskJob::persistAssets()` télécharge désormais `thumbnail_url` Meshy pour operator + accessory (skin déjà couvert). Commande Artisan `meshy:backfill-previews [--kind=...] [--force]` re-poll les task_id déjà payés pour récupérer les previews manquantes — **0 crédit consommé** (juste des GET /status). Backfill validé sur les 8 opérateurs existants.
 - [x] **Viewer 3D interactif `GlbViewer` étendu + accordéons admin** *(2026-05-16)* — Nouveau prop `textureOverrideUrl` : charge la texture via `THREE.TextureLoader` (colorSpace=SRGB, flipY=false), parcourt la scène et applique un `MeshStandardMaterial` clone sur chaque Mesh (cleanup au démontage). Permet de prévisualiser un skin en chargeant le `.glb` de l'opérateur + la texture du skin en override. Intégré sur `Admin/Skins/Edit` (viewer 420px avec base op + texture skin), `Admin/Accessories/Edit` (viewer 420px du `.glb` accessoire), et `Admin/Operators/{slug}/Assets` (bouton "Voir 3D" par ligne skin/accessoire qui déplie un viewer inline 280px, multi-expand).
 - [x] **Refine Meshy (passer preview → texturé)** *(2026-05-16)* — Le mode `preview` Meshy retourne un mesh sans textures (gris). Pour avoir les couleurs PBR, il faut un deuxième step refine (~10 crédits/task) qui réutilise le `preview_task_id`. Ajouté : `MeshyClientInterface::refine($previewTaskId)` → POST `/openapi/v2/text-to-3d` avec `{mode: refine, preview_task_id, enable_pbr: true}` → renvoie un nouveau task_id. `MeshyGenerationService::refine(Model)` polymorphique sur Operator/Weapon/Accessory (refuse OperatorSkin, refuse si preview pas ready). Route `POST /admin/operators/{slug}/assets/refine` + bouton "Coloriser (refine, ~10 cr)" sur la page Assets avec confirmation JS. 7 tests Pest `MeshyRefineTest` verts.
+- [x] **Skin model_url : .glb retexturé persisté (fix UV mismatch viewer)** *(2026-05-16)* — Meshy v1/retexture renvoie un `.glb` self-contained (texture bakée, UVs cohérentes) en plus de la `texture.png` brute. On le négligeait → le viewer admin appliquait la texture sur le base.glb de l'opérateur mais les UVs ne matchaient pas → casque/silhouette noir sur skins sombres (Vex Eclipse). Fix : migration `add_model_url_to_operator_skins`, `PollMeshyTaskJob` télécharge aussi `models/operators/{op}/skins/{slug}/model.glb`, viewer admin (Operators/Assets + Skins/Edit) préfère `skin.model_url` si présent et fallback legacy base.glb + override sinon. Commande Artisan `meshy:backfill-skin-models [--skin=...]` pour re-récupérer les `.glb` depuis les tasks existantes (gratuit, GET /status). `FakeMeshyClient` aligné sur le vrai comportement. Validé bout-en-bout sur Vex Eclipse.
+- [x] **GlbViewer rendu PBR realiste (env HDRI + MeshStandard)** *(2026-05-16)* — Le viewer rendait noir les skins sombres car `MeshBasicMaterial` (unlit) affichait la texture albedo brute sans shading. Fix : `<Stage environment="city">` (HDRI bundled drei) + `MeshStandardMaterial` (roughness 0.7, metalness 0.3) → lighting PBR avec ombres et reflets. Marche pour base operator ET textureOverride skin.
 
 #### Phase 6 — Configuration runtime / déploiement
 - [x] Variables `MESHY_*` ajoutées au `.env.example`
