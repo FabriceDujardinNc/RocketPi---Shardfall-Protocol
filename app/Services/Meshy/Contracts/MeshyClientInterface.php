@@ -25,9 +25,24 @@ interface MeshyClientInterface
     public function create(MeshyGenerationRequest $request): string;
 
     /**
-     * Récupère le statut courant d'une tâche.
+     * Lance un refine sur un mesh généré en mode preview. Le refine applique
+     * les textures PBR (color, metallic, roughness, normal) qui manquent au
+     * mode preview. Retourne un NOUVEAU task_id (différent du preview).
+     *
+     * Coût Meshy ≈ 10 crédits par refine. À ne déclencher que sur action user.
      */
-    public function status(string $taskId): MeshyTaskStatus;
+    public function refine(string $previewTaskId): string;
+
+    /**
+     * Récupère le statut courant d'une tâche.
+     *
+     * $kind discrimine l'endpoint Meshy à interroger :
+     *  - 'skin'      → GET /v1/retexture/{id}  (retexture sur mesh existant)
+     *  - autres / null → GET /v2/text-to-3d/{id}  (base/weapon/accessory et défaut)
+     *
+     * Passé optionnellement pour rester rétrocompatible avec les anciens appels.
+     */
+    public function status(string $taskId, ?string $kind = null): MeshyTaskStatus;
 
     /**
      * Télécharge un asset distant (le `model_url` ou `texture_url` retourné

@@ -30,6 +30,11 @@ $overrides = [
     'PULSE_ENABLED'          => 'false',
     'TELESCOPE_ENABLED'      => 'false',
     'NIGHTWATCH_ENABLED'     => 'false',
+    // Force le FakeMeshyClient en tests : sinon AdminAsset3dControllerTest et
+    // AdminOperatorSkinControllerTest tapent la vraie API Meshy et brûlent
+    // des crédits à chaque run (~0,20$/task). À ne JAMAIS désactiver.
+    'MESHY_FAKE'             => 'true',
+    'MESHY_API_KEY'          => '',
 ];
 
 foreach ($overrides as $key => $value) {

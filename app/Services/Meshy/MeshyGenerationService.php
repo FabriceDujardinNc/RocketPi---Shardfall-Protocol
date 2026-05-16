@@ -76,6 +76,59 @@ class MeshyGenerationService
     }
 
     /**
+     * Lance un refine Meshy sur le mesh preview existant d'un opérateur/arme/accessoire.
+     * Le refine applique les textures PBR qui manquent au preview (mode 'preview' de
+     * /text-to-3d renvoie un mesh nu). Coûte ~10 crédits Meshy par task.
+     *
+     * Pré-requis : l'entité doit être en statut `ready` avec un task_id preview existant.
+     * Le polling job remplacera le base.glb actuel par le glb texturé une fois ready.
+     *
+     * Skin n'est pas concerné — pour skin, utilise generate() qui passe par /retexture.
+     */
+    public function refine(Model $entity): string
+    {
+        return DB::transaction(function () use ($entity) {
+            /** @var Operator|Weapon|Accessory $fresh */
+            $fresh = $entity->newQuery()->whereKey($entity->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($fresh instanceof OperatorSkin) {
+                throw new MeshyException('Refine is not applicable to OperatorSkin (skins use retexture).');
+            }
+
+            [$statusCol, $taskIdCol] = $this->columnsFor($fresh);
+            $previewTaskId = $fresh->{$taskIdCol};
+
+            if (! $previewTaskId) {
+                throw new MeshyException(
+                    sprintf('No preview task_id on %s#%d — cannot refine.', get_class($fresh), $fresh->getKey())
+                );
+            }
+
+            if ($fresh->{$statusCol} !== 'ready') {
+                throw new MeshyException(
+                    sprintf(
+                        'Cannot refine %s#%d in status "%s". Preview must be ready first.',
+                        get_class($fresh),
+                        $fresh->getKey(),
+                        $fresh->{$statusCol},
+                    )
+                );
+            }
+
+            $refineTaskId = $this->client->refine($previewTaskId);
+
+            $fresh->{$statusCol} = 'queued';
+            $fresh->{$taskIdCol} = $refineTaskId;
+            $fresh->save();
+
+            PollMeshyTaskJob::dispatch(get_class($fresh), $fresh->getKey())
+                ->onQueue('meshy');
+
+            return $refineTaskId;
+        });
+    }
+
+    /**
      * Renvoie [status_column, meshy_task_id_column] pour l'entité.
      */
     public function columnsFor(Model $entity): array

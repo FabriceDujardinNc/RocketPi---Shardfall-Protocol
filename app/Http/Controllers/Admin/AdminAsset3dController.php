@@ -34,6 +34,7 @@ class AdminAsset3dController extends Controller
                 'base_generation_status' => $operator->base_generation_status,
                 'base_meshy_task_id'     => $operator->base_meshy_task_id,
                 'base_model_url'         => $operator->base_model_url,
+                'base_preview_url'       => $operator->base_preview_url,
                 'base_rig_version'       => $operator->base_rig_version,
                 'updated_at'             => $operator->updated_at,
             ],
@@ -59,6 +60,7 @@ class AdminAsset3dController extends Controller
                 'generation_status' => $a->generation_status,
                 'meshy_task_id'     => $a->meshy_task_id,
                 'base_model_url'    => $a->base_model_url,
+                'preview_url'       => $a->preview_url,
                 'updated_at'        => $a->updated_at,
             ])->values(),
         ]);
@@ -78,5 +80,25 @@ class AdminAsset3dController extends Controller
         }
 
         return back()->with('status', "Génération lancée (task {$taskId}).");
+    }
+
+    /**
+     * Refine = applique les textures PBR (couleurs) sur un mesh preview existant.
+     * Coûte ~10 crédits Meshy par opérateur. À déclencher manuellement après
+     * une preview "ready".
+     */
+    public function refine(
+        MeshyGenerationService $service,
+        Operator $operator,
+    ): RedirectResponse {
+        $this->authorize('manage-content');
+
+        try {
+            $taskId = $service->refine($operator);
+        } catch (MeshyException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('status', "Refine lancé pour {$operator->name} (task {$taskId}). ~10 crédits Meshy.");
     }
 }

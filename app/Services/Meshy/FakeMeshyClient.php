@@ -33,7 +33,17 @@ class FakeMeshyClient implements MeshyClientInterface
         return $taskId;
     }
 
-    public function status(string $taskId): MeshyTaskStatus
+    public function refine(string $previewTaskId): string
+    {
+        // Le fake renvoie un nouveau task_id qui sera ready immédiatement,
+        // avec un model_url placeholder marqué "refined" pour distinguer.
+        $taskId = 'fake-refine-' . Str::random(20);
+        // Marqué comme kind base (ce que renvoie un refine côté Meshy = texturé)
+        $this->tasks[$taskId] = 'base';
+        return $taskId;
+    }
+
+    public function status(string $taskId, ?string $kind = null): MeshyTaskStatus
     {
         if (! isset($this->tasks[$taskId])) {
             throw new MeshyException("Unknown fake task id: {$taskId}");

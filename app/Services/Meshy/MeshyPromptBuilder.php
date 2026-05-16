@@ -7,6 +7,7 @@ use App\Models\Operator;
 use App\Models\OperatorSkin;
 use App\Models\Weapon;
 use App\Services\Meshy\Data\MeshyGenerationRequest;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Construit les prompts Meshy à partir d'entités Eloquent.
@@ -60,17 +61,26 @@ class MeshyPromptBuilder
         $palette = $this->describePalette($skin->palette_json);
         $faction = self::FACTION_FLAVOR[$operator->faction] ?? '';
 
-        $prompt = self::STYLE_PREFIX
-            . "skin variant for {$operator->name}: {$skin->name}. "
-            . "{$palette} Retains base {$faction}.";
+        // Endpoint Meshy /v1/retexture limite text_style_prompt à 600 chars
+        // ET ne supporte pas negative_prompt. On envoie un prompt court ciblé
+        // sur la palette/material, sans le préfixe stylistique full.
+        $prompt = "skin variant for {$operator->name}: {$skin->name}. "
+            . "{$palette} Faction style: {$faction}. "
+            . 'AAA stylized realism, clean material work, no nsfw.';
+
+        // Meshy /v1/retexture exige une URL absolue http(s) accessible publiquement.
+        // Storage::disk('public')->url() préfixe APP_URL (https://rocketpi.pro/storage/...).
+        $absoluteModelUrl = $operator->base_model_url
+            ? Storage::disk('public')->url($operator->base_model_url)
+            : null;
 
         return new MeshyGenerationRequest(
             kind: 'skin',
-            prompt: trim($prompt),
+            prompt: mb_substr(trim($prompt), 0, 600),
             negativePrompt: self::STYLE_NEGATIVE,
             polycountTarget: null,
             artStyle: 'realistic',
-            baseModelUrl: $operator->base_model_url,
+            baseModelUrl: $absoluteModelUrl,
         );
     }
 

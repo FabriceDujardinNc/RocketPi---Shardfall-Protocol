@@ -1,12 +1,12 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Button from '@ui/Button';
 import Card from '@ui/Card';
 import Alert from '@ui/Alert';
 import GenerationStatusBadge, { type GenerationStatus } from '@game/GenerationStatusBadge';
 import GlbViewer from '@game/GlbViewer';
-import { ArrowLeft, RotateCw, Boxes, Shirt, Wrench } from 'lucide-react';
+import { ArrowLeft, RotateCw, Boxes, Shirt, Wrench, ChevronDown, ChevronUp, Palette } from 'lucide-react';
 
 interface OperatorAsset {
     id: number;
@@ -18,6 +18,7 @@ interface OperatorAsset {
     base_generation_status: GenerationStatus;
     base_meshy_task_id: string | null;
     base_model_url: string | null;
+    base_preview_url: string | null;
     base_rig_version: string;
     updated_at: string;
 }
@@ -45,6 +46,7 @@ interface AccessoryAsset {
     generation_status: GenerationStatus;
     meshy_task_id: string | null;
     base_model_url: string | null;
+    preview_url: string | null;
     updated_at: string;
 }
 
@@ -70,6 +72,20 @@ export default function OperatorAssets() {
     const { props } = usePage<PageProps>();
     const { operator, skins, accessories, flash } = props;
 
+    const [expandedSkins, setExpandedSkins] = useState<Set<number>>(new Set());
+    const [expandedAccessories, setExpandedAccessories] = useState<Set<number>>(new Set());
+
+    const toggleSkin = (id: number) => setExpandedSkins((prev) => {
+        const next = new Set(prev);
+        next.has(id) ? next.delete(id) : next.add(id);
+        return next;
+    });
+    const toggleAccessory = (id: number) => setExpandedAccessories((prev) => {
+        const next = new Set(prev);
+        next.has(id) ? next.delete(id) : next.add(id);
+        return next;
+    });
+
     useEffect(() => {
         if (!isPolling(operator, skins, accessories)) return;
         const id = setInterval(() => {
@@ -84,6 +100,11 @@ export default function OperatorAssets() {
             { entity_type: entityType, entity_slug: slug, force },
             { preserveScroll: true },
         );
+    };
+
+    const refine = () => {
+        if (!confirm(`Lancer le refine sur ${operator.name} ? Ça applique les textures PBR (couleur, métallicité, normal map) sur le mesh actuel. Coût ≈ 10 crédits Meshy.`)) return;
+        router.post(`/admin/operators/${operator.slug}/assets/refine`, {}, { preserveScroll: true });
     };
 
     return (
@@ -102,13 +123,20 @@ export default function OperatorAssets() {
                 </div>
             </header>
 
-            {flash?.status && <Alert variant="success" className="mb-4">{flash.status}</Alert>}
-            {flash?.error && <Alert variant="danger" className="mb-4">{flash.error}</Alert>}
+            {flash?.status && <div className="mb-4"><Alert variant="success">{flash.status}</Alert></div>}
+            {flash?.error && <div className="mb-4"><Alert variant="danger">{flash.error}</Alert></div>}
 
             {/* ─── Mesh de base ───────────────────────────────────────── */}
             <Card className="mb-6">
                 <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
-                    <div>
+                    {operator.base_preview_url && (
+                        <img
+                            src={`/storage/${operator.base_preview_url}`}
+                            alt={`Preview ${operator.name}`}
+                            className="h-24 w-24 rounded-md border border-border-default bg-bg-elev2 object-cover flex-shrink-0"
+                        />
+                    )}
+                    <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
                             <Boxes className="h-5 w-5 text-text-medium" />
                             <h2 className="text-xl font-display text-text-high">Mesh de base</h2>
@@ -131,6 +159,16 @@ export default function OperatorAssets() {
                         )}
                     </div>
                     <div className="flex gap-2">
+                        {operator.base_generation_status === 'ready' && (
+                            <Button
+                                variant="secondary"
+                                onClick={refine}
+                                title="Applique les textures PBR (couleurs) sur le mesh preview"
+                            >
+                                <Palette className="h-4 w-4" />
+                                Coloriser (refine, ~10 cr)
+                            </Button>
+                        )}
                         <Button
                             variant={operator.base_generation_status === 'ready' ? 'ghost' : 'primary'}
                             disabled={NON_TERMINAL.includes(operator.base_generation_status)}
@@ -160,36 +198,78 @@ export default function OperatorAssets() {
                     <p className="text-text-low text-sm italic">Aucun skin lié à cet opérateur.</p>
                 ) : (
                     <ul className="space-y-2">
-                        {skins.map((skin) => (
-                            <li key={skin.id} className="flex items-center justify-between gap-4 py-2 border-b border-border-default last:border-0">
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-text-high font-display">{skin.name}</span>
-                                        <GenerationStatusBadge status={skin.generation_status} />
-                                        {skin.is_active && <span className="text-xs text-success">actif</span>}
+                        {skins.map((skin) => {
+                            const expanded = expandedSkins.has(skin.id);
+                            // Skin viewable si l'opérateur a son mesh ET la skin a sa texture
+                            const canView = !!operator.base_model_url && operator.base_generation_status === 'ready' && !!skin.texture_url;
+                            return (
+                                <li key={skin.id} className="border-b border-border-default last:border-0">
+                                    <div className="flex items-center justify-between gap-4 py-2">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            {skin.preview_url ? (
+                                                <img
+                                                    src={`/storage/${skin.preview_url}`}
+                                                    alt={`Preview ${skin.name}`}
+                                                    className="h-12 w-12 rounded border border-border-default bg-bg-elev2 object-cover flex-shrink-0"
+                                                />
+                                            ) : (
+                                                <div className="h-12 w-12 rounded border border-border-default bg-bg-elev2 flex items-center justify-center flex-shrink-0">
+                                                    <Shirt className="h-5 w-5 text-text-low" />
+                                                </div>
+                                            )}
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-text-high font-display">{skin.name}</span>
+                                                    <GenerationStatusBadge status={skin.generation_status} />
+                                                    {skin.is_active && <span className="text-xs text-success">actif</span>}
+                                                </div>
+                                                {skin.texture_url && (
+                                                    <a
+                                                        href={`/storage/${skin.texture_url}`}
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                        className="text-shard-400 hover:text-shard-300 text-xs font-mono truncate block"
+                                                    >
+                                                        /storage/{skin.texture_url}
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            {canView && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => toggleSkin(skin.id)}
+                                                >
+                                                    {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                                    Voir 3D
+                                                </Button>
+                                            )}
+                                            <Button
+                                                variant={skin.generation_status === 'ready' ? 'ghost' : 'primary'}
+                                                size="sm"
+                                                disabled={NON_TERMINAL.includes(skin.generation_status)}
+                                                onClick={() => trigger('operator_skin', skin.slug, skin.generation_status === 'ready')}
+                                            >
+                                                <RotateCw className="h-3 w-3" />
+                                                {skin.generation_status === 'ready' ? 'Regénérer' : 'Générer'}
+                                            </Button>
+                                        </div>
                                     </div>
-                                    {skin.texture_url && (
-                                        <a
-                                            href={`/storage/${skin.texture_url}`}
-                                            target="_blank"
-                                            rel="noopener"
-                                            className="text-shard-400 hover:text-shard-300 text-xs font-mono truncate block"
-                                        >
-                                            /storage/{skin.texture_url}
-                                        </a>
+                                    {canView && expanded && (
+                                        <div className="pb-3">
+                                            <GlbViewer
+                                                src={`/storage/${operator.base_model_url}`}
+                                                textureOverrideUrl={`/storage/${skin.texture_url}`}
+                                                alt={`Aperçu 3D ${skin.name}`}
+                                                height={280}
+                                            />
+                                        </div>
                                     )}
-                                </div>
-                                <Button
-                                    variant={skin.generation_status === 'ready' ? 'ghost' : 'primary'}
-                                    size="sm"
-                                    disabled={NON_TERMINAL.includes(skin.generation_status)}
-                                    onClick={() => trigger('operator_skin', skin.slug, skin.generation_status === 'ready')}
-                                >
-                                    <RotateCw className="h-3 w-3" />
-                                    {skin.generation_status === 'ready' ? 'Regénérer' : 'Générer'}
-                                </Button>
-                            </li>
-                        ))}
+                                </li>
+                            );
+                        })}
                     </ul>
                 )}
             </Card>
@@ -204,38 +284,78 @@ export default function OperatorAssets() {
                     <p className="text-text-low text-sm italic">Aucun accessoire lié à cet opérateur.</p>
                 ) : (
                     <ul className="space-y-2">
-                        {accessories.map((acc) => (
-                            <li key={acc.id} className="flex items-center justify-between gap-4 py-2 border-b border-border-default last:border-0">
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="text-text-high font-display">{acc.name}</span>
-                                        <span className="text-xs text-text-low uppercase">{acc.slot}</span>
-                                        <span className="text-xs text-text-low font-mono">{acc.socket_name}</span>
-                                        <GenerationStatusBadge status={acc.generation_status} />
-                                        {acc.is_default && <span className="text-xs text-success">défaut</span>}
+                        {accessories.map((acc) => {
+                            const expanded = expandedAccessories.has(acc.id);
+                            const canView = !!acc.base_model_url && acc.generation_status === 'ready';
+                            return (
+                                <li key={acc.id} className="border-b border-border-default last:border-0">
+                                    <div className="flex items-center justify-between gap-4 py-2">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            {acc.preview_url ? (
+                                                <img
+                                                    src={`/storage/${acc.preview_url}`}
+                                                    alt={`Preview ${acc.name}`}
+                                                    className="h-12 w-12 rounded border border-border-default bg-bg-elev2 object-cover flex-shrink-0"
+                                                />
+                                            ) : (
+                                                <div className="h-12 w-12 rounded border border-border-default bg-bg-elev2 flex items-center justify-center flex-shrink-0">
+                                                    <Wrench className="h-5 w-5 text-text-low" />
+                                                </div>
+                                            )}
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-text-high font-display">{acc.name}</span>
+                                                    <span className="text-xs text-text-low uppercase">{acc.slot}</span>
+                                                    <span className="text-xs text-text-low font-mono">{acc.socket_name}</span>
+                                                    <GenerationStatusBadge status={acc.generation_status} />
+                                                    {acc.is_default && <span className="text-xs text-success">défaut</span>}
+                                                </div>
+                                                {acc.base_model_url && (
+                                                    <a
+                                                        href={`/storage/${acc.base_model_url}`}
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                        className="text-shard-400 hover:text-shard-300 text-xs font-mono truncate block"
+                                                    >
+                                                        /storage/{acc.base_model_url}
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            {canView && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => toggleAccessory(acc.id)}
+                                                >
+                                                    {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                                    Voir 3D
+                                                </Button>
+                                            )}
+                                            <Button
+                                                variant={acc.generation_status === 'ready' ? 'ghost' : 'primary'}
+                                                size="sm"
+                                                disabled={NON_TERMINAL.includes(acc.generation_status)}
+                                                onClick={() => trigger('accessory', acc.slug, acc.generation_status === 'ready')}
+                                            >
+                                                <RotateCw className="h-3 w-3" />
+                                                {acc.generation_status === 'ready' ? 'Regénérer' : 'Générer'}
+                                            </Button>
+                                        </div>
                                     </div>
-                                    {acc.base_model_url && (
-                                        <a
-                                            href={`/storage/${acc.base_model_url}`}
-                                            target="_blank"
-                                            rel="noopener"
-                                            className="text-shard-400 hover:text-shard-300 text-xs font-mono truncate block"
-                                        >
-                                            /storage/{acc.base_model_url}
-                                        </a>
+                                    {canView && expanded && (
+                                        <div className="pb-3">
+                                            <GlbViewer
+                                                src={`/storage/${acc.base_model_url}`}
+                                                alt={`Aperçu 3D ${acc.name}`}
+                                                height={280}
+                                            />
+                                        </div>
                                     )}
-                                </div>
-                                <Button
-                                    variant={acc.generation_status === 'ready' ? 'ghost' : 'primary'}
-                                    size="sm"
-                                    disabled={NON_TERMINAL.includes(acc.generation_status)}
-                                    onClick={() => trigger('accessory', acc.slug, acc.generation_status === 'ready')}
-                                >
-                                    <RotateCw className="h-3 w-3" />
-                                    {acc.generation_status === 'ready' ? 'Regénérer' : 'Générer'}
-                                </Button>
-                            </li>
-                        ))}
+                                </li>
+                            );
+                        })}
                     </ul>
                 )}
             </Card>

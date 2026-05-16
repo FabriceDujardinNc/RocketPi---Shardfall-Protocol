@@ -1,17 +1,76 @@
-import { Component, Suspense, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
+import { Component, Suspense, useEffect, useState, type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stage, useGLTF } from '@react-three/drei';
+import { Mesh, MeshStandardMaterial, SRGBColorSpace, TextureLoader, type Texture } from 'three';
 
 interface Props {
     src: string;
+    /** Optionnel : URL d'une texture (PNG/KTX2) à appliquer en override sur tous
+     *  les Mesh du .glb (slot _BaseMap / albedo). Sert à prévisualiser un skin
+     *  qui est juste une texture déposée sur le mesh de base d'un opérateur. */
+    textureOverrideUrl?: string | null;
     alt?: string;
     /** Hauteur CSS du viewer. Défaut 320px. */
     height?: number | string;
     className?: string;
 }
 
-function Model({ src }: { src: string }) {
+function Model({ src, textureOverrideUrl }: { src: string; textureOverrideUrl?: string | null }) {
     const { scene } = useGLTF(src);
+    const [overrideTexture, setOverrideTexture] = useState<Texture | null>(null);
+
+    // Charge la texture override quand l'URL change. Pas via useLoader pour
+    // ne pas remonter dans Suspense quand on switch entre skins.
+    useEffect(() => {
+        if (! textureOverrideUrl) {
+            setOverrideTexture(null);
+            return;
+        }
+        const loader = new TextureLoader();
+        loader.setCrossOrigin('anonymous');
+        let cancelled = false;
+        loader.load(
+            textureOverrideUrl,
+            (tex) => {
+                if (cancelled) return;
+                tex.colorSpace = SRGBColorSpace;
+                tex.flipY = false; // glTF convention
+                setOverrideTexture(tex);
+            },
+            undefined,
+            () => {
+                if (! cancelled) setOverrideTexture(null);
+            },
+        );
+        return () => {
+            cancelled = true;
+        };
+    }, [textureOverrideUrl]);
+
+    // Applique l'override sur tous les materials des Mesh quand la texture change.
+    // On clone le material pour ne pas polluer le cache GLTF (sinon une 2e instance
+    // du même .glb hérite du dernier override).
+    useEffect(() => {
+        if (! overrideTexture) return;
+        const cleanups: Array<() => void> = [];
+        scene.traverse((obj) => {
+            if (obj instanceof Mesh) {
+                const original = obj.material;
+                const mat = new MeshStandardMaterial({
+                    map: overrideTexture,
+                    metalness: 0.1,
+                    roughness: 0.7,
+                });
+                obj.material = mat;
+                cleanups.push(() => {
+                    obj.material = original;
+                    mat.dispose();
+                });
+            }
+        });
+        return () => cleanups.forEach((fn) => fn());
+    }, [scene, overrideTexture]);
+
     return <primitive object={scene} />;
 }
 
@@ -28,7 +87,7 @@ class GlbErrorBoundary extends Component<{ onError: (msg: string) => void; child
     }
 }
 
-export default function GlbViewer({ src, alt = 'Aperçu 3D', height = 320, className = '' }: Props) {
+export default function GlbViewer({ src, textureOverrideUrl, alt = 'Aperçu 3D', height = 320, className = '' }: Props) {
     const [error, setError] = useState<string | null>(null);
 
     const style: CSSProperties = {
@@ -45,7 +104,7 @@ export default function GlbViewer({ src, alt = 'Aperçu 3D', height = 320, class
                     <GlbErrorBoundary onError={setError}>
                         <Suspense fallback={null}>
                             <Stage environment={null} intensity={1.5} adjustCamera shadows="contact">
-                                <Model src={src} />
+                                <Model src={src} textureOverrideUrl={textureOverrideUrl} />
                             </Stage>
                         </Suspense>
                     </GlbErrorBoundary>

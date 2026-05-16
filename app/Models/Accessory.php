@@ -27,6 +27,7 @@ class Accessory extends Model
     public function operators(): BelongsToMany
     {
         return $this->belongsToMany(Operator::class, 'operator_accessories')
+            ->using(OperatorAccessoryPivot::class)
             ->withPivot('is_default')
             ->withTimestamps();
     }

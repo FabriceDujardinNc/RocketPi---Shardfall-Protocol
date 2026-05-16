@@ -16,7 +16,9 @@ use App\Http\Controllers\Player\ProfileController;
 use App\Http\Controllers\Player\BattlePassController;
 use App\Http\Controllers\Player\PlayController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminAccessoryController;
 use App\Http\Controllers\Admin\AdminAsset3dController;
+use App\Http\Controllers\Admin\AdminOperatorSkinController;
 use App\Http\Controllers\Admin\AdminOperatorController;
 use App\Http\Controllers\Admin\AdminBannerController;
 use App\Http\Controllers\Admin\AdminPlayerController;
@@ -64,6 +66,11 @@ Route::get('/top', [\App\Http\Controllers\Public\LoreController::class, 'leaderb
 Route::middleware('guest')->group(function () {
     Route::get('/login',    [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login',   [AuthController::class, 'login']);
+    // Déverrouille la liste de quick login (APP_ENV=local + DEV_LOGIN_PASSWORD).
+    // Throttle anti-brute force ; 404 si la feature n'est pas active.
+    Route::post('/dev-login/unlock', [AuthController::class, 'unlockDevLogin'])
+        ->middleware('throttle:5,1')
+        ->name('dev-login.unlock');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register',[AuthController::class, 'register']);
     Route::get('/forgot-password',  [AuthController::class, 'showForgotPassword'])->name('password.request');
@@ -181,7 +188,21 @@ Route::middleware(['auth', 'admin', '2fa'])->prefix('admin')->name('admin.')->gr
         ->name('operators.assets');
     Route::post('operators/{operator:slug}/assets/generate', [AdminAsset3dController::class, 'trigger'])
         ->name('operators.assets.generate');
+    Route::post('operators/{operator:slug}/assets/refine', [AdminAsset3dController::class, 'refine'])
+        ->name('operators.assets.refine');
     Route::resource('operators', AdminOperatorController::class);
+
+    // Skins d'opérateur — catalogue global + génération 3D dédiée
+    Route::post('skins/{skin}/generate', [AdminOperatorSkinController::class, 'generate'])
+        ->name('skins.generate');
+    Route::resource('skins', AdminOperatorSkinController::class)
+        ->except(['show']);
+
+    // Accessoires — catalogue global (slot/socket) + génération 3D + pivot opérateurs
+    Route::post('accessories/{accessory}/generate', [AdminAccessoryController::class, 'generate'])
+        ->name('accessories.generate');
+    Route::resource('accessories', AdminAccessoryController::class)
+        ->except(['show']);
 
     // Bannières
     Route::post('banners/{slug}/restore', [AdminBannerController::class, 'restore'])

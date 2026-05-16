@@ -71,7 +71,10 @@ class PollMeshyTaskJob implements ShouldQueue
                 return;
             }
 
-            $status = $client->status($taskId);
+            // Le kind sert au client HTTP à router vers le bon endpoint Meshy
+            // (text-to-3d vs retexture pour les skins).
+            $kind = $entity instanceof OperatorSkin ? 'skin' : null;
+            $status = $client->status($taskId, $kind);
 
             if ($status->isFailed()) {
                 $entity->{$statusCol} = 'failed';
@@ -114,6 +117,11 @@ class PollMeshyTaskJob implements ShouldQueue
             $path = "models/operators/{$slug}/base.glb";
             $disk->put($path, $client->downloadAsset($status->modelUrl));
             $entity->base_model_url = $path;
+            if ($status->previewUrl) {
+                $previewPath = "models/operators/{$slug}/preview.png";
+                $disk->put($previewPath, $client->downloadAsset($status->previewUrl));
+                $entity->base_preview_url = $previewPath;
+            }
         } elseif ($entity instanceof OperatorSkin) {
             $path = "models/operators/{$entity->operator->slug}/skins/{$slug}/texture.png";
             if ($status->textureUrl) {
@@ -133,6 +141,11 @@ class PollMeshyTaskJob implements ShouldQueue
             $path = "models/accessories/{$slug}/base.glb";
             $disk->put($path, $client->downloadAsset($status->modelUrl));
             $entity->base_model_url = $path;
+            if ($status->previewUrl) {
+                $previewPath = "models/accessories/{$slug}/preview.png";
+                $disk->put($previewPath, $client->downloadAsset($status->previewUrl));
+                $entity->preview_url = $previewPath;
+            }
         }
     }
 

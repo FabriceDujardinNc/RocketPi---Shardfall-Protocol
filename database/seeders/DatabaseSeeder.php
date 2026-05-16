@@ -12,6 +12,8 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             FactionSeeder::class,
             OperatorSeeder::class,
+            OperatorSkinSeeder::class,
+            AccessorySeeder::class,
             BannerSeeder::class,
             MissionSeeder::class,
             LeaderboardSeasonSeeder::class,

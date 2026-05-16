@@ -629,7 +629,7 @@ pour expose le catalogue à Claude Desktop.
 - [x] **README MCP** — `tools/mcp-rocketpi/README.md` : install, génération token Sanctum (mcp:read + mcp:write), exemple `claude_desktop_config.json` Win/Mac, table des tools/abilities, procédure de révocation token, rate-limits côté Laravel.
 
 #### Phase 3.5 — Validation Docker bout-en-bout *(2026-05-15)*
-- [x] **Suite Pest complète verte** — 356 tests / 1167 assertions / 6s sur Docker. Filtre `Asset3dTest|Meshy|Asset3dApi` : 40/40 passants.
+- [x] **Suite Pest complète verte** — 356 tests / 1167 assertions / 6s sur Docker. Filtre `Asset3dTest|Meshy|Asset3dApi` : 40/40 passants. *(Mise à jour 2026-05-16 : **398 tests / 1366 assertions / 7s** avec `AdminOperatorSkinControllerTest`, `AdminAccessoryControllerTest`, `MeshyRefineTest`.)*
 - [x] **Fixes Pest découverts** — `Throwable::class` → `QueryException::class` (3 occurrences), `withCasts` sur BelongsToMany inopérant → custom Pivot `OperatorAccessoryPivot` avec cast `is_default => boolean`, `makeOperator()` set explicite `base_rig_version` + `base_generation_status` (defaults DB pas remontés), `Queue::fake([PollMeshyTaskJob::class])` pour test `trigger_generation` (sinon sync queue + FakeMeshyClient flippait `queued` → `ready`).
 - [x] **Middleware Sanctum** — `bootstrap/app.php` enregistre les aliases `abilities` + `ability` (sans ça `BindingResolutionException` sur toutes les routes `/api/asset3d/*`).
 - [x] **Fix infra `CACHE_STORE=redis`** — Laravel 11+ renomme `CACHE_DRIVER` → `CACHE_STORE` dans `config/cache.php`. Sans cette env, Horizon crash en boucle sur lookup `cache` MySQL inexistante.
@@ -649,12 +649,23 @@ pour expose le catalogue à Claude Desktop.
 - [ ] Vérifier que les 7 sockets `Hand_R/L`, `Head_Top`, `Face_Front`, `Back_Center`, `Hip_R/L` sont présents en empty transforms dans le rig (cf. `RIG_CONTRACT.md`)
 - [ ] Smoke test in-game : charger Vex via API et afficher le mesh dans la scène Training
 
-#### Phase 5 — Admin UI Inertia (à faire)
-- [ ] Page `resources/js/Pages/Admin/Operators/Assets.tsx` — liste statuts assets, bouton "Générer / Regénérer" par entité, polling statuts (3-5s)
-- [ ] Controller `app/Http/Controllers/Admin/AdminAsset3dController.php` sous middleware `2fa` + gate `manage-content`
-- [ ] Routes admin `/admin/operators/{operator}/assets` dans `routes/web.php`
-- [ ] Stories Storybook `AllVariants` — matrice statuts (pending/queued/generating/ready/failed)
-- [ ] Tests Feature controllers admin (auth, gate, déclenchement)
+#### Phase 5 — Admin UI Inertia
+- [x] Page `resources/js/Pages/Admin/Operators/Assets.tsx` — liste statuts assets, bouton "Générer / Regénérer" par entité, polling statuts (3-5s)
+- [x] Controller `app/Http/Controllers/Admin/AdminAsset3dController.php` sous middleware `2fa` + gate `manage-content`
+- [x] Routes admin `/admin/operators/{operator:slug}/assets` + `…/assets/generate` dans `routes/web.php`
+- [ ] Stories Storybook `AllVariants` pour `GenerationStatusBadge` — matrice statuts (pending/queued/generating/ready/failed)
+- [x] **Zones admin dédiées Skins + Accessoires** *(2026-05-16)* — Catalogues globaux avec CRUD complet, distincts de la vue per-operator. Sidebar admin enrichie avec "Skins 3D" et "Accessoires 3D".
+    - Controllers : `AdminOperatorSkinController` (index filtrable par op/rarity/status, create/update/destroy, action `generate`), `AdminAccessoryController` (filtre slot/rarity/status, sync pivot operator + flag `is_default`, generate). Auth via gate `manage-content` héritée du middleware admin+2fa.
+    - Form Requests : `StoreOperatorSkinRequest` (palette hex regex `#RGB|#RRGGBB|#RRGGBBAA`), `StoreAccessoryRequest` (operator_ids + default_operator_id).
+    - Pages Inertia : `Admin/Skins/{Index,Create,Edit,SkinForm}` + `Admin/Accessories/{Index,Create,Edit,AccessoryForm}`. Réutilisent `RarityBadge`, `GenerationStatusBadge`, `Alert`, `Button`, `Pagination`. Bouton "Générer 3D" sur Index + Edit dispatche `MeshyGenerationService` via la route dédiée.
+    - Seeders : `OperatorSkinSeeder` (10 skins : 1 défaut/op + 2 bonus par légendaire Vex/Crag, palettes hex définies pour le prompt builder), `AccessorySeeder` (8 accessoires : 1 par op, `is_default=true` sur le pivot, slots head/face/back/hands variés). Aucune génération Meshy lancée — l'admin déclenche via UI pour rester sous les 980 crédits.
+    - Tests Pest : `AdminOperatorSkinControllerTest` (9 tests) + `AdminAccessoryControllerTest` (8 tests) — auth, filtres, CRUD, validation hex palette, sync pivot avec default, generate→queued, force/no-force sur ready. 17/17 verts.
+    - Fix `Accessory::operators()` → `->using(OperatorAccessoryPivot::class)` (le pivot custom n'était binded que du côté Operator, donc le cast bool `is_default` ne s'appliquait pas en lecture depuis Accessory).
+- [x] **Bug critique fixé — tests appelaient la vraie API Meshy** *(2026-05-16)* — `tests/bootstrap.php` ne forçait pas `MESHY_FAKE=true` ni `MESHY_API_KEY=''`. La suite Pest tapait l'API réelle à chaque run (potentiellement payante). Bootstrap durci pour binder systématiquement `FakeMeshyClient` en tests.
+- [x] **Endpoint Meshy retexture corrigé** *(2026-05-16)* — `MeshyHttpClient::create()` envoyait `mode: 'retexture'` sur `/v2/text-to-3d` (mode invalide → 400). Refactor : skin route vers `POST /openapi/v1/retexture` avec payload conforme (`model_url` absolu via `Storage::disk('public')->url()`, `text_style_prompt` max 600 chars, pas de `mode`/`negative_prompt`/`art_style`). `MeshyClientInterface::status()` accepte désormais un `?string $kind` pour router le GET vers le bon endpoint (`/v1/retexture/{id}` vs `/v2/text-to-3d/{id}`). Tous les endpoints préfixés `/openapi/` pour la cohérence. Texture parsing gère le nouveau format objet (`texture_urls.base_color`) en plus de l'ancien array.
+- [x] **Previews backfill + colonne `base_preview_url`** *(2026-05-16)* — Migration `add_base_preview_url_to_operators_table` ajoute la colonne. `PollMeshyTaskJob::persistAssets()` télécharge désormais `thumbnail_url` Meshy pour operator + accessory (skin déjà couvert). Commande Artisan `meshy:backfill-previews [--kind=...] [--force]` re-poll les task_id déjà payés pour récupérer les previews manquantes — **0 crédit consommé** (juste des GET /status). Backfill validé sur les 8 opérateurs existants.
+- [x] **Viewer 3D interactif `GlbViewer` étendu + accordéons admin** *(2026-05-16)* — Nouveau prop `textureOverrideUrl` : charge la texture via `THREE.TextureLoader` (colorSpace=SRGB, flipY=false), parcourt la scène et applique un `MeshStandardMaterial` clone sur chaque Mesh (cleanup au démontage). Permet de prévisualiser un skin en chargeant le `.glb` de l'opérateur + la texture du skin en override. Intégré sur `Admin/Skins/Edit` (viewer 420px avec base op + texture skin), `Admin/Accessories/Edit` (viewer 420px du `.glb` accessoire), et `Admin/Operators/{slug}/Assets` (bouton "Voir 3D" par ligne skin/accessoire qui déplie un viewer inline 280px, multi-expand).
+- [x] **Refine Meshy (passer preview → texturé)** *(2026-05-16)* — Le mode `preview` Meshy retourne un mesh sans textures (gris). Pour avoir les couleurs PBR, il faut un deuxième step refine (~10 crédits/task) qui réutilise le `preview_task_id`. Ajouté : `MeshyClientInterface::refine($previewTaskId)` → POST `/openapi/v2/text-to-3d` avec `{mode: refine, preview_task_id, enable_pbr: true}` → renvoie un nouveau task_id. `MeshyGenerationService::refine(Model)` polymorphique sur Operator/Weapon/Accessory (refuse OperatorSkin, refuse si preview pas ready). Route `POST /admin/operators/{slug}/assets/refine` + bouton "Coloriser (refine, ~10 cr)" sur la page Assets avec confirmation JS. 7 tests Pest `MeshyRefineTest` verts.
 
 #### Phase 6 — Configuration runtime / déploiement
 - [x] Variables `MESHY_*` ajoutées au `.env.example`
@@ -668,14 +679,24 @@ pour expose le catalogue à Claude Desktop.
 - [ ] Décision build : passer `mode: 'preview'` → `mode: 'refine'` une fois le pipeline validé (meilleure qualité, plus cher)
 
 #### Phase 7 — Batch génération & qualité assets
-- [~] **1/8 opérateurs générés** — Vex (ready). Reste : `halo`, `drift`, `crag`, `brick`, `iron`, `wraith`, `echo` (~$1.50–4 total).
-- [ ] Inspecter le GLB Vex dans un viewer (`https://gltf-viewer.donmccurdy.com/`) pour vérifier mesh + matérials
+- [~] **8/8 opérateurs (bases) générés sur disque** — `storage/app/public/models/operators/` contient `vex/`, `brick/`, `crag/`, `drift/`, `echo/`, `halo/`, `iron/`, `wraith/` après 11 préviews Meshy à 20 crédits (220 cr consommés depuis le début, 980 restants au 2026-05-16).
+- [ ] Inspecter chaque GLB dans un viewer (`https://gltf-viewer.donmccurdy.com/`) pour vérifier mesh + materials
 - [ ] Vérifier rig Mecanim-compatible — sinon activer plan B Mixamo Auto-Rigger (cf. risques résiduels)
-- [ ] Générer skins (`--skins`) pour ≥ 1 opérateur et valider le retexture
-- [ ] Générer armes (`--weapons`) et accessoires (`--accessories`) pour ≥ 1 opérateur
+- [~] **Catalogue skins seedé (10 skins)** — 1 défaut par opérateur + 2 bonus pour les légendaires (Vex Eclipse/Solar, Crag Forge/Obsidian). Tous en statut `pending`, l'admin déclenche la génération via `/admin/skins` quand il décide d'engager des crédits. Budget worst-case ~200 crédits (retexture).
+- [~] **Catalogue accessoires seedé (8 accessoires)** — 1 par opérateur (Visière, Med-Pack, Casques, Bouclier Quartzite, Harnais Roquettes, Capuche VEIL, Deck VEIL), tous attachés `is_default=true` sur le pivot. Tous en statut `pending` ; budget worst-case ~160 crédits (text-to-3d 20 cr/préview).
 - [ ] Compression assets : pipeline build Unity transcoder PNG → KTX2, Draco sur meshes
 - [ ] Cache CDN : ajouter headers `Cache-Control: public, max-age=31536000, immutable` sur `/storage/models/*` côté Caddy (les `.glb` ne changent pas après génération)
 - [ ] Style consistency : tester `style_image_url` Meshy (image-to-3d) une fois la stabilité validée
+
+#### Phase 8 — Animations (planification, à faire plus tard)
+**Pas de génération Meshy** — Meshy ne produit pas d'animations clipsées. Plan B Mixamo Auto-Rigger / Animator Unity.
+
+- [ ] **Choix pipeline rigging** : valider que les GLB Meshy ont un squelette Humanoid Mecanim utilisable, ou bascule Mixamo Auto-Rigger (`https://www.mixamo.com`) pour ajouter clips Idle/Walk/Run/Jump/Shoot/Reload/Death/Victory.
+- [ ] **Table `operator_animations`** *(à créer si besoin de catalogue côté backend)* — colonnes : `operator_id` (nullable, NULL = clip réutilisable), `clip_name` (string, ex `idle_combat`), `file_url` (`.glb` ou `.anim` Unity), `length_sec`, `is_loop`, `tier` (basic/cinematic/ultimate), `created_at`. Pivot `operator_default_animations` si on veut mapper des sets par opérateur.
+- [ ] **AnimatorController Unity** — un controller commun "OperatorHumanoid" avec layers Locomotion (blend tree HP/walk/run), Combat (Aim, Shoot, Reload), Ultimate (clip dédié par opérateur). Override clips via `AnimatorOverrideController` pour les variations skin/légendaire.
+- [ ] **Animations spéciales par accessoire/skin** *(post-MVP)* — accessoires "dynamiques" (cape, sac) → simulation Cloth Unity OU clip de balancement attaché au socket. Skins légendaires → animation cosmétique de victory pose / emote.
+- [ ] **API/Inertia** : pas d'admin UI à ce stade. Si besoin plus tard : page `Admin/Animations/Index` calquée sur `Skins/Index`.
+- [ ] **Source clips** : Mixamo (gratuit, retargeting humanoid), Adobe Substance Stager pour cinématiques, ou achat asset store pour packs role-specific (sniper/tank/healer).
 
 ---
 

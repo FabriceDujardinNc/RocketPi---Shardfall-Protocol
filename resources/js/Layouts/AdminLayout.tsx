@@ -6,6 +6,8 @@ import ThemeToggle from '@ui/ThemeToggle';
 const SECTIONS = [
     { href: '/admin',              label: 'Tableau de bord' },
     { href: '/admin/operators',    label: 'Opérateurs' },
+    { href: '/admin/skins',        label: 'Skins 3D' },
+    { href: '/admin/accessories',  label: 'Accessoires 3D' },
     { href: '/admin/factions',     label: 'Factions' },
     { href: '/admin/banners',      label: 'Bannières' },
     { href: '/admin/players',      label: 'Joueurs' },
