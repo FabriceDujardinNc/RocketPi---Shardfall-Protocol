@@ -138,6 +138,7 @@ class MissionService
             $p = $progress->get($m->id);
             return [
                 'id'               => $m->id,
+                'slug'             => $m->slug,
                 'title'            => $m->title,
                 'description'      => $m->description,
                 'type'             => $m->type,

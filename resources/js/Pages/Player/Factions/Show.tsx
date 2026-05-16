@@ -14,6 +14,7 @@ interface Faction {
 
 interface Operator {
     id: number;
+    slug: string;
     name: string;
     codename: string;
     role: string;

@@ -19,12 +19,14 @@ interface Tier {
 
 interface Season {
     id: number;
+    slug: string;
     name: string;
     season_number: number;
     total_tiers: number;
     starts_at: string;
     ends_at: string;
     premium_price_shards: number;
+    premium_price_tickets: number;
 }
 
 interface ProgressVM {
@@ -63,9 +65,15 @@ export default function BattlePass({ season, tiers, progress, shards, wallet }: 
         );
     }
 
-    const purchase = () => {
+    const ticketsBalance = wallet?.tickets_premium ?? 0;
+
+    const purchaseWithShards = () => {
         if (!confirm(`Acheter le Battle Pass premium pour ${season.premium_price_shards} shards ?`)) return;
-        router.post(`/battlepass/${season.id}/purchase`, {}, { preserveScroll: true });
+        router.post(`/battlepass/${season.slug}/purchase`, { currency: 'shards' }, { preserveScroll: true });
+    };
+    const purchaseWithTickets = () => {
+        if (!confirm(`Activer le Battle Pass premium en dépensant ${season.premium_price_tickets} tickets premium ?`)) return;
+        router.post(`/battlepass/${season.slug}/purchase`, { currency: 'tickets_premium' }, { preserveScroll: true });
     };
     const claim = (tier: Tier) => router.post(`/battlepass/tier/${tier.id}/claim`, {}, { preserveScroll: true });
 
@@ -123,9 +131,14 @@ export default function BattlePass({ season, tiers, progress, shards, wallet }: 
                             Premium actif
                         </span>
                     ) : (
-                        <Button onClick={purchase} variant="shard" disabled={shards < season.premium_price_shards}>
-                            Activer Premium ({season.premium_price_shards} ✦)
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                            <Button onClick={purchaseWithShards} variant="shard" disabled={shards < season.premium_price_shards}>
+                                Activer Premium ({season.premium_price_shards} ✦)
+                            </Button>
+                            <Button onClick={purchaseWithTickets} variant="ghost" disabled={ticketsBalance < season.premium_price_tickets}>
+                                Utiliser {season.premium_price_tickets} tickets ({ticketsBalance} dispo)
+                            </Button>
+                        </div>
                     )}
                 </div>
                 {nextTier && (

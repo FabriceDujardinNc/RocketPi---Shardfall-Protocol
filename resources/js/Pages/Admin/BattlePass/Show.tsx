@@ -15,6 +15,7 @@ interface Tier {
 }
 interface BattlePass {
     id: number;
+    slug: string;
     name: string;
     season_number: number;
     total_tiers: number;

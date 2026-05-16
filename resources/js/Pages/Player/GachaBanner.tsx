@@ -12,6 +12,7 @@ type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 interface Banner {
     id: number;
+    slug: string;
     name: string;
     tag: string | null;
     subtitle: string | null;

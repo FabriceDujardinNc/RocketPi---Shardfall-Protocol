@@ -13,6 +13,7 @@ interface OwnedOperator {
     obtained_at: string;
     operator: {
         id: number;
+        slug: string;
         name: string;
         codename: string;
         faction: 'ORBIT' | 'FERRO' | 'VEIL';

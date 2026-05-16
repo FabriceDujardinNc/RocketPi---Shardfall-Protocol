@@ -10,6 +10,7 @@ interface Reward { type: string; amount: number }
 
 interface MissionVM {
     id: number;
+    slug: string;
     title: string;
     description: string | null;
     objective_target: number;
@@ -43,7 +44,7 @@ export default function Dashboard({
     const { props } = usePage<PageProps>();
 
     const claimDaily = () => router.post('/daily-login/claim', {}, { preserveScroll: true });
-    const claimMission = (id: number) => router.post(`/missions/${id}/claim`, {}, { preserveScroll: true });
+    const claimMission = (slug: string) => router.post(`/missions/${slug}/claim`, {}, { preserveScroll: true });
 
     return (
         <>
@@ -140,7 +141,7 @@ export default function Dashboard({
                                         rewardLabel={`+${m.xp_reward} XP`}
                                         completed={m.completed}
                                         claimed={m.reward_claimed}
-                                        onClaim={() => claimMission(m.id)}
+                                        onClaim={() => claimMission(m.slug)}
                                     />
                                 </li>
                             ))}
@@ -162,7 +163,7 @@ export default function Dashboard({
                                         rewardLabel={`+${m.xp_reward} XP`}
                                         completed={m.completed}
                                         claimed={m.reward_claimed}
-                                        onClaim={() => claimMission(m.id)}
+                                        onClaim={() => claimMission(m.slug)}
                                     />
                                 </li>
                             ))}

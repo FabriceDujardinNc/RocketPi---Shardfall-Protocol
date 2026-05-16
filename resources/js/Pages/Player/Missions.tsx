@@ -7,6 +7,7 @@ interface Reward { type: string; amount: number }
 
 interface MissionVM {
     id: number;
+    slug: string;
     title: string;
     description: string | null;
     objective_target: number;
@@ -30,7 +31,7 @@ interface PageProps {
 
 export default function Missions({ daily, weekly }: Props) {
     const { props } = usePage<PageProps>();
-    const claim = (id: number) => router.post(`/missions/${id}/claim`, {}, { preserveScroll: true });
+    const claim = (slug: string) => router.post(`/missions/${slug}/claim`, {}, { preserveScroll: true });
 
     const renderList = (list: MissionVM[]) => (
         <ul className="flex flex-col gap-3">
@@ -44,7 +45,7 @@ export default function Missions({ daily, weekly }: Props) {
                         rewardLabel={`+${m.xp_reward} XP`}
                         completed={m.completed}
                         claimed={m.reward_claimed}
-                        onClaim={() => claim(m.id)}
+                        onClaim={() => claim(m.slug)}
                     />
                 </li>
             ))}

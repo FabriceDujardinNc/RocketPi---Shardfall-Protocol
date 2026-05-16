@@ -40,13 +40,15 @@ class BattlePassController extends Controller
 
         return Inertia::render('Player/BattlePass', [
             'season' => [
-                'id'             => $bp->id,
-                'name'           => $bp->name,
-                'season_number'  => $bp->season_number,
-                'total_tiers'    => $bp->total_tiers,
-                'starts_at'      => $bp->starts_at,
-                'ends_at'        => $bp->ends_at,
-                'premium_price_shards' => $bp->premium_price_shards,
+                'id'                    => $bp->id,
+                'slug'                  => $bp->slug,
+                'name'                  => $bp->name,
+                'season_number'         => $bp->season_number,
+                'total_tiers'           => $bp->total_tiers,
+                'starts_at'             => $bp->starts_at,
+                'ends_at'               => $bp->ends_at,
+                'premium_price_shards'  => $bp->premium_price_shards,
+                'premium_price_tickets' => $bp->premium_price_tickets,
             ],
             'tiers'    => $bp->tiers->map(fn (BattlePassTier $t) => [
                 'id'             => $t->id,
@@ -69,9 +71,17 @@ class BattlePassController extends Controller
 
     public function purchase(Request $request, BattlePass $battlePass): RedirectResponse
     {
+        $validated = $request->validate([
+            'currency' => ['nullable', 'string', 'in:' . Currency::TYPE_SHARDS . ',' . Currency::TYPE_TICKETS_PREMIUM],
+        ]);
+        $currency = $validated['currency'] ?? Currency::TYPE_SHARDS;
+
         try {
-            $this->service->purchase($request->user(), $battlePass, $request->ip());
-            return back()->with('status', 'Battle Pass premium activé !');
+            $this->service->purchase($request->user(), $battlePass, $request->ip(), $currency);
+            $label = $currency === Currency::TYPE_TICKETS_PREMIUM
+                ? "Battle Pass premium activé via {$battlePass->premium_price_tickets} tickets premium !"
+                : 'Battle Pass premium activé !';
+            return back()->with('status', $label);
         } catch (\RuntimeException $e) {
             return back()->withErrors(['battlepass' => $e->getMessage()]);
         }

@@ -4,6 +4,7 @@ import LeaderboardRow from '@game/LeaderboardRow';
 
 interface Season {
     id: number;
+    slug: string;
     name: string;
     type: 'weekly' | 'monthly' | 'seasonal' | 'annual' | 'collection' | 'faction';
     faction: string | null;
@@ -92,7 +93,7 @@ export default function Leaderboard({ currentSeason, seasons, topEntries, partic
                 {seasons.map(s => (
                     <Link
                         key={s.id}
-                        href={`/leaderboard/${s.id}`}
+                        href={`/leaderboard/${s.slug}`}
                         preserveScroll
                         className={
                             'px-3 py-1.5 rounded font-display text-xs uppercase tracking-wide transition-colors duration-fast ' +

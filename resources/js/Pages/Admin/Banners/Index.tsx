@@ -8,6 +8,7 @@ import { Plus, Pencil, Eye, Archive, RotateCcw, Power, PowerOff } from 'lucide-r
 
 interface Banner {
     id: number;
+    slug: string;
     name: string;
     type: 'permanent' | 'event' | 'faction' | 'collab';
     tag: string | null;

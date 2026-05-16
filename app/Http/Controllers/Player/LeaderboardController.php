@@ -36,10 +36,11 @@ class LeaderboardController extends Controller
 
         return Inertia::render('Player/Leaderboard', [
             'currentSeason'    => $season->only([
-                'id', 'name', 'type', 'faction', 'season_number', 'starts_at', 'ends_at',
+                'id', 'slug', 'name', 'type', 'faction', 'season_number', 'starts_at', 'ends_at',
             ]),
             'seasons' => $allSeasons->map(fn ($s) => [
                 'id'      => $s->id,
+                'slug'    => $s->slug,
                 'name'    => $s->name,
                 'type'    => $s->type,
                 'faction' => $s->faction,

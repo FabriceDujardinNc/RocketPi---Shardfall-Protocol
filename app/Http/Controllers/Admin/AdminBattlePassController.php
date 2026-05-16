@@ -29,15 +29,17 @@ class AdminBattlePassController extends Controller
             ->orderByDesc('starts_at')
             ->get()
             ->map(fn (BattlePass $bp) => [
-                'id'                   => $bp->id,
-                'name'                 => $bp->name,
-                'season_number'        => $bp->season_number,
-                'total_tiers'          => $bp->total_tiers,
-                'tiers_count'          => $bp->tiers_count,
-                'premium_price_shards' => $bp->premium_price_shards,
-                'starts_at'            => $bp->starts_at,
-                'ends_at'              => $bp->ends_at,
-                'is_active'            => $bp->is_active,
+                'id'                    => $bp->id,
+                'slug'                  => $bp->slug,
+                'name'                  => $bp->name,
+                'season_number'         => $bp->season_number,
+                'total_tiers'           => $bp->total_tiers,
+                'tiers_count'           => $bp->tiers_count,
+                'premium_price_shards'  => $bp->premium_price_shards,
+                'premium_price_tickets' => $bp->premium_price_tickets,
+                'starts_at'             => $bp->starts_at,
+                'ends_at'               => $bp->ends_at,
+                'is_active'             => $bp->is_active,
                 // État dérivé pour l'UI (scheduled / current / expired)
                 'phase' => $bp->starts_at?->gt($now) ? 'scheduled'
                     : ($bp->ends_at?->lt($now) ? 'expired' : 'current'),
