@@ -29,26 +29,38 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        // Dev quick login : APP_ENV=local + flag `dev` → connexion sans password.
-        // Aucun effet en prod (env check côté serveur).
-        $isDevQuick = app()->environment('local') && $request->boolean('dev');
+        // Dev quick login : host whitelisté + DEV_LOGIN_PASSWORD défini + flag
+        // `dev` → connexion sans password. Aucun effet sur les autres domaines
+        // (check côté serveur via Host). Requiert aussi que la session ait été
+        // déverrouillée via /dev-login/unlock. Le front envoie un `user_id`
+        // (pas l'email — masqué côté UI) pour cibler le compte.
+        $isDevQuick = $this->devLoginEnabled($request)
+            && $request->boolean('dev')
+            && $request->session()->get('dev_login.unlocked') === true;
+
+        if ($isDevQuick) {
+            $validated = $request->validate([
+                'user_id' => 'required|integer|exists:users,id',
+            ]);
+
+            $user = User::find($validated['user_id']);
+            Auth::login($user, true);
+            $request->session()->regenerate();
+            // Le déverrouillage est consommé par la régénération de session ; on le
+            // remet en place pour rester déverrouillé après ce login, et on bypass
+            // explicitement la 2FA (setup + challenge) pour faciliter les tests.
+            $request->session()->put('dev_login.unlocked', true);
+            $request->session()->put('2fa.passed', true);
+            $request->session()->put('2fa.bypass', true);
+
+            return redirect($user->isAdmin() ? route('admin.dashboard') : route('dashboard'))
+                ->with('status', "Connecté en mode dev (user #{$user->id}).");
+        }
 
         $validated = $request->validate([
             'email'    => 'required|email',
-            'password' => $isDevQuick ? 'nullable|string' : 'required|string',
+            'password' => 'required|string',
         ]);
-
-        if ($isDevQuick) {
-            $user = User::where('email', $validated['email'])->first();
-            if (! $user) {
-                return back()->withErrors(['email' => 'Aucun compte avec cet email.'])->onlyInput('email');
-            }
-            Auth::login($user, true);
-            $request->session()->regenerate();
-
-            return redirect($user->isAdmin() ? route('admin.dashboard') : route('dashboard'))
-                ->with('status', "Connecté en tant que {$user->email} (dev mode).");
-        }
 
         if (! Auth::attempt($validated, $request->boolean('remember'))) {
             return back()
@@ -59,6 +71,42 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard'));
+    }
+
+    /**
+     * Déverrouille l'UI de quick login en validant le mot de passe partagé
+     * (`DEV_LOGIN_PASSWORD`). Inerte si APP_ENV != local ou si la config est
+     * vide — renvoie 404 pour ne pas signaler la présence de l'endpoint.
+     */
+    public function unlockDevLogin(Request $request): RedirectResponse
+    {
+        abort_unless($this->devLoginEnabled($request), 404);
+
+        $validated = $request->validate([
+            'dev_password' => 'required|string',
+        ]);
+
+        if (! hash_equals((string) config('auth.dev_login.password'), $validated['dev_password'])) {
+            return back()->withErrors(['dev_password' => 'Mot de passe incorrect.']);
+        }
+
+        $request->session()->put('dev_login.unlocked', true);
+
+        return back()->with('status', 'Quick login déverrouillé.');
+    }
+
+    private function devLoginEnabled(Request $request): bool
+    {
+        // La feature est gatée par le host de la requête (whitelist) + la
+        // présence d'un DEV_LOGIN_PASSWORD non vide. Le backend rocketpi.pro
+        // et rocketpi-test.pro partagent le même Laravel : on évite ainsi
+        // d'activer la feature sur le domaine de prod par erreur.
+        if (blank(config('auth.dev_login.password'))) {
+            return false;
+        }
+
+        $allowedHosts = (array) config('auth.dev_login.allowed_hosts', []);
+        return in_array($request->getHost(), $allowedHosts, true);
     }
 
     // ── Register ────────────────────────────────────────────────────────

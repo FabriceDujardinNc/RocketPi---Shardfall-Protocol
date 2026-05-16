@@ -49,15 +49,71 @@ class HandleInertiaRequests extends Middleware
                 'error'  => fn () => $request->session()->get('error'),
             ],
 
-            // Liste des comptes pour le quick login dev (uniquement local).
-            // Lazy : recalculé à chaque requête, mais seulement consommé en dev.
-            'devUsers' => fn () => app()->environment('local')
+            // État du quick login dev : `enabled` indique que la feature est
+            // disponible (APP_ENV=local + DEV_LOGIN_PASSWORD défini) ; `unlocked`
+            // indique que l'utilisateur a saisi le bon mot de passe dans cette
+            // session. Tant que `unlocked` est faux, `users` reste à null pour
+            // ne jamais exposer la liste des emails.
+            'devLogin' => fn () => [
+                'enabled'  => $this->devLoginEnabled($request),
+                'unlocked' => $request->session()->get('dev_login.unlocked') === true,
+            ],
+
+            'devUsers' => fn () => $this->shouldExposeDevUsers($request)
                 ? User::query()
                     ->orderByDesc('role')
                     ->orderBy('id')
                     ->get(['id', 'email', 'display_name', 'name', 'role', 'is_banned'])
+                    ->map(fn (User $u) => [
+                        'id'           => $u->id,
+                        'email_masked' => self::maskEmail($u->email),
+                        'display_name' => $u->display_name,
+                        'name'         => $u->name,
+                        'role'         => $u->role,
+                        'is_banned'    => $u->is_banned,
+                    ])
                     ->toArray()
                 : null,
         ];
+    }
+
+    private function devLoginEnabled(Request $request): bool
+    {
+        if (blank(config('auth.dev_login.password'))) {
+            return false;
+        }
+
+        $allowedHosts = (array) config('auth.dev_login.allowed_hosts', []);
+        return in_array($request->getHost(), $allowedHosts, true);
+    }
+
+    private function shouldExposeDevUsers(Request $request): bool
+    {
+        return $this->devLoginEnabled($request)
+            && $request->session()->get('dev_login.unlocked') === true;
+    }
+
+    /**
+     * Masque l'email pour l'UI de quick login : `adm…@r…o`. La valeur réelle
+     * n'est jamais exposée au front — on ne la retrouve que via l'id côté
+     * controller au moment du POST /login.
+     */
+    public static function maskEmail(string $email): string
+    {
+        [$local, $domain] = array_pad(explode('@', $email, 2), 2, '');
+
+        $maskedLocal = mb_strlen($local) > 3
+            ? mb_substr($local, 0, 3) . '…'
+            : ($local !== '' ? mb_substr($local, 0, 1) . '…' : '…');
+
+        if ($domain === '') {
+            return $maskedLocal;
+        }
+
+        $dot           = mb_strrpos($domain, '.');
+        $domainHead    = $dot !== false ? mb_substr($domain, 0, 1) : mb_substr($domain, 0, 1);
+        $domainTail    = $dot !== false ? mb_substr($domain, $dot) : '';
+
+        return $maskedLocal . '@' . $domainHead . '…' . $domainTail;
     }
 }

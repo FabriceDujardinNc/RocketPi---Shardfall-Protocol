@@ -114,4 +114,34 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Dev quick login
+    |--------------------------------------------------------------------------
+    |
+    | Protège la liste des comptes affichée sur la page /login.
+    | La fonctionnalité est active si TOUTES ces conditions sont remplies :
+    |   1. `password` non vide
+    |   2. Le host de la requête est dans `allowed_hosts` (cas d'un backend
+    |      partagé entre rocketpi.pro et rocketpi-test.pro derrière le même
+    |      Caddy : on whiteliste explicitement le domaine de test).
+    |
+    | Lorsque ces conditions sont remplies, l'utilisateur doit saisir le mot
+    | de passe pour déverrouiller la liste ; chaque connexion via quick login
+    | bypass alors la 2FA (setup et challenge) pour faciliter les tests.
+    |
+    | `allowed_hosts` peut être défini via env (liste séparée par virgules) :
+    |   DEV_LOGIN_ALLOWED_HOSTS=rocketpi-test.pro,www.rocketpi-test.pro
+    | Si vide, on retombe sur `localhost` + `127.0.0.1` pour le dev local.
+    |
+    */
+
+    'dev_login' => [
+        'password'      => env('DEV_LOGIN_PASSWORD'),
+        'allowed_hosts' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('DEV_LOGIN_ALLOWED_HOSTS', 'localhost,127.0.0.1'))
+        ))),
+    ],
+
 ];

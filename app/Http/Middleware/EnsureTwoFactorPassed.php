@@ -43,6 +43,17 @@ class EnsureTwoFactorPassed
             }
         }
 
+        // Bypass intégral quand la session a été ouverte via quick login dev
+        // sur un host whitelisté (cf. auth.dev_login.allowed_hosts). Permet de
+        // tester /admin sans configurer un TOTP sur chaque compte de seed.
+        // Sur les hosts non-whitelistés (ex. rocketpi.pro prod), le flag session
+        // existe peut-être mais ce check refuse de l'honorer.
+        if ($request->session()->get('2fa.bypass') === true
+            && in_array($request->getHost(), (array) config('auth.dev_login.allowed_hosts', []), true)
+        ) {
+            return $next($request);
+        }
+
         // Admin sans 2FA configurée → force le setup.
         if ($user->requiresTwoFactor()) {
             return redirect()->route('2fa.setup');

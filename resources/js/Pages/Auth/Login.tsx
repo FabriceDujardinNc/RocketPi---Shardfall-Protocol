@@ -6,7 +6,7 @@ import { type FormEventHandler } from 'react';
 
 interface DevUser {
     id: number;
-    email: string;
+    email_masked: string;
     name: string;
     display_name: string | null;
     role: string;
@@ -15,13 +15,16 @@ interface DevUser {
 
 interface PageProps {
     app: { name: string; env: string };
+    devLogin: { enabled: boolean; unlocked: boolean };
     devUsers: DevUser[] | null;
+    errors: Record<string, string>;
     [key: string]: unknown;
 }
 
 export default function Login() {
     const { props } = usePage<PageProps>();
-    const isDev = props.app?.env === 'local';
+    const devLoginEnabled = props.devLogin?.enabled === true;
+    const devLoginUnlocked = props.devLogin?.unlocked === true;
 
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
@@ -29,15 +32,22 @@ export default function Login() {
         remember: false,
     });
 
+    const unlockForm = useForm({ dev_password: '' });
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         post('/login', { onFinish: () => reset('password') });
     };
 
-    // Dev quick login : submit le form standard avec flag `dev=1`.
-    // Le controller ignore ce flag en prod (env check côté serveur).
-    const quickLogin = (email: string) => {
-        router.post('/login', { email, dev: true, password: '', remember: true });
+    const submitUnlock: FormEventHandler = (e) => {
+        e.preventDefault();
+        unlockForm.post('/dev-login/unlock', { onFinish: () => unlockForm.reset('dev_password') });
+    };
+
+    // Dev quick login : submit le form standard avec flag `dev=1` + user_id.
+    // L'email reste masqué côté front, on ne transmet que l'identifiant numérique.
+    const quickLogin = (userId: number) => {
+        router.post('/login', { user_id: userId, dev: true, remember: true });
     };
 
     return (
@@ -103,7 +113,7 @@ export default function Login() {
             </form>
 
             {/* ── Dev quick login ───────────────────────────────────── */}
-            {isDev && props.devUsers && props.devUsers.length > 0 && (
+            {devLoginEnabled && (
                 <section className="mt-8 p-4 rounded-md border border-warning/30 bg-warning/5">
                     <header className="flex items-center justify-between mb-3">
                         <h3 className="font-display text-xs uppercase tracking-mega text-warning">
@@ -111,35 +121,72 @@ export default function Login() {
                         </h3>
                         <span className="font-mono text-[10px] text-text-low">APP_ENV=local</span>
                     </header>
-                    <p className="font-mono text-xs text-text-low mb-3">
-                        Cliquer pour se connecter sans mot de passe (désactivé en prod).
-                    </p>
-                    <ul className="flex flex-col gap-1.5">
-                        {props.devUsers.map((u) => (
-                            <li key={u.id}>
-                                <button
-                                    type="button"
-                                    onClick={() => quickLogin(u.email)}
-                                    className="w-full text-left px-3 py-2 rounded-md bg-bg-elev1 border border-border-default hover:border-shard-500/40 hover:bg-bg-elev2 transition-colors duration-fast group"
-                                >
-                                    <div className="flex items-center justify-between gap-3">
-                                        <span className="font-mono text-xs text-text-high group-hover:text-shard-400 truncate">
-                                            {u.email}
-                                        </span>
-                                        <span className={
-                                            'font-display text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0 ' +
-                                            (u.is_banned        ? 'bg-danger/15 text-danger'   :
-                                             u.role === 'super_admin' ? 'bg-rarity-legendary/15 text-rarity-legendary' :
-                                             u.role === 'admin'  ? 'bg-shard-500/15 text-shard-400' :
-                                                                   'bg-bg-elev3 text-text-medium')
-                                        }>
-                                            {u.is_banned ? 'BANNI' : u.role.replace('_', ' ')}
-                                        </span>
-                                    </div>
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
+
+                    {!devLoginUnlocked && (
+                        <form onSubmit={submitUnlock} className="flex flex-col gap-2">
+                            <p className="font-mono text-xs text-text-low">
+                                Cette fonctionnalité est protégée. Saisis le mot de passe partagé pour afficher la liste des comptes.
+                            </p>
+                            <label className="flex flex-col gap-1">
+                                <span className="font-display text-xs uppercase tracking-wide text-text-medium">
+                                    Mot de passe dev
+                                </span>
+                                <input
+                                    type="password"
+                                    autoComplete="off"
+                                    required
+                                    value={unlockForm.data.dev_password}
+                                    onChange={(e) => unlockForm.setData('dev_password', e.target.value)}
+                                    className="h-10 px-3 rounded-md bg-bg-elev1 border border-border-default text-text-high focus:outline-none focus:ring-2 focus:ring-warning"
+                                />
+                                {unlockForm.errors.dev_password && (
+                                    <span className="text-danger text-xs">{unlockForm.errors.dev_password}</span>
+                                )}
+                            </label>
+                            <Button type="submit" loading={unlockForm.processing} size="sm" fullWidth>
+                                Déverrouiller
+                            </Button>
+                        </form>
+                    )}
+
+                    {devLoginUnlocked && props.devUsers && props.devUsers.length > 0 && (
+                        <>
+                            <p className="font-mono text-xs text-text-low mb-3">
+                                Cliquer pour se connecter sans mot de passe (désactivé en prod).
+                            </p>
+                            <ul className="flex flex-col gap-1.5">
+                                {props.devUsers.map((u) => (
+                                    <li key={u.id}>
+                                        <button
+                                            type="button"
+                                            onClick={() => quickLogin(u.id)}
+                                            className="w-full text-left px-3 py-2 rounded-md bg-bg-elev1 border border-border-default hover:border-shard-500/40 hover:bg-bg-elev2 transition-colors duration-fast group"
+                                        >
+                                            <div className="flex items-center justify-between gap-3">
+                                                <span className="flex flex-col min-w-0">
+                                                    <span className="font-display text-xs text-text-high group-hover:text-shard-400 truncate">
+                                                        {u.display_name ?? u.name}
+                                                    </span>
+                                                    <span className="font-mono text-[10px] text-text-low truncate">
+                                                        {u.email_masked}
+                                                    </span>
+                                                </span>
+                                                <span className={
+                                                    'font-display text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0 ' +
+                                                    (u.is_banned        ? 'bg-danger/15 text-danger'   :
+                                                     u.role === 'super_admin' ? 'bg-rarity-legendary/15 text-rarity-legendary' :
+                                                     u.role === 'admin'  ? 'bg-shard-500/15 text-shard-400' :
+                                                                           'bg-bg-elev3 text-text-medium')
+                                                }>
+                                                    {u.is_banned ? 'BANNI' : u.role.replace('_', ' ')}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </>
+                    )}
                 </section>
             )}
         </>
