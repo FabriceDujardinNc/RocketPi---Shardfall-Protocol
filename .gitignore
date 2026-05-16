@@ -64,6 +64,8 @@ public/unity/index.html
 .phpunit.result.cache
 /coverage/
 /storybook-static/
+# Storage::fake() artifacts générés par les tests — ne doivent jamais être trackés.
+/storage/framework/testing/disks/
 
 # ── Temp ─────────────────────────────────────────────────────────────
 *.tmp
