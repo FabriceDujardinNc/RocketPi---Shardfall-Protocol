@@ -82,7 +82,7 @@ it('persists accessory glb on storage', function () {
     Storage::disk('public')->assertExists($a->base_model_url);
 });
 
-it('persists skin texture under operator skin path', function () {
+it('persists skin texture AND retextured model.glb under operator skin path', function () {
     $op = makeOperator('legendary');
     $op->update([
         'base_generation_status' => 'ready',
@@ -100,5 +100,7 @@ it('persists skin texture under operator skin path', function () {
     $skin->refresh();
     expect($skin->generation_status)->toBe('ready');
     expect($skin->texture_url)->toBe("models/operators/{$op->slug}/skins/{$skin->slug}/texture.png");
+    expect($skin->model_url)->toBe("models/operators/{$op->slug}/skins/{$skin->slug}/model.glb");
     Storage::disk('public')->assertExists($skin->texture_url);
+    Storage::disk('public')->assertExists($skin->model_url);
 });

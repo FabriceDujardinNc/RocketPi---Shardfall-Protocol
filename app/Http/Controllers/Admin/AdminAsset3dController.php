@@ -46,6 +46,7 @@ class AdminAsset3dController extends Controller
                 'is_active'         => $s->is_active,
                 'generation_status' => $s->generation_status,
                 'meshy_task_id'     => $s->meshy_task_id,
+                'model_url'         => $s->model_url,
                 'texture_url'       => $s->texture_url,
                 'preview_url'       => $s->preview_url,
                 'updated_at'        => $s->updated_at,

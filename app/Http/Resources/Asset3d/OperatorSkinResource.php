@@ -17,6 +17,7 @@ class OperatorSkinResource extends JsonResource
             'name'               => $this->name,
             'rarity'             => $this->rarity,
             'palette_json'       => $this->palette_json,
+            'model_url'          => $this->model_url,
             'texture_url'        => $this->texture_url,
             'material_overrides' => $this->material_overrides,
             'preview_url'        => $this->preview_url,

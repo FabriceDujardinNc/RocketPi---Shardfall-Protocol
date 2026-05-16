@@ -31,6 +31,7 @@ interface SkinAsset {
     is_active: boolean;
     generation_status: GenerationStatus;
     meshy_task_id: string | null;
+    model_url: string | null;
     texture_url: string | null;
     preview_url: string | null;
     updated_at: string;
@@ -200,8 +201,14 @@ export default function OperatorAssets() {
                     <ul className="space-y-2">
                         {skins.map((skin) => {
                             const expanded = expandedSkins.has(skin.id);
-                            // Skin viewable si l'opérateur a son mesh ET la skin a sa texture
-                            const canView = !!operator.base_model_url && operator.base_generation_status === 'ready' && !!skin.texture_url;
+                            // Skin viewable :
+                            //  - si `model_url` (glb retexturé Meshy, self-contained) → on le rend tel quel
+                            //  - sinon fallback legacy : base.glb opérateur + texture override (UVs souvent KO)
+                            const canViewOwnModel = skin.generation_status === 'ready' && !!skin.model_url;
+                            const canViewFallback = !!operator.base_model_url
+                                && operator.base_generation_status === 'ready'
+                                && !!skin.texture_url;
+                            const canView = canViewOwnModel || canViewFallback;
                             return (
                                 <li key={skin.id} className="border-b border-border-default last:border-0">
                                     <div className="flex items-center justify-between gap-4 py-2">
@@ -260,8 +267,14 @@ export default function OperatorAssets() {
                                     {canView && expanded && (
                                         <div className="pb-3">
                                             <GlbViewer
-                                                src={`/storage/${operator.base_model_url}`}
-                                                textureOverrideUrl={`/storage/${skin.texture_url}`}
+                                                src={
+                                                    canViewOwnModel
+                                                        ? `/storage/${skin.model_url}`
+                                                        : `/storage/${operator.base_model_url}`
+                                                }
+                                                textureOverrideUrl={
+                                                    canViewOwnModel ? null : `/storage/${skin.texture_url}`
+                                                }
                                                 alt={`Aperçu 3D ${skin.name}`}
                                                 height={280}
                                             />

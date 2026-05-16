@@ -20,6 +20,7 @@ interface SkinPayload {
     is_default: boolean;
     generation_status: GenerationStatus;
     meshy_task_id: string | null;
+    model_url: string | null;
     texture_url: string | null;
     preview_url: string | null;
     operator: {
@@ -81,19 +82,37 @@ export default function SkinEdit({ skin, operators, enums }: Props) {
             {props.flash?.status && <div className="mb-4"><Alert variant="success">{props.flash.status}</Alert></div>}
             {props.flash?.error  && <div className="mb-4"><Alert variant="danger">{props.flash.error}</Alert></div>}
 
-            {skin.operator.base_model_url && skin.operator.base_generation_status === 'ready' && (
-                <div className="rounded-lg bg-bg-elev1 border border-border-default p-4 mb-6">
-                    <h2 className="text-sm font-display uppercase tracking-wide text-text-low mb-3">
-                        Aperçu 3D — {skin.operator.name} {skin.texture_url ? `avec texture ${skin.name}` : '(mesh de base, skin non générée)'}
-                    </h2>
-                    <GlbViewer
-                        src={`/storage/${skin.operator.base_model_url}`}
-                        textureOverrideUrl={skin.texture_url ? `/storage/${skin.texture_url}` : null}
-                        alt={`Aperçu 3D ${skin.name}`}
-                        height={420}
-                    />
-                </div>
-            )}
+            {(() => {
+                // Préfère le .glb retexturé (UVs et matériel propres) au fallback
+                // base.glb + texture override (souvent UV-mismatched).
+                const useOwnModel = skin.generation_status === 'ready' && !!skin.model_url;
+                const useFallback = !useOwnModel
+                    && skin.operator.base_model_url
+                    && skin.operator.base_generation_status === 'ready';
+                if (!useOwnModel && !useFallback) return null;
+
+                const heading = useOwnModel
+                    ? `Aperçu 3D — ${skin.name} (modèle retexturé)`
+                    : `Aperçu 3D — ${skin.operator.name} ${skin.texture_url ? `avec texture ${skin.name}` : '(mesh de base, skin non générée)'}`;
+
+                return (
+                    <div className="rounded-lg bg-bg-elev1 border border-border-default p-4 mb-6">
+                        <h2 className="text-sm font-display uppercase tracking-wide text-text-low mb-3">
+                            {heading}
+                        </h2>
+                        <GlbViewer
+                            src={useOwnModel
+                                ? `/storage/${skin.model_url}`
+                                : `/storage/${skin.operator.base_model_url}`}
+                            textureOverrideUrl={useOwnModel
+                                ? null
+                                : (skin.texture_url ? `/storage/${skin.texture_url}` : null)}
+                            alt={`Aperçu 3D ${skin.name}`}
+                            height={420}
+                        />
+                    </div>
+                );
+            })()}
 
             {(skin.preview_url || skin.texture_url) && (
                 <div className="rounded-lg bg-bg-elev1 border border-border-default p-4 mb-6 flex items-start gap-4">

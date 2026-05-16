@@ -78,9 +78,9 @@ class FakeMeshyClient implements MeshyClientInterface
         return new MeshyTaskStatus(
             taskId: $taskId,
             status: 'ready',
-            modelUrl: $kind === 'skin'
-                ? null
-                : "https://fake.meshy.local/{$taskId}/model.glb",
+            // Meshy v1/retexture renvoie BOTH model_url ET texture_url. Le fake
+            // reflète ça pour que les tests couvrent la double persistance.
+            modelUrl: "https://fake.meshy.local/{$taskId}/model.glb",
             textureUrl: in_array($kind, ['skin'], true)
                 ? "https://fake.meshy.local/{$taskId}/texture.png"
                 : null,

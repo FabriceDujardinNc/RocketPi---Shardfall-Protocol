@@ -33,6 +33,7 @@ class OperatorSkin extends Model
 
     public function isReady(): bool
     {
-        return $this->generation_status === 'ready' && filled($this->texture_url);
+        return $this->generation_status === 'ready'
+            && (filled($this->model_url) || filled($this->texture_url));
     }
 }

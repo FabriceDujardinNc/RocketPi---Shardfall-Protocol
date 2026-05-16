@@ -123,13 +123,24 @@ class PollMeshyTaskJob implements ShouldQueue
                 $entity->base_preview_url = $previewPath;
             }
         } elseif ($entity instanceof OperatorSkin) {
-            $path = "models/operators/{$entity->operator->slug}/skins/{$slug}/texture.png";
+            // Meshy v1/retexture renvoie un .glb retexturé (model_urls.glb) en plus
+            // de la texture brute. On télécharge les deux : le .glb est self-contained
+            // (texture bakée, UVs cohérentes) et c'est ce qu'on rend dans le viewer
+            // admin ainsi que ce que Unity peut charger directement. La texture.png
+            // reste utile pour debug et pour une future application via MaterialPropertyBlock.
+            $baseDir = "models/operators/{$entity->operator->slug}/skins/{$slug}";
+            if ($status->modelUrl) {
+                $modelPath = "{$baseDir}/model.glb";
+                $disk->put($modelPath, $client->downloadAsset($status->modelUrl));
+                $entity->model_url = $modelPath;
+            }
             if ($status->textureUrl) {
-                $disk->put($path, $client->downloadAsset($status->textureUrl));
-                $entity->texture_url = $path;
+                $texturePath = "{$baseDir}/texture.png";
+                $disk->put($texturePath, $client->downloadAsset($status->textureUrl));
+                $entity->texture_url = $texturePath;
             }
             if ($status->previewUrl) {
-                $previewPath = "models/operators/{$entity->operator->slug}/skins/{$slug}/preview.png";
+                $previewPath = "{$baseDir}/preview.png";
                 $disk->put($previewPath, $client->downloadAsset($status->previewUrl));
                 $entity->preview_url = $previewPath;
             }
