@@ -22,11 +22,24 @@ use Illuminate\Support\Facades\Storage;
  */
 class MeshyPromptBuilder
 {
-    private const STYLE_PREFIX = 'futuristic sci-fi PMC operative, year 2087, hero-shooter game-ready character, '
-        . 'A-pose, neutral facial expression, balanced proportions, AAA stylized realism, ';
+    // T-pose strict : indispensable pour passer dans Mixamo Auto-Rigger
+    // (le rigger échoue si bras le long du corps ou pose action).
+    // L'ordre des termes compte : Meshy donne plus de poids au début + fin du prompt.
+    private const STYLE_PREFIX = 'T-pose character, arms fully extended horizontally to the sides, palms open facing down, '
+        . 'legs straight slightly apart, standing upright on flat ground, empty hands, no weapons, no accessories held, '
+        . 'futuristic sci-fi PMC operative, year 2087, hero-shooter game-ready character, '
+        . 'neutral facial expression looking forward, balanced symmetric anatomy, AAA stylized realism, ';
+
+    // Suffixe rappelé en fin de prompt pour renforcer la T-pose (Meshy biaise vers les
+    // derniers mots du prompt).
+    private const STYLE_SUFFIX = ' Strict T-pose, arms horizontal, empty hands, ready for Mixamo Auto-Rigger.';
 
     private const STYLE_NEGATIVE = 'cartoon, anime, low quality, deformed, extra limbs, watermark, text, logo, '
-        . 'photorealistic skin pores, nsfw, blood, gore, asymmetric anatomy';
+        . 'photorealistic skin pores, nsfw, blood, gore, asymmetric anatomy, '
+        . 'holding weapon, gun in hand, rifle in hand, pistol in hand, knife in hand, '
+        . 'arms down, arms at sides, arms crossed, hands on hips, hands in pockets, hands clenched, '
+        . 'action pose, dynamic pose, combat stance, crouching, kneeling, running, walking, aiming, '
+        . 'A-pose, contrapposto, fashion pose, hero pose';
 
     private const FACTION_FLAVOR = [
         'ORBIT' => 'cyan and white composite armor, orbital infantry, clean carbon weave, '
@@ -40,11 +53,15 @@ class MeshyPromptBuilder
     public function forOperatorBase(Operator $operator): MeshyGenerationRequest
     {
         $faction = self::FACTION_FLAVOR[$operator->faction] ?? '';
-        $role    = $this->describeRole($operator->role);
-        $lore    = $operator->lore ? mb_strimwidth($operator->lore, 0, 200, '…') : '';
+        $role    = $this->describeRoleVisual($operator->role);
+        // Lore court (100 chars max) pour ambiance, sans verbes d'action qui
+        // pourraient déclencher une pose dynamique (sniper "scanning horizon" → mesh debout
+        // avec fusil épaulé). Voir describeRoleVisual qui supprime les références aux armes.
+        $lore = $operator->lore ? mb_strimwidth($operator->lore, 0, 100, '…') : '';
 
         $prompt = self::STYLE_PREFIX
-            . "{$operator->name} ({$operator->codename}), {$role}, {$faction}. {$lore}";
+            . "{$operator->name} ({$operator->codename}), {$role}, {$faction}. {$lore}"
+            . self::STYLE_SUFFIX;
 
         return new MeshyGenerationRequest(
             kind: 'base',
@@ -127,6 +144,27 @@ class MeshyPromptBuilder
             'infiltrator' => 'stealth infiltrator in low-profile suit',
             'hacker'      => 'electronic warfare operator with arm-mounted deck',
             default       => 'PMC operative',
+        };
+    }
+
+    /**
+     * Variante de describeRole utilisée pour la génération base T-pose :
+     * supprime tout ce qui pourrait suggérer une arme en main, une pose
+     * d'action ou un accessoire tenu. La silhouette doit rester strictement
+     * neutre et compatible Mixamo Auto-Rigger.
+     */
+    private function describeRoleVisual(string $role): string
+    {
+        return match ($role) {
+            'sniper'      => 'tall marksman silhouette with ghillie-style fabric accents on shoulders',
+            'healer'      => 'medic with utility vest and shoulder-mounted med-pack housing',
+            'scout'       => 'lightweight recon operative with slim armor plates',
+            'tank'        => 'heavy armored frontline operative, broad shoulders and chest plate',
+            'explosives'  => 'demolitions operative with empty grenade harness on chest',
+            'assault'     => 'standard assault operator with chest rig',
+            'infiltrator' => 'stealth operative in low-profile suit with hood',
+            'hacker'      => 'electronic warfare operator with arm-mounted deck device',
+            default       => 'PMC operative with neutral chest rig',
         };
     }
 
