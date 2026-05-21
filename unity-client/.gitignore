@@ -40,3 +40,19 @@ WebGLBuild/
 
 # WebGL build symbols (optional — keep if you want sourcemaps)
 *.symbols.json.unityweb
+
+# Meshy raw .glb sources — copies of storage/app/public/models/operators/*/base.glb
+# Pas besoin de les versionner (118 MB de duplicates avec storage Laravel).
+# Le pipeline /admin/operators/{slug}/assets régénère, et le user les recopie en local
+# pour les import Unity. Pour CI/serveur, ils ne sont pas nécessaires.
+Assets/Models/Operators/Raw/*.glb
+Assets/Models/Operators/Raw/*.glb.meta
+
+# Conversions intermédiaires (anyconv .obj utilisés pour upload Mixamo).
+# Plain-text vertex data — chaque fichier fait 30-50 MB. À exclure absolument.
+Assets/Models/Operators/Raw/raw-obj/
+Assets/Models/Operators/Raw/raw-obj.meta
+
+# Unity Recovery (auto-créé lors de crash éditeur)
+Assets/_Recovery/
+Assets/_Recovery.meta

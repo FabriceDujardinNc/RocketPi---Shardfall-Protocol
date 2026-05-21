@@ -6,7 +6,8 @@
         "Rocketpi.Gameplay",
         "Rocketpi.UI",
         "Rocketpi.RestClient",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.AI.Navigation"
     ],
     "includePlatforms": [
         "Editor"

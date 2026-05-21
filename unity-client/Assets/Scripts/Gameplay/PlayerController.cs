@@ -1,16 +1,21 @@
-// PlayerController.cs — Contrôleur FPS du joueur local.
+// PlayerController.cs — Contrôleur 3rd person du joueur local.
 //
-// Mouvement à la souris + clavier (WASD), saut, look caméra, intégration
-// Input System nouveau (Unity.InputSystem). Pas de logique réseau ici —
-// pour le mode training c'est purement local. La version réseau (Photon
-// Fusion) viendra dans Phase 5 et fera tourner ce contrôleur dans un
-// NetworkBehaviour avec input replication.
+// Le joueur :
+//   - instancie le BodyPrefab de l'opérateur sur lui-même
+//   - bouge avec WASD relatif à la direction caméra (3rd person classique)
+//   - tourne le body vers la direction de la caméra quand il bouge
+//   - lit la vélocité du CharacterController et l'envoie à OperatorBody (anim driver)
+//
+// Pas de logique réseau ici. La version Photon Fusion (Phase 5) wrappera ce
+// MonoBehaviour dans un NetworkBehaviour avec input replication.
 
 using System;
 using Rocketpi.Bridge;
+using Rocketpi.Gameplay.Body;
+using Rocketpi.Gameplay.CameraControl;
 using Rocketpi.Gameplay.Match;
-using Rocketpi.Gameplay.Weapons;
 using Rocketpi.Gameplay.Operators;
+using Rocketpi.Gameplay.Weapons;
 using Rocketpi.RestClient;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -21,35 +26,32 @@ namespace Rocketpi.Gameplay
     [RequireComponent(typeof(HealthSystem))]
     public class PlayerController : MonoBehaviour
     {
-        [Header("Look")]
-        [SerializeField] private Camera _cameraOverride;
-        [SerializeField] private float _lookSensitivity = 0.12f;
-        [SerializeField] private float _pitchMin = -85f;
-        [SerializeField] private float _pitchMax = 85f;
-
         [Header("Move")]
         [SerializeField] private float _walkSpeed = 5.5f;
         [SerializeField] private float _sprintSpeed = 8.5f;
         [SerializeField] private float _jumpVelocity = 5.5f;
         [SerializeField] private float _gravity = -18f;
         [SerializeField] private float _airControl = 0.55f;
+        [SerializeField, Range(1f, 30f)] private float _bodyTurnSpeed = 12f;
 
         [Header("Operator")]
         [SerializeField] private OperatorData _operator;
         [SerializeField] private Transform _weaponSocket;
 
-        [Header("Match (optionnel — pour unlock curseur en fin de match)")]
+        [Header("Refs")]
+        [SerializeField] private ThirdPersonCamera _camera;
+        [SerializeField] private Transform _bodyAnchor;       // où instancier le BodyPrefab (par défaut = transform)
         [SerializeField] private TrainingMatchManager _match;
 
         public OperatorData Operator => _operator;
         public HealthSystem Health { get; private set; }
         public WeaponBase   Weapon { get; private set; }
+        public OperatorBody Body   { get; private set; }
 
         public event Action<WeaponBase> OnWeaponChanged;
 
         private CharacterController _cc;
         private InputAction _moveAction;
-        private InputAction _lookAction;
         private InputAction _jumpAction;
         private InputAction _sprintAction;
         private InputAction _fireAction;
@@ -58,27 +60,23 @@ namespace Rocketpi.Gameplay
         private InputAction _ability2Action;
         private InputAction _ultimateAction;
 
+        private GameObject _bodyInstance;
         private Vector3 _velocity;
-        private float _pitch;
 
         private void Awake()
         {
             _cc = GetComponent<CharacterController>();
             Health = GetComponent<HealthSystem>();
-            if (_cameraOverride == null) _cameraOverride = GetComponentInChildren<Camera>();
-            if (_match == null) _match = FindAnyObjectByType<TrainingMatchManager>();
+            if (_camera == null) _camera = FindAnyObjectByType<ThirdPersonCamera>();
+            if (_match == null)  _match  = FindAnyObjectByType<TrainingMatchManager>();
+            if (_bodyAnchor == null) _bodyAnchor = transform;
 
-            // L'Input System est mappé par défaut sur les bindings standard FPS.
-            // Pour un projet réel, créer un InputActionAsset et l'assigner ;
-            // ici on crée les actions à la volée pour réduire le setup éditeur.
-            _moveAction     = new InputAction("Move",     binding: "<Gamepad>/leftStick");
+            _moveAction = new InputAction("Move", binding: "<Gamepad>/leftStick");
             _moveAction.AddCompositeBinding("Dpad")
                 .With("Up",    "<Keyboard>/w")
                 .With("Down",  "<Keyboard>/s")
                 .With("Left",  "<Keyboard>/a")
                 .With("Right", "<Keyboard>/d");
-            _lookAction     = new InputAction("Look",     binding: "<Mouse>/delta");
-            _lookAction.AddBinding("<Gamepad>/rightStick");
             _jumpAction     = new InputAction("Jump",     binding: "<Keyboard>/space");
             _sprintAction   = new InputAction("Sprint",   binding: "<Keyboard>/leftShift");
             _fireAction     = new InputAction("Fire",     binding: "<Mouse>/leftButton");
@@ -91,7 +89,6 @@ namespace Rocketpi.Gameplay
         private void OnEnable()
         {
             _moveAction.Enable();
-            _lookAction.Enable();
             _jumpAction.Enable();
             _sprintAction.Enable();
             _fireAction.Enable();
@@ -100,8 +97,6 @@ namespace Rocketpi.Gameplay
             _ability2Action.Enable();
             _ultimateAction.Enable();
 
-            // Curseur LIBRE par défaut : on ne le lock qu'au démarrage effectif du match
-            // pour laisser le joueur cliquer sur le MainMenu / MatchSummary.
             ReleaseCursor();
 
             if (RocketpiBridge.Instance != null)
@@ -119,7 +114,6 @@ namespace Rocketpi.Gameplay
         private void OnDisable()
         {
             _moveAction.Disable();
-            _lookAction.Disable();
             _jumpAction.Disable();
             _sprintAction.Disable();
             _fireAction.Disable();
@@ -145,7 +139,9 @@ namespace Rocketpi.Gameplay
         private void Start()
         {
             ApplyOperatorStats();
+            SpawnOperatorBody();
             EquipOperatorWeapon();
+            BindCameraToBody();
         }
 
         // ── Curseur ────────────────────────────────────────────────────────
@@ -171,24 +167,20 @@ namespace Rocketpi.Gameplay
         {
             if (Health.IsDead) return;
 
-            // Si le curseur est libre (menu affiché), on ignore look/fire pour ne pas
-            // bouger la caméra ni tirer pendant que le joueur navigue en UI.
             var matchActive = Cursor.lockState == CursorLockMode.Locked;
-            if (matchActive)
-            {
-                HandleLook();
-                HandleFire();
-            }
+            if (matchActive) HandleFire();
             HandleMove();
         }
 
-        // ── Operator / Weapon ──────────────────────────────────────────────
+        // ── Operator / Body / Weapon ───────────────────────────────────────
 
         public void SetOperator(OperatorData op)
         {
             _operator = op;
             ApplyOperatorStats();
+            SpawnOperatorBody();
             EquipOperatorWeapon();
+            BindCameraToBody();
         }
 
         private void ApplyOperatorStats()
@@ -197,6 +189,35 @@ namespace Rocketpi.Gameplay
             Health.SetMaxHealth(_operator.BaseHp);
             _walkSpeed   = _operator.WalkSpeed;
             _sprintSpeed = _operator.SprintSpeed;
+
+            // Resize du CC pour matcher la silhouette du body
+            _cc.height = _operator.BodyHeight;
+            _cc.radius = _operator.BodyRadius;
+            _cc.center = new Vector3(0f, _operator.BodyHeight * 0.5f, 0f);
+        }
+
+        private void SpawnOperatorBody()
+        {
+            if (_operator == null) return;
+
+            if (_bodyInstance != null)
+            {
+                Destroy(_bodyInstance);
+                _bodyInstance = null;
+                Body = null;
+            }
+
+            if (_operator.BodyPrefab == null)
+            {
+                Debug.LogWarning($"[PlayerController] BodyPrefab manquant sur {_operator.name} — joueur restera invisible (capsule logique).");
+                return;
+            }
+
+            _bodyInstance = Instantiate(_operator.BodyPrefab, _bodyAnchor);
+            _bodyInstance.transform.localPosition = Vector3.zero;
+            _bodyInstance.transform.localRotation = Quaternion.identity;
+            Body = _bodyInstance.GetComponent<OperatorBody>() ?? _bodyInstance.GetComponentInChildren<OperatorBody>();
+            Body?.Configure(_walkSpeed, _sprintSpeed);
         }
 
         private void EquipOperatorWeapon()
@@ -213,23 +234,25 @@ namespace Rocketpi.Gameplay
             OnWeaponChanged?.Invoke(Weapon);
         }
 
-        // ── Input handlers ─────────────────────────────────────────────────
-
-        private void HandleLook()
+        private void BindCameraToBody()
         {
-            var delta = _lookAction.ReadValue<Vector2>() * _lookSensitivity;
-            transform.Rotate(0f, delta.x, 0f, Space.World);
-
-            _pitch = Mathf.Clamp(_pitch - delta.y, _pitchMin, _pitchMax);
-            if (_cameraOverride != null)
-                _cameraOverride.transform.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
+            if (_camera == null || _operator == null) return;
+            _camera.SetTarget(transform, _operator.CameraShoulderHeight);
         }
+
+        // ── Input → mouvement 3rd person ───────────────────────────────────
 
         private void HandleMove()
         {
             var input = _moveAction.ReadValue<Vector2>();
-            var wishDir = transform.right * input.x + transform.forward * input.y;
-            var speed = _sprintAction.IsPressed() ? _sprintSpeed : _walkSpeed;
+
+            // Direction caméra projetée sur le plan horizontal
+            var camYaw = _camera != null ? _camera.Yaw : transform.eulerAngles.y;
+            var camRot = Quaternion.Euler(0f, camYaw, 0f);
+            var wishDir = camRot * new Vector3(input.x, 0f, input.y);
+
+            var sprint = _sprintAction.IsPressed() && input.y > 0.1f;
+            var speed = sprint ? _sprintSpeed : _walkSpeed;
             var groundControl = _cc.isGrounded ? 1f : _airControl;
 
             var horizontal = wishDir * (speed * groundControl);
@@ -248,6 +271,20 @@ namespace Rocketpi.Gameplay
             }
 
             _cc.Move(_velocity * Time.deltaTime);
+
+            // Tourne le perso vers la direction de la caméra UNIQUEMENT s'il bouge
+            if (wishDir.sqrMagnitude > 0.001f)
+            {
+                var look = Quaternion.LookRotation(new Vector3(wishDir.x, 0f, wishDir.z));
+                transform.rotation = Quaternion.Slerp(transform.rotation, look, Time.deltaTime * _bodyTurnSpeed);
+            }
+
+            // Anim driver
+            if (Body != null)
+            {
+                var worldVel = new Vector3(_velocity.x, _velocity.y, _velocity.z);
+                Body.DriveLocomotion(worldVel, _cc.isGrounded, sprint);
+            }
         }
 
         private void HandleFire()

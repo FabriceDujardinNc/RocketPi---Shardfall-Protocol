@@ -1,46 +1,277 @@
-// SceneScaffolder.cs — Crée les scènes Bootstrap, Gameplay, et configure
-// les Build Settings pour inclure les bonnes scènes.
+// SceneScaffolder.cs — Crée / re-crée les scènes Bootstrap & Training avec :
+//   - terrain + obstacles (pour rendre la map intéressante pour le pathfinding)
+//   - NavMeshSurface bakable
+//   - 6 waypoints positionnés en hexagone autour du joueur
+//   - 4 NPC opérateurs spawn sur les waypoints (placeholder capsule jusqu'à
+//     ce que les BodyPrefab Mixamo soient assignés sur OperatorData)
+//   - joueur 3rd-person : capsule logique + caméra orbitale
 //
-// Tools > RocketPi > Scaffold Scenes
-//
-// Idempotent : ne recrée pas une scène qui existe déjà.
+// Menus :
+//   - Tools > RocketPi > Scaffold Scenes              (idempotent)
+//   - Tools > RocketPi > Rebuild Training Scene       (DESTRUCTIF, recrée)
+//   - Tools > RocketPi > Bake NavMesh (Active Scene)
+//   - Tools > RocketPi > Add NPCs to Current Scene    (sans tout recréer)
 
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
 using Rocketpi.Bridge;
 using Rocketpi.Gameplay;
+using Rocketpi.Gameplay.Body;
+using Rocketpi.Gameplay.CameraControl;
 using Rocketpi.Gameplay.Match;
+using Rocketpi.Gameplay.NPC;
+using Rocketpi.Gameplay.Operators;
 using Rocketpi.UI;
+using Unity.AI.Navigation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 
 namespace Rocketpi.Editor
 {
     public static class SceneScaffolder
     {
-        private const string ScenesDir = "Assets/Scenes";
+        private const string ScenesDir     = "Assets/Scenes";
         private const string BootstrapPath = "Assets/Scenes/Bootstrap.unity";
         private const string GameplayPath  = "Assets/Scenes/Training.unity";
+
+        // ── Menus ──────────────────────────────────────────────────────────
 
         [MenuItem("Tools/RocketPi/Scaffold Scenes")]
         public static void ScaffoldScenes()
         {
-            if (!AssetDatabase.IsValidFolder(ScenesDir))
-                AssetDatabase.CreateFolder("Assets", "Scenes");
-
+            EnsureFolder(ScenesDir);
             CreateBootstrap();
-            CreateTraining();
-            UpdateBuildSettings();
+            if (!File.Exists(GameplayPath)) BuildTrainingScene(save: true);
+            else Debug.Log("[RocketPi] Training.unity exists, skipping. Use 'Rebuild Training Scene' to force.");
 
+            UpdateBuildSettings();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[RocketPi] Scenes scaffolded. Open Bootstrap.unity in Hierarchy to verify.");
         }
 
-        // ── Bootstrap : juste le RocketpiBridge singleton ──────────────────
+        [MenuItem("Tools/RocketPi/Rebuild Training Scene")]
+        public static void RebuildTrainingScene()
+        {
+            if (!EditorUtility.DisplayDialog(
+                    "Rebuild Training Scene",
+                    "Cette action va ÉCRASER la scène Training.unity actuelle. Tout ce qui est dedans sera perdu. Continuer ?",
+                    "Oui, écraser", "Annuler"))
+                return;
+
+            BuildTrainingScene(save: true);
+            UpdateBuildSettings();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        [MenuItem("Tools/RocketPi/Bake NavMesh (Active Scene)")]
+        public static void BakeActiveNavMesh()
+        {
+            var scene = EditorSceneManager.GetActiveScene();
+            var surface = Object.FindFirstObjectByType<NavMeshSurface>();
+            if (surface == null)
+            {
+                // Idempotent : crée le NavMeshSurface s'il manque (utile quand on
+                // ajoute les NPCs à une scène custom CastleWalls/Donjon).
+                var go = new GameObject("NavMeshSurface");
+                surface = go.AddComponent<NavMeshSurface>();
+                surface.collectObjects = CollectObjects.All;
+                surface.layerMask = ~0;
+                surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
+                Debug.Log("[RocketPi] NavMeshSurface absent — créé automatiquement.");
+            }
+            surface.BuildNavMesh();
+            EditorSceneManager.MarkSceneDirty(scene);
+            Debug.Log("[RocketPi] NavMesh bake terminé.");
+        }
+
+        [MenuItem("Tools/RocketPi/Add NPCs to Current Scene")]
+        public static void AddNpcsToCurrentScene()
+        {
+            var scene = EditorSceneManager.GetActiveScene();
+            var npcRoot = GameObject.Find("NPCs") ?? new GameObject("NPCs");
+            var waypoints = FindOrCreateWaypoints(npcRoot.transform.parent);
+            CreateNpcs(npcRoot.transform, waypoints);
+            EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        // ── Play mode helpers ──────────────────────────────────────────────
+        [MenuItem("Tools/RocketPi/Enter Play Mode")]
+        public static void EnterPlayMode()
+        {
+            if (!EditorApplication.isPlaying) EditorApplication.isPlaying = true;
+        }
+
+        [MenuItem("Tools/RocketPi/Exit Play Mode")]
+        public static void ExitPlayMode()
+        {
+            if (EditorApplication.isPlaying) EditorApplication.isPlaying = false;
+        }
+
+        [MenuItem("Tools/RocketPi/Capture Game View to PNG")]
+        public static void CaptureGameViewToPng()
+        {
+            // En play mode, on capture la GameView (vue du joueur via Main Camera)
+            var cam = Camera.main;
+            if (cam == null)
+            {
+                Debug.LogError("[RocketPi] Camera.main introuvable. Vérifie qu'une caméra a le tag MainCamera.");
+                return;
+            }
+
+            const int w = 1280;
+            const int h = 720;
+            var rt = new RenderTexture(w, h, 24);
+            var oldRt = cam.targetTexture;
+            cam.targetTexture = rt;
+            cam.Render();
+            RenderTexture.active = rt;
+            var tex = new Texture2D(w, h, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+            tex.Apply();
+            RenderTexture.active = null;
+            cam.targetTexture = oldRt;
+            Object.DestroyImmediate(rt);
+
+            var bytes = tex.EncodeToPNG();
+            Object.DestroyImmediate(tex);
+            var dir = "Library/SceneCaptures";
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            var path = Path.Combine(dir, "game_capture.png");
+            File.WriteAllBytes(path, bytes);
+            Debug.Log($"[RocketPi] Game view captured: {Path.GetFullPath(path)}");
+        }
+
+        // ── Capture Scene to PNG ───────────────────────────────────────────
+        [MenuItem("Tools/RocketPi/Capture Scene to PNG")]
+        public static void CaptureSceneToPng()
+        {
+            var sceneView = SceneView.lastActiveSceneView;
+            if (sceneView == null || sceneView.camera == null)
+            {
+                Debug.LogError("[RocketPi] Pas de SceneView actif. Ouvre l'onglet Scene avant de lancer.");
+                return;
+            }
+
+            // Vue top-down assez haute pour englober les 6 waypoints (rayon 15m) + le château
+            sceneView.LookAtDirect(new Vector3(0f, 0f, 0f), Quaternion.Euler(55f, 35f, 0f), 50f);
+            sceneView.Repaint();
+            sceneView.camera.transform.position = new Vector3(35f, 50f, -35f);
+            sceneView.camera.transform.LookAt(Vector3.zero);
+
+            const int w = 1280;
+            const int h = 720;
+            var rt = new RenderTexture(w, h, 24);
+            var cam = sceneView.camera;
+            var oldRt = cam.targetTexture;
+            cam.targetTexture = rt;
+            cam.Render();
+
+            RenderTexture.active = rt;
+            var tex = new Texture2D(w, h, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+            tex.Apply();
+            RenderTexture.active = null;
+            cam.targetTexture = oldRt;
+            Object.DestroyImmediate(rt);
+
+            var bytes = tex.EncodeToPNG();
+            Object.DestroyImmediate(tex);
+
+            var dir = "Library/SceneCaptures";
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            var path = Path.Combine(dir, "scene_capture.png");
+            File.WriteAllBytes(path, bytes);
+            Debug.Log($"[RocketPi] Scene captured: {Path.GetFullPath(path)}");
+        }
+
+        // ── Convert Player to 3rd Person ───────────────────────────────────
+        [MenuItem("Tools/RocketPi/Convert Player to 3rd Person")]
+        public static void ConvertPlayerTo3rdPerson()
+        {
+            var scene = EditorSceneManager.GetActiveScene();
+            var player = GameObject.Find("Player");
+            if (player == null)
+            {
+                Debug.LogError("[RocketPi] Aucun GameObject 'Player' dans la scène active.");
+                return;
+            }
+
+            // 1. Supprime doublons HealthSystem (garde le premier)
+            var healths = player.GetComponents<HealthSystem>();
+            for (var i = 1; i < healths.Length; i++) Object.DestroyImmediate(healths[i]);
+
+            // 2. Trouve / crée la caméra 3rd person — détachée du Player
+            //    Si la scène a une "Player/Camera" (ancien layout FPS), on la détache et on la
+            //    reconvertit. Sinon, on en crée une nouvelle au niveau racine.
+            Camera cam = null;
+            var existingCamTransform = player.transform.Find("Camera");
+            if (existingCamTransform != null)
+            {
+                existingCamTransform.SetParent(null, worldPositionStays: true);
+                existingCamTransform.gameObject.name = "Main Camera";
+                cam = existingCamTransform.GetComponent<Camera>();
+            }
+            else
+            {
+                cam = Object.FindFirstObjectByType<Camera>();
+            }
+            if (cam == null)
+            {
+                var camGo = new GameObject("Main Camera");
+                cam = camGo.AddComponent<Camera>();
+                camGo.AddComponent<AudioListener>();
+            }
+            cam.tag = "MainCamera";
+            cam.fieldOfView = 65f;
+
+            // 3. Position initiale derrière le player (la ThirdPersonCamera ajustera au runtime)
+            cam.transform.position = player.transform.position + new Vector3(0f, 2.5f, -4f);
+            cam.transform.LookAt(player.transform.position + Vector3.up * 1.5f);
+
+            // 4. Ajoute ou récupère ThirdPersonCamera et le pointe vers le Player
+            var tpCam = cam.GetComponent<ThirdPersonCamera>() ?? cam.gameObject.AddComponent<ThirdPersonCamera>();
+            tpCam.SetTarget(player.transform, shoulderHeight: 1.6f);
+
+            // 5. Configure le PlayerController : _camera, _match, _bodyAnchor, _weaponSocket
+            var playerController = player.GetComponent<PlayerController>();
+            if (playerController == null)
+            {
+                Debug.LogWarning("[RocketPi] PlayerController manquant — l'ajout est sauté.");
+            }
+            else
+            {
+                var match = Object.FindFirstObjectByType<TrainingMatchManager>();
+                var so = new SerializedObject(playerController);
+                so.FindProperty("_camera").objectReferenceValue = tpCam;
+                if (match != null) so.FindProperty("_match").objectReferenceValue = match;
+                so.FindProperty("_bodyAnchor").objectReferenceValue = player.transform;
+
+                // WeaponSocket — peut avoir été reparenté au Player après le détachement de la
+                // Camera. On le retrouve par nom dans les enfants directs du Player ou de la Camera.
+                Transform weaponSocket = player.transform.Find("WeaponSocket");
+                if (weaponSocket == null && cam != null) weaponSocket = cam.transform.Find("WeaponSocket");
+                if (weaponSocket == null)
+                {
+                    var wsGo = new GameObject("WeaponSocket");
+                    wsGo.transform.SetParent(player.transform, false);
+                    wsGo.transform.localPosition = new Vector3(0.3f, 1.5f, 0.4f);
+                    weaponSocket = wsGo.transform;
+                }
+                so.FindProperty("_weaponSocket").objectReferenceValue = weaponSocket;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            EditorUtility.SetDirty(player);
+            EditorSceneManager.MarkSceneDirty(scene);
+            Debug.Log("[RocketPi] Player converti en 3rd person setup. Camera détachée + ThirdPersonCamera ajouté + refs branchées.");
+        }
+
+        // ── Bootstrap ──────────────────────────────────────────────────────
 
         private static void CreateBootstrap()
         {
@@ -49,105 +280,269 @@ namespace Rocketpi.Editor
                 Debug.Log("[RocketPi] Bootstrap.unity exists, skipping.");
                 return;
             }
-
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "Bootstrap";
-
             var bridgeGo = new GameObject("RocketpiBridge");
             bridgeGo.AddComponent<RocketpiBridge>();
-
             EditorSceneManager.SaveScene(scene, BootstrapPath);
         }
 
-        // ── Training : ground + player + spawner + UI ──────────────────────
+        // ── Training : build complet ───────────────────────────────────────
 
-        private static void CreateTraining()
+        private static void BuildTrainingScene(bool save)
         {
-            if (File.Exists(GameplayPath))
-            {
-                Debug.Log("[RocketPi] Training.unity exists, skipping.");
-                return;
-            }
-
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "Training";
 
-            // Ground 50x50 sol plat
-            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            ground.name = "Ground";
-            ground.transform.localScale = new Vector3(5f, 1f, 5f);
-
-            // Light
+            // ── Lighting ───────────────────────────────────────────────────
             var lightGo = new GameObject("Directional Light");
             var light = lightGo.AddComponent<Light>();
             light.type = LightType.Directional;
-            light.intensity = 1f;
-            lightGo.transform.rotation = Quaternion.Euler(45f, 30f, 0f);
+            light.intensity = 1.1f;
+            light.shadows = LightShadows.Soft;
+            lightGo.transform.rotation = Quaternion.Euler(50f, 30f, 0f);
 
-            // Player capsule (CharacterController + PlayerController + HealthSystem + Camera)
+            // ── Environment root ───────────────────────────────────────────
+            var envRoot = new GameObject("Environment");
+
+            // Ground 80×80 (assez grand pour patrouilles)
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ground.name = "Ground";
+            ground.transform.SetParent(envRoot.transform);
+            ground.transform.localScale = new Vector3(8f, 1f, 8f); // Plane = 10×10 par défaut
+
+            // Cover/obstacles pour rendre le pathfinding intéressant
+            CreateCover(envRoot.transform, new Vector3( 10f, 0.5f,   0f), new Vector3(3f, 1f, 3f));
+            CreateCover(envRoot.transform, new Vector3(-10f, 0.5f,   0f), new Vector3(3f, 1f, 3f));
+            CreateCover(envRoot.transform, new Vector3(  0f, 0.5f,  10f), new Vector3(3f, 1f, 3f));
+            CreateCover(envRoot.transform, new Vector3(  0f, 0.5f, -10f), new Vector3(3f, 1f, 3f));
+            CreateCover(envRoot.transform, new Vector3(  6f, 1.0f,   6f), new Vector3(2f, 2f, 2f));
+            CreateCover(envRoot.transform, new Vector3( -6f, 1.0f,  -6f), new Vector3(2f, 2f, 2f));
+
+            // ── NavMesh surface ────────────────────────────────────────────
+            var navMeshGo = new GameObject("NavMeshSurface");
+            navMeshGo.transform.SetParent(envRoot.transform);
+            var surface = navMeshGo.AddComponent<NavMeshSurface>();
+            surface.collectObjects = CollectObjects.All;
+            surface.layerMask = ~0;
+            surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
+            surface.BuildNavMesh();
+
+            // ── Player capsule + 3rd person ────────────────────────────────
             var playerGo = new GameObject("Player");
             var cc = playerGo.AddComponent<CharacterController>();
-            cc.height = 1.8f;
+            cc.height = 1.85f;
             cc.radius = 0.4f;
-            cc.center = new Vector3(0f, 0.9f, 0f);
-            var player = playerGo.AddComponent<PlayerController>();
+            cc.center = new Vector3(0f, 0.925f, 0f);
+            playerGo.AddComponent<PlayerController>();
             playerGo.AddComponent<HealthSystem>();
             playerGo.tag = "Player";
             var playerLayer = LayerMask.NameToLayer("Player");
             if (playerLayer >= 0) playerGo.layer = playerLayer;
-            else Debug.LogWarning("[RocketPi] Layer 'Player' absent — Player reste sur Default. Crée-le via Edit > Project Settings > Tags & Layers.");
             playerGo.transform.position = new Vector3(0f, 0.1f, 0f);
 
-            var camGo = new GameObject("Camera");
-            camGo.transform.SetParent(playerGo.transform, false);
-            camGo.transform.localPosition = new Vector3(0f, 1.65f, 0f);
+            // Camera 3rd person détachée (suit le joueur via ThirdPersonCamera)
+            var camGo = new GameObject("Main Camera");
+            camGo.tag = "MainCamera";
+            camGo.transform.position = new Vector3(0f, 2.5f, -4f);
             var cam = camGo.AddComponent<Camera>();
-            cam.fieldOfView = 75f;
+            cam.fieldOfView = 65f;
             camGo.AddComponent<AudioListener>();
+            var tpCam = camGo.AddComponent<ThirdPersonCamera>();
+            tpCam.SetTarget(playerGo.transform, shoulderHeight: 1.6f);
 
-            var weaponSocket = new GameObject("WeaponSocket");
-            weaponSocket.transform.SetParent(camGo.transform, false);
-            weaponSocket.transform.localPosition = new Vector3(0.25f, -0.2f, 0.5f);
+            // ── Waypoints ──────────────────────────────────────────────────
+            var waypointsRoot = new GameObject("Waypoints");
+            var waypoints = CreateHexagonWaypoints(waypointsRoot.transform, radius: 15f);
 
-            // Spawner zone (cf. TargetSpawner — il faudra plus tard assigner un prefab cible)
-            var spawnerGo = new GameObject("TargetSpawner");
-            spawnerGo.transform.position = new Vector3(0f, 0.5f, 10f);
-            spawnerGo.AddComponent<TargetSpawner>();
+            // ── NPCs ───────────────────────────────────────────────────────
+            var npcRoot = new GameObject("NPCs");
+            CreateNpcs(npcRoot.transform, waypoints);
 
-            // Match manager
+            // ── Match Manager + UI ─────────────────────────────────────────
             var matchGo = new GameObject("TrainingMatchManager");
-            var match = matchGo.AddComponent<TrainingMatchManager>();
+            matchGo.AddComponent<TrainingMatchManager>();
 
-            // Canvas avec HUD + MainMenu + Summary stubs (les TMP labels sont à
-            // brancher manuellement — c'est le seul morceau qu'on ne peut pas
-            // entièrement scripter sans risquer de corrompre les références).
             var canvasGo = new GameObject("Canvas");
             var canvas = canvasGo.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvasGo.AddComponent<UnityEngine.UI.CanvasScaler>();
             canvasGo.AddComponent<UnityEngine.UI.GraphicRaycaster>();
-
             canvasGo.AddComponent<HudController>();
             canvasGo.AddComponent<MainMenuController>();
             canvasGo.AddComponent<MatchSummaryController>();
 
-            // EventSystem requis pour les boutons UI
             var esGo = new GameObject("EventSystem");
             esGo.AddComponent<UnityEngine.EventSystems.EventSystem>();
             esGo.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
 
-            EditorSceneManager.SaveScene(scene, GameplayPath);
+            if (save)
+            {
+                EditorSceneManager.SaveScene(scene, GameplayPath);
+                Debug.Log("[RocketPi] Training.unity rebuilt with NavMesh + 6 waypoints + 4 NPCs + 3rd person.");
+            }
         }
 
-        // ── Build Settings : ajouter les 2 scènes dans l'ordre ─────────────
+        // ── Helpers : geometry ─────────────────────────────────────────────
+
+        private static GameObject CreateCover(Transform parent, Vector3 pos, Vector3 scale)
+        {
+            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cube.name = "Cover";
+            cube.transform.SetParent(parent);
+            cube.transform.position = pos;
+            cube.transform.localScale = scale;
+            return cube;
+        }
+
+        // ── Helpers : waypoints ────────────────────────────────────────────
+
+        private static List<Transform> CreateHexagonWaypoints(Transform parent, float radius)
+        {
+            var list = new List<Transform>();
+            for (var i = 0; i < 6; i++)
+            {
+                var angle = i * Mathf.PI * 2f / 6f;
+                var pos = new Vector3(Mathf.Cos(angle) * radius, 0.5f, Mathf.Sin(angle) * radius);
+                var wp = new GameObject($"WP_{i:00}");
+                wp.transform.SetParent(parent);
+                wp.transform.position = pos;
+                list.Add(wp.transform);
+            }
+            return list;
+        }
+
+        private static List<Transform> FindOrCreateWaypoints(Transform parent)
+        {
+            var existing = GameObject.Find("Waypoints");
+            if (existing != null)
+            {
+                var list = new List<Transform>();
+                foreach (Transform t in existing.transform) list.Add(t);
+                if (list.Count > 0) return list;
+            }
+            var root = existing != null ? existing.transform : new GameObject("Waypoints").transform;
+            return CreateHexagonWaypoints(root, 15f);
+        }
+
+        // ── Helpers : NPCs ─────────────────────────────────────────────────
+
+        private static void CreateNpcs(Transform parent, List<Transform> waypoints)
+        {
+            // 4 opérateurs choisis pour variété : 2 ORBIT, 1 FERRO, 1 VEIL
+            // (les codename viennent de OperatorSeeder Laravel — RosterScaffolder Unity les match)
+            var picks = new[] { "Vex", "Halo", "Iron", "Wraith" };
+            var operatorsByName = LoadOperatorsByName();
+
+            for (var i = 0; i < picks.Length; i++)
+            {
+                var name = picks[i];
+                operatorsByName.TryGetValue(name, out var opData);
+
+                var spawnIdx = i % waypoints.Count;
+                var spawnPos = waypoints[spawnIdx].position + Vector3.up * 0.5f;
+
+                var npc = new GameObject($"NPC_{name}");
+                npc.transform.SetParent(parent);
+                npc.transform.position = spawnPos;
+
+                // Visuel placeholder : essaie d'abord le mesh Meshy .glb (T-pose statique)
+                // pour avoir la vraie silhouette de l'opérateur. Fallback sur capsule si .glb
+                // introuvable. Quand Mixamo sera fini et BodyPrefab assigné, le NPC
+                // utilisera le mesh riggé via OperatorNpcController (au runtime).
+                CreateVisualBody(npc.transform, name, opData);
+
+                var agent = npc.AddComponent<NavMeshAgent>();
+                agent.height = 1.85f;
+                agent.radius = 0.4f;
+                agent.speed = opData != null ? opData.WalkSpeed : 4f;
+                agent.angularSpeed = 240f;
+                agent.acceleration = 12f;
+                agent.stoppingDistance = 0.4f;
+
+                npc.AddComponent<HealthSystem>();
+                var patroller = npc.AddComponent<NavMeshPatroller>();
+                patroller.SetWaypoints(waypoints);
+
+                var npcController = npc.AddComponent<OperatorNpcController>();
+                if (opData != null) npcController.SetOperator(opData);
+            }
+        }
+
+        private static void CreateVisualBody(Transform parent, string opName, OperatorData opData)
+        {
+            // Priorité :
+            //   1. BodyPrefab assigné sur OperatorData (riggé humanoid + Animator)
+            //   2. .glb Meshy statique (silhouette T-pose, pas d'anim)
+            //   3. Capsule colorée fallback
+
+            // 1. BodyPrefab Mixamo riggé
+            if (opData != null && opData.BodyPrefab != null)
+            {
+                var bodyInstance = (GameObject)PrefabUtility.InstantiatePrefab(opData.BodyPrefab);
+                bodyInstance.name = "Body";
+                bodyInstance.transform.SetParent(parent);
+                bodyInstance.transform.localPosition = Vector3.zero;
+                bodyInstance.transform.localRotation = Quaternion.identity;
+                // Override couleur sur tous les renderers pour distinguer les opérateurs
+                // (Y Bot partagé entre les 4 NPCs → besoin de varier la couleur).
+                foreach (var r in bodyInstance.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (r.sharedMaterial == null) continue;
+                    var coloredMat = new Material(r.sharedMaterial);
+                    coloredMat.color = opData.AccentColor;
+                    r.sharedMaterial = coloredMat;
+                }
+                return;
+            }
+
+            // 2. Mesh Meshy statique
+            var glbPath = $"Assets/Models/Operators/Raw/{opName}.glb";
+            var glbAsset = AssetDatabase.LoadAssetAtPath<GameObject>(glbPath);
+            if (glbAsset != null)
+            {
+                var meshInstance = (GameObject)PrefabUtility.InstantiatePrefab(glbAsset);
+                meshInstance.name = "MeshyBody";
+                meshInstance.transform.SetParent(parent);
+                meshInstance.transform.localPosition = Vector3.zero;
+                meshInstance.transform.localRotation = Quaternion.identity;
+                foreach (var col in meshInstance.GetComponentsInChildren<Collider>(true))
+                    Object.DestroyImmediate(col);
+                return;
+            }
+
+            // 3. Fallback : capsule colorée
+            var placeholder = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            placeholder.name = "PlaceholderBody";
+            placeholder.transform.SetParent(parent);
+            placeholder.transform.localPosition = new Vector3(0f, 1f, 0f);
+            Object.DestroyImmediate(placeholder.GetComponent<Collider>());
+            var renderer = placeholder.GetComponent<MeshRenderer>();
+            var mat = new Material(renderer.sharedMaterial);
+            mat.color = opData != null ? opData.AccentColor : Color.red;
+            renderer.sharedMaterial = mat;
+        }
+
+        private static Dictionary<string, OperatorData> LoadOperatorsByName()
+        {
+            var dict = new Dictionary<string, OperatorData>();
+            var guids = AssetDatabase.FindAssets("t:OperatorData");
+            foreach (var g in guids)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(g);
+                var op = AssetDatabase.LoadAssetAtPath<OperatorData>(path);
+                if (op != null) dict[op.DisplayName] = op;
+            }
+            return dict;
+        }
+
+        // ── Build Settings ─────────────────────────────────────────────────
 
         private static void UpdateBuildSettings()
         {
             var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-
             EnsureSceneInBuild(scenes, BootstrapPath);
             EnsureSceneInBuild(scenes, GameplayPath);
-
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 
@@ -156,6 +551,20 @@ namespace Rocketpi.Editor
             foreach (var s in scenes)
                 if (s.path == path) { s.enabled = true; return; }
             scenes.Add(new EditorBuildSettingsScene(path, enabled: true));
+        }
+
+        private static void EnsureFolder(string path)
+        {
+            if (AssetDatabase.IsValidFolder(path)) return;
+            var parts = path.Split('/');
+            var current = parts[0];
+            for (var i = 1; i < parts.Length; i++)
+            {
+                var next = $"{current}/{parts[i]}";
+                if (!AssetDatabase.IsValidFolder(next))
+                    AssetDatabase.CreateFolder(current, parts[i]);
+                current = next;
+            }
         }
     }
 }

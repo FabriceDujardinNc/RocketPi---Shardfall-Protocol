@@ -34,5 +34,19 @@ namespace Rocketpi.Gameplay.Operators
         public GameObject WeaponPrefab;          // doit avoir un WeaponBase
         public GameObject[] AbilityPrefabs;      // ex. [DashAbility, ShieldAbility]
         public GameObject UltimatePrefab;        // facultatif
+
+        [Header("Body 3D (Mixamo Humanoid)")]
+        [Tooltip("Prefab visuel : root vide + SkinnedMeshRenderer enfant + Animator (controller locomotion) + collider capsule." +
+                 " Servira pour le joueur (3rd person) ET pour les NPCs (NavMeshAgent).")]
+        public GameObject BodyPrefab;
+
+        [Tooltip("Hauteur de la capsule body (m). Sert au CharacterController / NavMeshAgent.")]
+        public float BodyHeight = 1.85f;
+
+        [Tooltip("Rayon de la capsule body (m).")]
+        public float BodyRadius = 0.4f;
+
+        [Tooltip("Offset Y de la caméra third-person par rapport à la racine du body (hauteur des épaules ~1.6m).")]
+        public float CameraShoulderHeight = 1.6f;
     }
 }
