@@ -72,19 +72,23 @@ namespace Rocketpi.Editor
         public static void BakeActiveNavMesh()
         {
             var scene = EditorSceneManager.GetActiveScene();
-            var surface = Object.FindFirstObjectByType<NavMeshSurface>();
+            var surface = Object.FindAnyObjectByType<NavMeshSurface>();
             if (surface == null)
             {
                 // Idempotent : crée le NavMeshSurface s'il manque (utile quand on
                 // ajoute les NPCs à une scène custom CastleWalls/Donjon).
                 var go = new GameObject("NavMeshSurface");
                 surface = go.AddComponent<NavMeshSurface>();
-                surface.collectObjects = CollectObjects.All;
-                surface.layerMask = ~0;
-                surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
                 Debug.Log("[RocketPi] NavMeshSurface absent — créé automatiquement.");
             }
+            // RenderMeshes (pas PhysicsColliders) : plus robuste, fonctionne même si
+            // le sol du décor n'a pas de collider — seul le MeshRenderer suffit.
+            surface.collectObjects = CollectObjects.All;
+            surface.layerMask = ~0;
+            surface.useGeometry = NavMeshCollectGeometry.RenderMeshes;
             surface.BuildNavMesh();
+            var tri = NavMesh.CalculateTriangulation();
+            Debug.Log($"[RocketPi] NavMesh baké : {tri.indices.Length / 3} triangles.");
             EditorSceneManager.MarkSceneDirty(scene);
             Debug.Log("[RocketPi] NavMesh bake terminé.");
         }
@@ -97,6 +101,63 @@ namespace Rocketpi.Editor
             var waypoints = FindOrCreateWaypoints(npcRoot.transform.parent);
             CreateNpcs(npcRoot.transform, waypoints);
             EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        // ── Diagnostic NavMesh ─────────────────────────────────────────────
+        [MenuItem("Tools/RocketPi/Diagnose NavMesh")]
+        public static void DiagnoseNavMesh()
+        {
+            // 1. NavMeshSurface présent ?
+            var surface = Object.FindAnyObjectByType<NavMeshSurface>();
+            Debug.Log($"[Diag] NavMeshSurface présent : {surface != null}");
+            if (surface != null)
+            {
+                Debug.Log($"[Diag]   collectObjects={surface.collectObjects}, useGeometry={surface.useGeometry}, " +
+                          $"size={surface.size}, navMeshData={(surface.navMeshData != null ? "OUI" : "NULL (jamais baké!)")}");
+            }
+
+            // 2. Triangulation globale du NavMesh : combien de triangles ?
+            var tri = NavMesh.CalculateTriangulation();
+            Debug.Log($"[Diag] NavMesh triangulation : {tri.vertices.Length} vertices, {tri.indices.Length / 3} triangles");
+            if (tri.indices.Length == 0)
+                Debug.LogError("[Diag] ⚠️ NAVMESH VIDE — le bake n'a rien généré. Le sol n'est pas collecté " +
+                               "(pas de collider si useGeometry=PhysicsColliders, ou hors du volume size).");
+
+            // 3. Pour chaque NPC, SamplePosition trouve-t-il du sol navigable ?
+            var npcsRoot = GameObject.Find("NPCs");
+            if (npcsRoot != null)
+            {
+                foreach (Transform npc in npcsRoot.transform)
+                {
+                    var found = NavMesh.SamplePosition(npc.position, out var hit, 10f, NavMesh.AllAreas);
+                    if (found)
+                        Debug.Log($"[Diag] {npc.name} @ {npc.position} → navmesh trouvé à {hit.position} " +
+                                  $"(distance {Vector3.Distance(npc.position, hit.position):F2}m)");
+                    else
+                        Debug.LogError($"[Diag] {npc.name} @ {npc.position} → AUCUN navmesh dans un rayon de 10m !");
+                }
+            }
+            else Debug.LogWarning("[Diag] Pas de GameObject 'NPCs' dans la scène.");
+
+            // 4. Le sol : liste les gros meshes/colliders au niveau y≈0
+            Debug.Log("[Diag] Recherche du sol (objets nommés Ground/Sol/Plane/Floor) :");
+            foreach (var go in EditorSceneManager.GetActiveScene().GetRootGameObjects())
+            {
+                ScanForGround(go.transform, 0);
+            }
+        }
+
+        private static void ScanForGround(Transform t, int depth)
+        {
+            var n = t.name.ToLowerInvariant();
+            if (n.Contains("ground") || n.Contains("sol") || n.Contains("plane") || n.Contains("floor") || n.Contains("terrain"))
+            {
+                var hasCol = t.GetComponent<Collider>() != null;
+                var hasRenderer = t.GetComponent<Renderer>() != null;
+                Debug.Log($"[Diag]   '{t.name}' pos={t.position} scale={t.lossyScale} collider={hasCol} renderer={hasRenderer}");
+            }
+            if (depth < 3)
+                foreach (Transform c in t) ScanForGround(c, depth + 1);
         }
 
         // ── Play mode helpers ──────────────────────────────────────────────
@@ -218,7 +279,7 @@ namespace Rocketpi.Editor
             }
             else
             {
-                cam = Object.FindFirstObjectByType<Camera>();
+                cam = Object.FindAnyObjectByType<Camera>();
             }
             if (cam == null)
             {
@@ -245,7 +306,7 @@ namespace Rocketpi.Editor
             }
             else
             {
-                var match = Object.FindFirstObjectByType<TrainingMatchManager>();
+                var match = Object.FindAnyObjectByType<TrainingMatchManager>();
                 var so = new SerializedObject(playerController);
                 so.FindProperty("_camera").objectReferenceValue = tpCam;
                 if (match != null) so.FindProperty("_match").objectReferenceValue = match;
@@ -460,12 +521,25 @@ namespace Rocketpi.Editor
                 agent.acceleration = 12f;
                 agent.stoppingDistance = 0.4f;
 
-                npc.AddComponent<HealthSystem>();
+                // Collider pour rendre le NPC touchable par les raycasts d'arme
+                // (HitscanWeapon remonte au HealthSystem via GetComponentInParent).
+                var capsule = npc.AddComponent<CapsuleCollider>();
+                capsule.height = 1.85f;
+                capsule.radius = 0.4f;
+                capsule.center = new Vector3(0f, 0.925f, 0f);
+
+                var health = npc.AddComponent<HealthSystem>();
+                npc.AddComponent<WorldHealthBar>();    // barre de vie flottante
                 var patroller = npc.AddComponent<NavMeshPatroller>();
                 patroller.SetWaypoints(waypoints);
 
                 var npcController = npc.AddComponent<OperatorNpcController>();
                 if (opData != null) npcController.SetOperator(opData);
+
+                // Cibles d'entraînement résistantes : 300 PV pour voir la barre de vie
+                // descendre par paliers (sinon ~5 tirs à 18 dmg = mort en <1s).
+                // SetMaxHealth APRÈS SetOperator (qui aurait remis BaseHp).
+                health.SetMaxHealth(300);
             }
         }
 

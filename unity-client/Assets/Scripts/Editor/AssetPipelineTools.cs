@@ -406,10 +406,10 @@ namespace Rocketpi.Editor
 
             var yBotAvatar = AssetDatabase.LoadAllAssetsAtPath(yBotPath).OfType<Avatar>().FirstOrDefault();
 
-            // Configure les 3 anims
-            string[] expectedAnims = { "Idle", "Walk", "Run" };
+            // Validation : Idle/Walk/Run requis. Death/Jump/Fire/etc. optionnels.
+            string[] requiredAnims = { "Idle", "Walk", "Run" };
             var missingAnims = new List<string>();
-            foreach (var n in expectedAnims)
+            foreach (var n in requiredAnims)
             {
                 var p = $"{LocomotionDir}/{n}.fbx";
                 if (!File.Exists(p)) missingAnims.Add(n);
@@ -423,11 +423,17 @@ namespace Rocketpi.Editor
                 return;
             }
 
-            foreach (var n in expectedAnims)
+            // Configure TOUS les .fbx présents dans Locomotion/ (incl. Death/Jump/Fire
+            // s'ils ont été ajoutés). loopTime selon NonLoopingAnims (Death/Jump/Fire
+            // sont one-shot, ne doivent pas boucler).
+            var locFbx = Directory.GetFiles(LocomotionDir, "*.fbx");
+            foreach (var p in locFbx)
             {
-                var p = $"{LocomotionDir}/{n}.fbx";
-                var imp = AssetImporter.GetAtPath(p) as ModelImporter;
+                var imp = AssetImporter.GetAtPath(p.Replace('\\', '/')) as ModelImporter;
                 if (imp == null) continue;
+                var clipName = Path.GetFileNameWithoutExtension(p);
+                var isLooping = !NonLoopingAnims.Contains(clipName);
+
                 imp.animationType = ModelImporterAnimationType.Human;
                 if (yBotAvatar != null)
                 {
@@ -443,7 +449,7 @@ namespace Rocketpi.Editor
                 {
                     for (var i = 0; i < clips.Length; i++)
                     {
-                        clips[i].loopTime = true; // Idle/Walk/Run sont tous loopables
+                        clips[i].loopTime = isLooping;
                         clips[i].lockRootRotation = true;
                         clips[i].lockRootHeightY  = true;
                         clips[i].keepOriginalOrientation = true;

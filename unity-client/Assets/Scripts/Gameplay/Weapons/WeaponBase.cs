@@ -29,6 +29,7 @@ namespace Rocketpi.Gameplay.Weapons
         public event Action<int, int> OnAmmoChanged;   // (current, max)
         public event Action           OnReloadStarted;
         public event Action           OnReloadFinished;
+        public event Action           OnFired;          // émis à chaque tir effectif (pour anim/SFX)
 
         protected virtual void Awake()
         {
@@ -58,6 +59,7 @@ namespace Rocketpi.Gameplay.Weapons
             CurrentAmmo--;
             OnAmmoChanged?.Invoke(CurrentAmmo, _magazineSize);
             Fire();
+            OnFired?.Invoke();
         }
 
         public virtual void OnFireReleased() { }

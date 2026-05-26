@@ -59,8 +59,11 @@ namespace Rocketpi.Gameplay
         private InputAction _ability1Action;
         private InputAction _ability2Action;
         private InputAction _ultimateAction;
+        private InputAction _toggleViewAction;
 
         private GameObject _bodyInstance;
+        private Renderer[] _bodyRenderers;
+        private bool _firstPerson;
         private Vector3 _velocity;
 
         private void Awake()
@@ -84,6 +87,7 @@ namespace Rocketpi.Gameplay
             _ability1Action = new InputAction("Ability1", binding: "<Keyboard>/q");
             _ability2Action = new InputAction("Ability2", binding: "<Keyboard>/e");
             _ultimateAction = new InputAction("Ultimate", binding: "<Keyboard>/r");
+            _toggleViewAction = new InputAction("ToggleView", binding: "<Keyboard>/v");
         }
 
         private void OnEnable()
@@ -96,6 +100,7 @@ namespace Rocketpi.Gameplay
             _ability1Action.Enable();
             _ability2Action.Enable();
             _ultimateAction.Enable();
+            _toggleViewAction.Enable();
 
             ReleaseCursor();
 
@@ -121,6 +126,7 @@ namespace Rocketpi.Gameplay
             _ability1Action.Disable();
             _ability2Action.Disable();
             _ultimateAction.Disable();
+            _toggleViewAction.Disable();
 
             if (RocketpiBridge.Instance != null)
             {
@@ -167,9 +173,46 @@ namespace Rocketpi.Gameplay
         {
             if (Health.IsDead) return;
 
+            // En standalone (Play mode sans bridge JS), aucun OnSessionStarted ne
+            // vient locker le curseur. On permet donc un lock manuel : clic gauche
+            // capture la souris, Échap la relâche. C'est le pattern FPS/TPS classique.
+            if (Cursor.lockState != CursorLockMode.Locked)
+            {
+                if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+                {
+                    LockCursor();
+                    return; // ce clic sert à capturer la souris, pas à tirer
+                }
+            }
+            else if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            {
+                ReleaseCursor();
+            }
+
+            // Toggle vue 1ère / 3ème personne (touche V).
+            if (_toggleViewAction.WasPressedThisFrame()) ToggleView();
+
             var matchActive = Cursor.lockState == CursorLockMode.Locked;
             if (matchActive) HandleFire();
             HandleMove();
+        }
+
+        // ── Vue 1ère / 3ème personne ───────────────────────────────────────
+
+        public void ToggleView()
+        {
+            _firstPerson = !_firstPerson;
+            ApplyViewMode();
+        }
+
+        private void ApplyViewMode()
+        {
+            _camera?.SetFirstPerson(_firstPerson);
+            // En 1ère personne on masque le mesh du joueur (sinon on voit l'intérieur
+            // de la tête / le corps obstrue la vue).
+            if (_bodyRenderers != null)
+                foreach (var r in _bodyRenderers)
+                    if (r != null) r.enabled = !_firstPerson;
         }
 
         // ── Operator / Body / Weapon ───────────────────────────────────────
@@ -218,19 +261,33 @@ namespace Rocketpi.Gameplay
             _bodyInstance.transform.localRotation = Quaternion.identity;
             Body = _bodyInstance.GetComponent<OperatorBody>() ?? _bodyInstance.GetComponentInChildren<OperatorBody>();
             Body?.Configure(_walkSpeed, _sprintSpeed);
+
+            // Mémorise les renderers pour les masquer en 1ère personne.
+            _bodyRenderers = _bodyInstance.GetComponentsInChildren<Renderer>(true);
+            ApplyViewMode();
         }
+
+        private void HandleWeaponFired() => Body?.TriggerFire();
 
         private void EquipOperatorWeapon()
         {
             if (_operator == null || _operator.WeaponPrefab == null || _weaponSocket == null) return;
 
-            if (Weapon != null) Destroy(Weapon.gameObject);
+            if (Weapon != null)
+            {
+                Weapon.OnFired -= HandleWeaponFired;
+                Destroy(Weapon.gameObject);
+            }
 
             var instance = Instantiate(_operator.WeaponPrefab, _weaponSocket);
             instance.transform.localPosition = Vector3.zero;
             instance.transform.localRotation = Quaternion.identity;
             Weapon = instance.GetComponent<WeaponBase>();
             Weapon?.Initialize(this);
+
+            // Relaye le tir vers l'anim du body (trigger Fire sur l'Animator).
+            if (Weapon != null) Weapon.OnFired += HandleWeaponFired;
+
             OnWeaponChanged?.Invoke(Weapon);
         }
 
@@ -272,9 +329,15 @@ namespace Rocketpi.Gameplay
 
             _cc.Move(_velocity * Time.deltaTime);
 
-            // Tourne le perso vers la direction de la caméra UNIQUEMENT s'il bouge
-            if (wishDir.sqrMagnitude > 0.001f)
+            if (_firstPerson)
             {
+                // 1ère personne : le corps fait toujours face au yaw caméra (on tourne
+                // avec la souris, pas seulement en se déplaçant).
+                transform.rotation = Quaternion.Euler(0f, camYaw, 0f);
+            }
+            else if (wishDir.sqrMagnitude > 0.001f)
+            {
+                // 3ème personne : tourne vers la direction du mouvement.
                 var look = Quaternion.LookRotation(new Vector3(wishDir.x, 0f, wishDir.z));
                 transform.rotation = Quaternion.Slerp(transform.rotation, look, Time.deltaTime * _bodyTurnSpeed);
             }

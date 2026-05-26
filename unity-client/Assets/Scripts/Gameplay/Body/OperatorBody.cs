@@ -74,6 +74,21 @@ namespace Rocketpi.Gameplay.Body
             if (_animator != null) _animator.SetTrigger(HashDie);
         }
 
+        /// <summary>Réinitialise l'Animator (sort de l'état mort) pour un respawn.</summary>
+        public void Revive()
+        {
+            if (_animator == null) return;
+            _animator.Rebind();    // remet l'Animator à son état par défaut (Locomotion)
+            _animator.Update(0f);
+        }
+
+        private static readonly int HashFire = Animator.StringToHash("Fire");
+
+        public void TriggerFire()
+        {
+            if (_animator != null) _animator.SetTrigger(HashFire);
+        }
+
         private void Update()
         {
             if (_animator == null) return;

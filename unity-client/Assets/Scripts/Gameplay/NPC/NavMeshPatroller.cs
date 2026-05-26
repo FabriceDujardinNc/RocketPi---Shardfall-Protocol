@@ -40,9 +40,26 @@ namespace Rocketpi.Gameplay.NPC
             _agent = GetComponent<NavMeshAgent>();
         }
 
+        private void Start()
+        {
+            // Les NPCs spawnent souvent légèrement au-dessus du sol (offset Y au
+            // placement). Le NavMeshAgent ne s'attache au NavMesh que s'il est assez
+            // proche → on le snappe explicitement sur le point navigable le plus
+            // proche (jusqu'à 5 m), sinon il reste "off-mesh" et ne bouge jamais.
+            if (_agent != null && _agent.enabled && !_agent.isOnNavMesh)
+            {
+                if (NavMesh.SamplePosition(transform.position, out var navHit, 5f, NavMesh.AllAreas))
+                    _agent.Warp(navHit.position);
+            }
+            if (_waypoints.Count > 0) StartPatrol();
+        }
+
         private void OnEnable()
         {
-            if (_waypoints.Count > 0) StartPatrol();
+            // Démarrage différé géré dans Start() (après le Warp sur le NavMesh).
+            // OnEnable ne démarre que sur ré-activation runtime d'un agent déjà posé.
+            if (Application.isPlaying && _agent != null && _agent.isOnNavMesh && _waypoints.Count > 0)
+                StartPatrol();
         }
 
         public void SetWaypoints(IEnumerable<Transform> wps)
@@ -69,17 +86,28 @@ namespace Rocketpi.Gameplay.NPC
             if (_agent.isOnNavMesh) _agent.ResetPath();
         }
 
-        /// <summary>Met en pause sans reset (ex. combat). Reprendre via Resume().</summary>
+        /// <summary>
+        /// Suspend l'assignation de waypoints (ex. pendant l'engage combat).
+        /// NE fige PAS l'agent : le controller (OperatorNpcController) reprend la main
+        /// sur SetDestination en mode Engage. Mettre isStopped=true ici figeait les NPCs
+        /// dès qu'ils détectaient le joueur (bug du "ils ne bougent pas").
+        /// </summary>
         public void Pause()
         {
             _paused = true;
-            if (_agent.isOnNavMesh) _agent.isStopped = true;
         }
 
         public void Resume()
         {
             _paused = false;
-            if (_agent.isOnNavMesh) _agent.isStopped = false;
+        }
+
+        /// <summary>Position d'un waypoint aléatoire (pour le respawn d'un NPC abattu).</summary>
+        public Vector3 RandomWaypointPosition(Vector3 fallback)
+        {
+            if (_waypoints.Count == 0) return fallback;
+            var wp = _waypoints[Random.Range(0, _waypoints.Count)];
+            return wp != null ? wp.position : fallback;
         }
 
         private void Update()
@@ -100,6 +128,7 @@ namespace Rocketpi.Gameplay.NPC
         private void GoNext()
         {
             if (_waypoints.Count == 0) return;
+            if (_agent == null || !_agent.isOnNavMesh) return;
 
             if (_randomOrder)
             {

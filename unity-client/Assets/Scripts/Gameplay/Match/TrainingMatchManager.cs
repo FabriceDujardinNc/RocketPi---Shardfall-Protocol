@@ -81,6 +81,18 @@ namespace Rocketpi.Gameplay.Match
             target.OnDestroyed += HandleTargetDestroyed;
         }
 
+        /// <summary>
+        /// Enregistre un kill générique (ex. NPC opérateur abattu). Appelé par
+        /// OperatorNpcController.HandleDeath. Compte le kill + ajoute le score même
+        /// hors match formel (entraînement libre).
+        /// </summary>
+        public void RegisterKill(int scoreValue)
+        {
+            CurrentKills++;
+            CurrentScore += scoreValue;
+            OnScoreChanged?.Invoke(CurrentScore);
+        }
+
         /// <summary>Annule explicitement la session sans soumission (joueur quitte).</summary>
         public void AbortMatch()
         {

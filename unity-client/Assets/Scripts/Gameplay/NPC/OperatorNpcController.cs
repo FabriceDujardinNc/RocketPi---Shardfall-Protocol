@@ -35,6 +35,9 @@ namespace Rocketpi.Gameplay.NPC
         [SerializeField] private OperatorBody _body;
 
         [Header("Vision")]
+        [Tooltip("Si false, le NPC patrouille en boucle sans jamais engager le joueur " +
+                 "(mode cible d'entraînement). Activer pour l'IA de combat.")]
+        [SerializeField] private bool _detectionEnabled = false;
         [SerializeField] private float _detectionRadius = 18f;
         [SerializeField] private float _losingRadius    = 24f;
         [Tooltip("Demi-angle du cone de vision (degrés). 90 = vue large, 45 = vue serrée.")]
@@ -46,6 +49,13 @@ namespace Rocketpi.Gameplay.NPC
         [SerializeField] private float _attackCooldown = 2.0f;
         [SerializeField] private float _engageStandoffDistance = 8f;
         [SerializeField] private float _faceTurnSpeed = 8f;
+        [Tooltip("Points accordés au joueur quand ce NPC est abattu.")]
+        [SerializeField] private int _scoreOnKill = 100;
+
+        [Header("Respawn")]
+        [Tooltip("Si true, le NPC réapparaît à un waypoint aléatoire après sa mort.")]
+        [SerializeField] private bool _respawnEnabled = true;
+        [SerializeField] private float _respawnDelay = 3f;
 
         public State Current { get; private set; } = State.Patrol;
         public Transform CurrentTarget { get; private set; }
@@ -53,6 +63,7 @@ namespace Rocketpi.Gameplay.NPC
         private NavMeshAgent     _agent;
         private NavMeshPatroller _patroller;
         private HealthSystem     _health;
+        private Rocketpi.Gameplay.Match.TrainingMatchManager _matchManager;
         private float _nextAttackAt;
 
         private void Awake()
@@ -61,6 +72,8 @@ namespace Rocketpi.Gameplay.NPC
             _patroller = GetComponent<NavMeshPatroller>();
             _health    = GetComponent<HealthSystem>();
             if (_body == null) _body = GetComponentInChildren<OperatorBody>();
+            // Réf au match manager pour remonter le score à la mort (une fois, au boot).
+            _matchManager = FindAnyObjectByType<Rocketpi.Gameplay.Match.TrainingMatchManager>();
 
             if (_operator != null)
             {
@@ -113,6 +126,7 @@ namespace Rocketpi.Gameplay.NPC
 
         private void TickPatrol()
         {
+            if (!_detectionEnabled) return;   // mode cible : patrouille pure, jamais d'engage
             var player = FindPlayerInCone();
             if (player != null)
             {
@@ -207,10 +221,44 @@ namespace Rocketpi.Gameplay.NPC
         private void HandleDeath()
         {
             Current = State.Dead;
+            CurrentTarget = null;
             _patroller?.StopPatrol();
             if (_agent.isOnNavMesh) _agent.isStopped = true;
-            _agent.enabled = false;
             _body?.TriggerDeath();
+
+            // Score : le joueur gagne des points en abattant ce NPC.
+            _matchManager?.RegisterKill(_scoreOnKill);
+
+            if (_respawnEnabled)
+            {
+                // On garde l'agent activé (pour pouvoir Warp au respawn), juste stoppé.
+                Invoke(nameof(Respawn), _respawnDelay);
+            }
+            else
+            {
+                _agent.enabled = false;
+            }
+        }
+
+        private void Respawn()
+        {
+            // Nouvelle position : un waypoint aléatoire (réapparaît "plus loin").
+            var newPos = _patroller != null
+                ? _patroller.RandomWaypointPosition(transform.position)
+                : transform.position;
+
+            // Snap sur le NavMesh à la nouvelle position.
+            if (_agent != null && _agent.enabled)
+            {
+                if (NavMesh.SamplePosition(newPos, out var navHit, 5f, NavMesh.AllAreas))
+                    _agent.Warp(navHit.position);
+                _agent.isStopped = false;
+            }
+
+            _health.ResetHealth();        // HP plein → WorldHealthBar se réaffiche
+            _body?.Revive();              // sort de l'anim de mort
+            Current = State.Patrol;
+            _patroller?.StartPatrol();
         }
 
         private void OnDrawGizmosSelected()

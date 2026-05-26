@@ -20,24 +20,79 @@ namespace Rocketpi.Gameplay.Weapons
 
         protected override void Fire()
         {
-            var origin = Owner != null && Owner.GetComponentInChildren<Camera>() is Camera cam
-                ? cam.transform
-                : transform;
+            // Aim 3rd person : on tire vers le CENTRE de l'écran (réticule), pas selon
+            // Camera.forward. En 3rd person la caméra regarde le dos du joueur, donc
+            // forward ≠ direction visée. ScreenPointToRay(centre) donne le bon rayon.
+            var cam = (Owner != null && Owner.GetComponentInChildren<Camera>() is Camera ownerCam)
+                ? ownerCam
+                : Camera.main;
 
-            var direction = ApplySpread(origin.forward);
+            Vector3 originPos, direction;
+            if (cam != null)
+            {
+                var ray = cam.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f, 0f));
+                originPos = ray.origin;
+                direction = ApplySpread(ray.direction);
+            }
+            else
+            {
+                originPos = transform.position;
+                direction = ApplySpread(transform.forward);
+            }
 
-            if (!Physics.Raycast(origin.position, direction, out var hit, _maxRange, _hittableLayers))
-                return;
+            // Point d'impact par défaut : bout de portée (si rien touché).
+            var endPoint = originPos + direction * _maxRange;
 
-            var health = hit.collider.GetComponentInParent<HealthSystem>();
-            if (health == null || health.IsDead) return;
+            // RaycastAll trié par distance : en 3rd person le ray part de la caméra
+            // située derrière le joueur, donc le premier collider serait le joueur
+            // lui-même. On saute le Owner et on prend la première cible valide.
+            var hits = Physics.RaycastAll(originPos, direction, _maxRange, _hittableLayers);
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
-            var isHeadshot = hit.collider.CompareTag("Hitbox") &&
-                             hit.collider.gameObject.name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
-            var damage = Mathf.CeilToInt(_baseDamage * (isHeadshot ? _headshotMultiplier : 1f));
+            foreach (var hit in hits)
+            {
+                var health = hit.collider.GetComponentInParent<HealthSystem>();
+                if (Owner != null && health == Owner.Health) continue;  // skip self (caméra derrière le joueur)
 
-            health.TakeDamage(damage);
-            OnHit?.Invoke(health, damage, isHeadshot);
+                // Premier hit non-self = point d'arrêt de la balle (mur OU cible).
+                endPoint = hit.point;
+
+                if (health != null && !health.IsDead)
+                {
+                    var isHeadshot = hit.collider.CompareTag("Hitbox") &&
+                                     hit.collider.gameObject.name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
+                    var damage = Mathf.CeilToInt(_baseDamage * (isHeadshot ? _headshotMultiplier : 1f));
+                    health.TakeDamage(damage);
+                    OnHit?.Invoke(health, damage, isHeadshot);
+                }
+                break; // un seul impact par tir
+            }
+
+            // Tracer visuel : du canon (ou de l'arme) vers le point d'impact.
+            var from = _muzzle != null ? _muzzle.position : transform.position;
+            SpawnTracer(from, endPoint);
+        }
+
+        private void SpawnTracer(Vector3 from, Vector3 to)
+        {
+            var go = new GameObject("ShotTracer");
+            var lr = go.AddComponent<LineRenderer>();
+            lr.positionCount = 2;
+            lr.SetPosition(0, from);
+            lr.SetPosition(1, to);
+            lr.startWidth = 0.04f;
+            lr.endWidth   = 0.01f;
+            lr.numCapVertices = 2;
+            lr.material = new Material(
+                Shader.Find("Universal Render Pipeline/Unlit")
+                ?? Shader.Find("Sprites/Default"));
+            var c0 = new Color(1f, 0.92f, 0.45f, 1f);
+            var c1 = new Color(1f, 0.6f, 0.15f, 0.25f);
+            lr.startColor = c0;
+            lr.endColor   = c1;
+            lr.material.SetColor("_BaseColor", c0);
+            lr.material.SetColor("_Color", c0);
+            Destroy(go, 0.06f);
         }
 
         private Vector3 ApplySpread(Vector3 forward)

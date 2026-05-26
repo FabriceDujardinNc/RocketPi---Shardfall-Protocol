@@ -78,6 +78,13 @@ namespace Rocketpi.Gameplay.CameraControl
         /// <summary>Désactive les inputs caméra (ex. UI ouverte).</summary>
         public void SetInteractive(bool value) => _interactive = value;
 
+        [Header("Vue")]
+        [SerializeField] private bool _firstPerson = false;
+        [SerializeField] private float _eyeHeight = 1.65f;   // hauteur des yeux en 1ère personne
+
+        public bool FirstPerson => _firstPerson;
+        public void SetFirstPerson(bool value) => _firstPerson = value;
+
         private void LateUpdate()
         {
             if (_target == null) return;
@@ -93,7 +100,16 @@ namespace Rocketpi.Gameplay.CameraControl
                     _distance = Mathf.Clamp(_distance - zoom * _zoomSpeed * Time.deltaTime, _minDistance, _maxDistance);
             }
 
-            // Ancrage : épaule droite du body
+            // ── Mode 1ère personne : caméra à hauteur des yeux, regard direct ──
+            if (_firstPerson)
+            {
+                var eye = _target.position + Vector3.up * _eyeHeight;
+                transform.position = eye;
+                transform.rotation = Quaternion.Euler(Pitch, Yaw, 0f);
+                return;
+            }
+
+            // ── Mode 3ème personne : orbite épaule ──
             var anchor = _target.position + _shoulderOffset;
             _smoothedPos = Vector3.SmoothDamp(_smoothedPos, anchor, ref _velRef, _followSmoothTime);
 
