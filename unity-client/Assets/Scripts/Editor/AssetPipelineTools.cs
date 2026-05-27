@@ -153,6 +153,7 @@ namespace Rocketpi.Editor
             var fall      = LoadClipByName("Fall");
             var aimIdle   = LoadClipByName("AimIdle");
             var fire      = LoadClipByName("Fire");
+            var reload    = LoadClipByName("Reload");
 
             if (idle == null || walk == null || run == null)
             {
@@ -173,6 +174,7 @@ namespace Rocketpi.Editor
             controller.AddParameter("Vertical",    AnimatorControllerParameterType.Float);
             controller.AddParameter("Die",         AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Fire",        AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("Reload",      AnimatorControllerParameterType.Trigger);
 
             // Force IsGrounded = true par défaut
             var ig = controller.parameters[1]; ig.defaultBool = true; controller.parameters = controller.parameters;
@@ -245,6 +247,26 @@ namespace Rocketpi.Editor
                 toDeath.duration = 0.1f;
                 toDeath.hasExitTime = false;
                 toDeath.canTransitionToSelf = false;
+            }
+
+            // ── Reload ───────────────────────────────────────────────────
+            // Joue l'anim de recharge en entier puis revient à la locomotion.
+            // (Interrompt le bas du corps — acceptable en proto ; un avatar mask
+            // upper-body viendrait plus tard pour recharger en marchant.)
+            if (reload != null)
+            {
+                var reloadState = sm.AddState("Reload", new Vector3(450, 240, 0));
+                reloadState.motion = reload;
+                var toReload = sm.AddAnyStateTransition(reloadState);
+                toReload.AddCondition(AnimatorConditionMode.If, 0, "Reload");
+                toReload.duration = 0.1f;
+                toReload.hasExitTime = false;
+                toReload.canTransitionToSelf = false;
+
+                var reloadToLocomotion = reloadState.AddTransition(locomotionState);
+                reloadToLocomotion.hasExitTime = true;
+                reloadToLocomotion.exitTime = 0.9f;     // 90% du clip
+                reloadToLocomotion.duration = 0.15f;
             }
 
             // ── Layer 1 : Combat (additive) ──────────────────────────────
@@ -449,6 +471,9 @@ namespace Rocketpi.Editor
                 {
                     for (var i = 0; i < clips.Length; i++)
                     {
+                        // Renomme le clip au nom du fichier (Mixamo les nomme tous
+                        // "mixamo.com" → impossible de retrouver Reload par nom au runtime).
+                        clips[i].name = clipName;
                         clips[i].loopTime = isLooping;
                         clips[i].lockRootRotation = true;
                         clips[i].lockRootHeightY  = true;

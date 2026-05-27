@@ -23,7 +23,7 @@ namespace Rocketpi.Gameplay.Match
     public class TrainingMatchManager : MonoBehaviour
     {
         [Header("Durée")]
-        [SerializeField] private int _matchDurationSeconds = 120;
+        [SerializeField] private int _matchDurationSeconds = 240;   // 4 minutes
         [SerializeField] private int _minDurationForSubmit = 30;     // matche MatchService::MIN_DURATION_SECONDS côté Laravel
 
         [Header("Refs scène")]

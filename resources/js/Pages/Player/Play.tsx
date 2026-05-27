@@ -68,6 +68,37 @@ const MODE_LABEL: Record<string, string> = {
     training: 'Entraînement',
 };
 
+// ── Contrôles du jeu ────────────────────────────────────────────────────────
+// ⚠️ MAINTENIR À JOUR : chaque fois qu'une nouvelle touche/commande est ajoutée
+// côté Unity (PlayerController, etc.), l'ajouter ici pour que le joueur la voie.
+// Bindings actuels : cf. unity-client/.../PlayerController.cs (Input System).
+const CONTROLS: { key: string; action: string }[] = [
+    { key: 'W A S D', action: 'Se déplacer' },
+    { key: 'Maj. gauche', action: 'Courir (en avançant)' },
+    { key: 'Espace', action: 'Sauter' },
+    { key: 'Souris', action: 'Tourner la caméra / viser' },
+    { key: 'Molette', action: 'Zoom caméra' },
+    { key: 'Clic gauche', action: 'Tirer' },
+    { key: 'Clic droit', action: 'Tir secondaire' },
+    { key: 'Q', action: 'Capacité 1' },
+    { key: 'E', action: 'Capacité 2' },
+    { key: 'R', action: 'Ultime' },
+    { key: 'V', action: 'Vue 1ʳᵉ / 3ᵉ personne' },
+    { key: 'Échap', action: 'Libérer la souris' },
+    { key: 'Marcher dessus', action: 'Ramasser un bonus' },
+];
+
+const POWERUPS: { name: string; color: string; effect: string }[] = [
+    { name: 'Bouclier', color: 'bg-shard-400', effect: 'Invulnérable 8s' },
+    { name: 'Méga-bombe', color: 'bg-danger', effect: 'Explosion : tue les ennemis proches' },
+    { name: 'Balles rebondissantes', color: 'bg-warning', effect: 'Ricochets 12s' },
+    { name: 'Tir rapide', color: 'bg-rarity-rare', effect: 'Cadence ×3 (10s)' },
+    { name: 'Quad dégâts', color: 'bg-rarity-epic', effect: 'Dégâts ×4 (12s)' },
+    { name: 'Vitesse', color: 'bg-success', effect: 'Déplacement ×1.7 (12s)' },
+    { name: 'Soin', color: 'bg-text-high', effect: '+100 PV' },
+    { name: 'Onde de choc', color: 'bg-shard-500', effect: 'Repousse tous les ennemis autour' },
+];
+
 function formatDuration(s: number | null): string {
     if (!s) return '—';
     const m = Math.floor(s / 60);
@@ -150,6 +181,41 @@ export default function Play({ rank, daily, history, photonAppId, unityConfig }:
                         <p className="font-body text-sm">Configuration Unity indisponible.</p>
                     </div>
                 )}
+            </section>
+
+            <section className="grid lg:grid-cols-2 gap-4 mb-6">
+                {/* Encart contrôles */}
+                <article className="rounded-lg bg-bg-elev1 border border-border-default p-5">
+                    <h2 className="font-display font-semibold text-sm uppercase tracking-mega text-shard-400 mb-3">
+                        Contrôles
+                    </h2>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                        {CONTROLS.map((c) => (
+                            <li key={c.key} className="flex items-center justify-between gap-2 text-sm">
+                                <span className="font-body text-text-medium">{c.action}</span>
+                                <kbd className="font-mono text-[11px] uppercase tracking-wide text-text-high bg-bg-elev2 border border-border-default rounded px-2 py-0.5 whitespace-nowrap">
+                                    {c.key}
+                                </kbd>
+                            </li>
+                        ))}
+                    </ul>
+                </article>
+
+                {/* Encart bonus / power-ups */}
+                <article className="rounded-lg bg-bg-elev1 border border-border-default p-5">
+                    <h2 className="font-display font-semibold text-sm uppercase tracking-mega text-shard-400 mb-3">
+                        Bonus à ramasser
+                    </h2>
+                    <ul className="space-y-2">
+                        {POWERUPS.map((p) => (
+                            <li key={p.name} className="flex items-center gap-3 text-sm">
+                                <span className={`inline-block size-3 rounded-sm ${p.color} shrink-0`} aria-hidden />
+                                <span className="font-body text-text-high font-medium">{p.name}</span>
+                                <span className="font-body text-text-low text-xs ml-auto text-right">{p.effect}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </article>
             </section>
 
             <section>

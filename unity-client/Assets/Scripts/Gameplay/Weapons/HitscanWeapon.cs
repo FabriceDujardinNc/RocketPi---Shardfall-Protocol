@@ -40,46 +40,67 @@ namespace Rocketpi.Gameplay.Weapons
                 direction = ApplySpread(transform.forward);
             }
 
-            // Point d'impact par défaut : bout de portée (si rien touché).
-            var endPoint = originPos + direction * _maxRange;
+            // Points du tracer : muzzle → impacts successifs (rebonds).
+            var from = _muzzle != null ? _muzzle.position : transform.position;
+            var tracer = new System.Collections.Generic.List<Vector3> { from };
 
-            // RaycastAll trié par distance : en 3rd person le ray part de la caméra
-            // située derrière le joueur, donc le premier collider serait le joueur
-            // lui-même. On saute le Owner et on prend la première cible valide.
-            var hits = Physics.RaycastAll(originPos, direction, _maxRange, _hittableLayers);
-            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            var curOrigin = originPos;
+            var curDir = direction;
+            var maxBounces = BouncingBullets ? 3 : 0;
+            var hitSomeone = false;
 
-            foreach (var hit in hits)
+            for (var bounce = 0; bounce <= maxBounces && !hitSomeone; bounce++)
             {
-                var health = hit.collider.GetComponentInParent<HealthSystem>();
-                if (Owner != null && health == Owner.Health) continue;  // skip self (caméra derrière le joueur)
+                var hits = Physics.RaycastAll(curOrigin, curDir, _maxRange, _hittableLayers);
+                System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
-                // Premier hit non-self = point d'arrêt de la balle (mur OU cible).
-                endPoint = hit.point;
-
-                if (health != null && !health.IsDead)
+                var segmentResolved = false;
+                foreach (var hit in hits)
                 {
-                    var isHeadshot = hit.collider.CompareTag("Hitbox") &&
-                                     hit.collider.gameObject.name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
-                    var damage = Mathf.CeilToInt(_baseDamage * (isHeadshot ? _headshotMultiplier : 1f));
-                    health.TakeDamage(damage);
-                    OnHit?.Invoke(health, damage, isHeadshot);
+                    var health = hit.collider.GetComponentInParent<HealthSystem>();
+                    if (Owner != null && health == Owner.Health) continue; // skip self
+                    if (health != null && health.IsDead) continue;
+
+                    tracer.Add(hit.point);
+
+                    if (health != null)
+                    {
+                        // Cible vivante : dégâts (avec multiplicateur power-up).
+                        var isHeadshot = hit.collider.CompareTag("Hitbox") &&
+                                         hit.collider.gameObject.name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
+                        var damage = Mathf.CeilToInt(_baseDamage * (isHeadshot ? _headshotMultiplier : 1f) * DamageMultiplier);
+                        health.TakeDamage(damage);
+                        OnHit?.Invoke(health, damage, isHeadshot);
+                        hitSomeone = true;
+                    }
+                    else if (bounce < maxBounces)
+                    {
+                        // Mur : rebond (balles rebondissantes).
+                        curDir = Vector3.Reflect(curDir, hit.normal).normalized;
+                        curOrigin = hit.point + curDir * 0.05f;
+                    }
+                    segmentResolved = true;
+                    break;
                 }
-                break; // un seul impact par tir
+
+                if (!segmentResolved)
+                {
+                    // Rien touché : segment droit jusqu'au bout de portée.
+                    tracer.Add(curOrigin + curDir * _maxRange);
+                    break;
+                }
             }
 
-            // Tracer visuel : du canon (ou de l'arme) vers le point d'impact.
-            var from = _muzzle != null ? _muzzle.position : transform.position;
-            SpawnTracer(from, endPoint);
+            SpawnTracer(tracer);
         }
 
-        private void SpawnTracer(Vector3 from, Vector3 to)
+        private void SpawnTracer(System.Collections.Generic.List<Vector3> points)
         {
+            if (points == null || points.Count < 2) return;
             var go = new GameObject("ShotTracer");
             var lr = go.AddComponent<LineRenderer>();
-            lr.positionCount = 2;
-            lr.SetPosition(0, from);
-            lr.SetPosition(1, to);
+            lr.positionCount = points.Count;
+            for (var i = 0; i < points.Count; i++) lr.SetPosition(i, points[i]);
             lr.startWidth = 0.04f;
             lr.endWidth   = 0.01f;
             lr.numCapVertices = 2;

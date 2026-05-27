@@ -93,6 +93,21 @@ namespace Rocketpi.Gameplay.NPC
             _health.OnDied -= HandleDeath;
         }
 
+        /// <summary>Repousse le NPC loin du point <paramref name="from"/> (onde de choc).</summary>
+        public void ApplyKnockback(Vector3 from, float force)
+        {
+            if (_agent == null || !_agent.enabled || !_agent.isOnNavMesh) return;
+            var dir = transform.position - from;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.01f)
+                dir = new Vector3(Random.value - 0.5f, 0f, Random.value - 0.5f);
+            dir.Normalize();
+
+            var target = transform.position + dir * force;
+            if (NavMesh.SamplePosition(target, out var hit, force + 2f, NavMesh.AllAreas))
+                _agent.Warp(hit.position);
+        }
+
         public void SetOperator(OperatorData op)
         {
             _operator = op;

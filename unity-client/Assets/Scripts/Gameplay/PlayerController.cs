@@ -48,6 +48,9 @@ namespace Rocketpi.Gameplay
         public WeaponBase   Weapon { get; private set; }
         public OperatorBody Body   { get; private set; }
 
+        /// <summary>Multiplicateur de vitesse (power-up SpeedBoost). 1 = normal.</summary>
+        public float SpeedMultiplier { get; set; } = 1f;
+
         public event Action<WeaponBase> OnWeaponChanged;
 
         private CharacterController _cc;
@@ -267,7 +270,8 @@ namespace Rocketpi.Gameplay
             ApplyViewMode();
         }
 
-        private void HandleWeaponFired() => Body?.TriggerFire();
+        private void HandleWeaponFired()    => Body?.TriggerFire();
+        private void HandleWeaponReload()   => Body?.TriggerReload();
 
         private void EquipOperatorWeapon()
         {
@@ -276,6 +280,7 @@ namespace Rocketpi.Gameplay
             if (Weapon != null)
             {
                 Weapon.OnFired -= HandleWeaponFired;
+                Weapon.OnReloadStarted -= HandleWeaponReload;
                 Destroy(Weapon.gameObject);
             }
 
@@ -285,8 +290,20 @@ namespace Rocketpi.Gameplay
             Weapon = instance.GetComponent<WeaponBase>();
             Weapon?.Initialize(this);
 
-            // Relaye le tir vers l'anim du body (trigger Fire sur l'Animator).
-            if (Weapon != null) Weapon.OnFired += HandleWeaponFired;
+            // Relaye tir + recharge vers l'anim du body.
+            if (Weapon != null)
+            {
+                Weapon.OnFired += HandleWeaponFired;
+                Weapon.OnReloadStarted += HandleWeaponReload;
+
+                // Synchronise la durée de rechargement sur la longueur de l'anim Reload
+                // pour que les balles ne reviennent pas avant la fin de l'animation.
+                if (Body != null)
+                {
+                    var reloadLen = Body.GetClipLength("Reload");
+                    if (reloadLen > 0f) Weapon.SetReloadTime(reloadLen);
+                }
+            }
 
             OnWeaponChanged?.Invoke(Weapon);
         }
@@ -309,7 +326,7 @@ namespace Rocketpi.Gameplay
             var wishDir = camRot * new Vector3(input.x, 0f, input.y);
 
             var sprint = _sprintAction.IsPressed() && input.y > 0.1f;
-            var speed = sprint ? _sprintSpeed : _walkSpeed;
+            var speed = (sprint ? _sprintSpeed : _walkSpeed) * SpeedMultiplier;
             var groundControl = _cc.isGrounded ? 1f : _airControl;
 
             var horizontal = wishDir * (speed * groundControl);
@@ -353,6 +370,8 @@ namespace Rocketpi.Gameplay
         private void HandleFire()
         {
             if (Weapon == null) return;
+            // Bloque le tir tant que l'anim de recharge joue (peu importe sa durée).
+            if (Body != null && Body.IsPlayingReload()) return;
             if (_fireAction.IsPressed())     Weapon.OnFireHeld();
             if (_fireAction.WasReleasedThisFrame()) Weapon.OnFireReleased();
             if (_altFireAction.WasPressedThisFrame()) Weapon.OnAltFire();

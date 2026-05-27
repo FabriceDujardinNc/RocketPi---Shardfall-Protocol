@@ -26,6 +26,12 @@ namespace Rocketpi.Gameplay.Weapons
 
         public PlayerController Owner { get; protected set; }
 
+        // Multiplicateurs power-ups (1 = normal). Modifiés par PlayerPowerUps.
+        public float DamageMultiplier   { get; set; } = 1f;
+        public float FireRateMultiplier { get; set; } = 1f;
+        public bool  BouncingBullets    { get; set; } = false;
+        protected int BaseDamage => _baseDamage;
+
         public event Action<int, int> OnAmmoChanged;   // (current, max)
         public event Action           OnReloadStarted;
         public event Action           OnReloadFinished;
@@ -43,6 +49,13 @@ namespace Rocketpi.Gameplay.Weapons
             OnAmmoChanged?.Invoke(CurrentAmmo, _magazineSize);
         }
 
+        /// <summary>Aligne la durée de rechargement gameplay sur celle de l'animation
+        /// (sinon les balles reviennent avant la fin de l'anim de recharge).</summary>
+        public void SetReloadTime(float seconds)
+        {
+            if (seconds > 0.1f) _reloadTime = seconds;
+        }
+
         // ── Hooks input depuis PlayerController ────────────────────────────
 
         public virtual void OnFireHeld()
@@ -55,7 +68,7 @@ namespace Rocketpi.Gameplay.Weapons
                 return;
             }
 
-            NextShotAt = Time.time + (1f / _fireRate);
+            NextShotAt = Time.time + (1f / (_fireRate * Mathf.Max(0.1f, FireRateMultiplier)));
             CurrentAmmo--;
             OnAmmoChanged?.Invoke(CurrentAmmo, _magazineSize);
             Fire();

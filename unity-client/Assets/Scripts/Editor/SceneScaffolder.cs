@@ -22,6 +22,7 @@ using Rocketpi.Gameplay.CameraControl;
 using Rocketpi.Gameplay.Match;
 using Rocketpi.Gameplay.NPC;
 using Rocketpi.Gameplay.Operators;
+using Rocketpi.Gameplay.PowerUps;
 using Rocketpi.UI;
 using Unity.AI.Navigation;
 using UnityEditor;
@@ -101,6 +102,79 @@ namespace Rocketpi.Editor
             var waypoints = FindOrCreateWaypoints(npcRoot.transform.parent);
             CreateNpcs(npcRoot.transform, waypoints);
             EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        // ── Power-Ups ──────────────────────────────────────────────────────
+        [MenuItem("Tools/RocketPi/Add PowerUps to Scene")]
+        public static void AddPowerUpsToScene()
+        {
+            var scene = EditorSceneManager.GetActiveScene();
+
+            // 1. Le joueur doit avoir le gestionnaire d'effets.
+            var player = GameObject.Find("Player");
+            if (player != null && player.GetComponent<PlayerPowerUps>() == null)
+            {
+                player.AddComponent<PlayerPowerUps>();
+                Debug.Log("[RocketPi] PlayerPowerUps ajouté au Player.");
+            }
+
+            // 2. (Re)crée le conteneur de pickups.
+            var existing = GameObject.Find("PowerUps");
+            if (existing != null) Object.DestroyImmediate(existing);
+            var root = new GameObject("PowerUps");
+
+            var types = (PowerUpType[])System.Enum.GetValues(typeof(PowerUpType));
+
+            // Au sol : un de chaque type, réparti en cercle (rayon 9).
+            for (var i = 0; i < types.Length; i++)
+            {
+                var angle = i * Mathf.PI * 2f / types.Length;
+                var pos = new Vector3(Mathf.Cos(angle) * 9f, 0f, Mathf.Sin(angle) * 9f);
+                CreatePickup(root.transform, types[i], pos);
+            }
+
+            // En hauteur (au-dessus du fort) : les bonus "forts" à récupérer en sautant /
+            // depuis les remparts. y=6 au centre + 2 coins.
+            CreatePickup(root.transform, PowerUpType.MegaBomb,   new Vector3( 0f, 6f,  0f));
+            CreatePickup(root.transform, PowerUpType.QuadDamage, new Vector3( 6f, 6f,  6f));
+            CreatePickup(root.transform, PowerUpType.Shield,     new Vector3(-6f, 6f, -6f));
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            Debug.Log($"[RocketPi] {types.Length + 3} power-ups placés (sol + fort).");
+        }
+
+        private static void CreatePickup(Transform parent, PowerUpType type, Vector3 pos)
+        {
+            var go = new GameObject($"PowerUp_{type}");
+            go.transform.SetParent(parent);
+            go.transform.position = pos;
+            var pu = go.AddComponent<PowerUpPickup>();
+            var so = new SerializedObject(pu);
+            so.FindProperty("_type").enumValueIndex = (int)type;
+
+            // Cherche un vrai modèle 3D nommé d'après le type dans Assets/Models/PowerUps/.
+            // Ex : Assets/Models/PowerUps/Shield.glb (ou .fbx / .prefab).
+            var model = FindPowerUpModel(type);
+            if (model != null)
+                so.FindProperty("_model").objectReferenceValue = model;
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(pu);
+        }
+
+        private static GameObject FindPowerUpModel(PowerUpType type)
+        {
+            const string dir = "Assets/Models/PowerUps";
+            foreach (var ext in new[] { "prefab", "glb", "fbx" })
+            {
+                var path = $"{dir}/{type}.{ext}";
+                if (File.Exists(path))
+                {
+                    var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    if (go != null) return go;
+                }
+            }
+            return null;
         }
 
         // ── Diagnostic NavMesh ─────────────────────────────────────────────

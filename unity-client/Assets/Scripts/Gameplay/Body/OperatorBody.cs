@@ -82,11 +82,37 @@ namespace Rocketpi.Gameplay.Body
             _animator.Update(0f);
         }
 
-        private static readonly int HashFire = Animator.StringToHash("Fire");
+        private static readonly int HashFire   = Animator.StringToHash("Fire");
+        private static readonly int HashReload = Animator.StringToHash("Reload");
 
         public void TriggerFire()
         {
             if (_animator != null) _animator.SetTrigger(HashFire);
+        }
+
+        public void TriggerReload()
+        {
+            if (_animator != null) _animator.SetTrigger(HashReload);
+        }
+
+        /// <summary>Durée (s) d'un clip de l'Animator par nom (insensible à la casse). 0 si absent.</summary>
+        public float GetClipLength(string clipName)
+        {
+            if (_animator == null || _animator.runtimeAnimatorController == null) return 0f;
+            foreach (var clip in _animator.runtimeAnimatorController.animationClips)
+                if (clip != null && clip.name.IndexOf(clipName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    return clip.length;
+            return 0f;
+        }
+
+        /// <summary>True si l'Animator joue actuellement l'état Reload (layer 0).
+        /// Sert à bloquer le tir tant que l'anim de recharge n'est pas finie.</summary>
+        public bool IsPlayingReload()
+        {
+            if (_animator == null) return false;
+            var st = _animator.GetCurrentAnimatorStateInfo(0);
+            var next = _animator.GetNextAnimatorStateInfo(0);
+            return st.IsName("Reload") || next.IsName("Reload");
         }
 
         private void Update()

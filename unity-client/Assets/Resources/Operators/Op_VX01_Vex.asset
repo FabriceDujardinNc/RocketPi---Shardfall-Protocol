@@ -24,7 +24,7 @@ MonoBehaviour:
   WeaponPrefab: {fileID: 7925235244344536920, guid: 07d0c896f6822ed4297a6b6123fe597a, type: 3}
   AbilityPrefabs: []
   UltimatePrefab: {fileID: 0}
-  BodyPrefab: {fileID: 1170906719797022386, guid: 038378020aaf0ea4e95f40a6c11f0f1c, type: 3}
+  BodyPrefab: {fileID: 5934078318580024641, guid: 038378020aaf0ea4e95f40a6c11f0f1c, type: 3}
   BodyHeight: 1.85
   BodyRadius: 0.4
   CameraShoulderHeight: 1.6
