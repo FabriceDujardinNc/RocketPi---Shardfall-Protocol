@@ -19,9 +19,15 @@ namespace Rocketpi.UI
         [SerializeField] private TMP_Text   _statusLabel;
 
         private bool _isRequesting;
+        private bool _autoStarted;
 
         private void Start()
         {
+            // L'écran d'accueil est désormais juste un loader transparent : pas de fenêtre
+            // intermédiaire à cliquer. Dès que la config arrive du bridge, on lance le
+            // training automatiquement.
+            Hide();
+
             if (_startTrainingButton != null)
                 _startTrainingButton.onClick.AddListener(OnStartTrainingClicked);
 
@@ -31,7 +37,8 @@ namespace Rocketpi.UI
                 RocketpiBridge.Instance.OnSessionStarted += HandleSessionStarted;
             }
 
-            UpdateButtonState();
+            // Si la config est déjà là (cas Editor mock ou hot reload), démarre tout de suite.
+            if (Rocketpi.RestClient.RocketpiApiClient.Instance.IsConfigured) AutoStart();
         }
 
         private void OnDestroy()
@@ -45,8 +52,16 @@ namespace Rocketpi.UI
             }
         }
 
-        private void HandleConfigReceived(ConfigPayload _) => UpdateButtonState();
+        private void HandleConfigReceived(ConfigPayload _) => AutoStart();
         private void HandleSessionStarted(SessionPayload _) => Hide();
+
+        // Démarre la session training automatiquement, sans clic utilisateur.
+        private void AutoStart()
+        {
+            if (_autoStarted || _isRequesting) return;
+            _autoStarted = true;
+            StartCoroutine(RequestTrainingSession());
+        }
 
         private void UpdateButtonState()
         {
