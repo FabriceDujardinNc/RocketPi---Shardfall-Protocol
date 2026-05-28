@@ -26,9 +26,17 @@ namespace Rocketpi.Gameplay.Weapons
 
         public PlayerController Owner { get; protected set; }
 
+        // Multiplicateurs power-ups (1 = normal). Modifiés par PlayerPowerUps.
+        public float DamageMultiplier   { get; set; } = 1f;
+        public float FireRateMultiplier { get; set; } = 1f;
+        public bool  BouncingBullets    { get; set; } = false;
+        public bool  InfiniteAmmo       { get; set; } = false;
+        protected int BaseDamage => _baseDamage;
+
         public event Action<int, int> OnAmmoChanged;   // (current, max)
         public event Action           OnReloadStarted;
         public event Action           OnReloadFinished;
+        public event Action           OnFired;          // émis à chaque tir effectif (pour anim/SFX)
 
         protected virtual void Awake()
         {
@@ -42,22 +50,36 @@ namespace Rocketpi.Gameplay.Weapons
             OnAmmoChanged?.Invoke(CurrentAmmo, _magazineSize);
         }
 
+        /// <summary>Aligne la durée de rechargement gameplay sur celle de l'animation
+        /// (sinon les balles reviennent avant la fin de l'anim de recharge).</summary>
+        public void SetReloadTime(float seconds)
+        {
+            if (seconds > 0.1f) _reloadTime = seconds;
+        }
+
         // ── Hooks input depuis PlayerController ────────────────────────────
 
         public virtual void OnFireHeld()
         {
             if (IsReloading) return;
             if (Time.time < NextShotAt) return;
-            if (CurrentAmmo <= 0)
+            if (!InfiniteAmmo && CurrentAmmo <= 0)
             {
-                BeginReload();
+                // Recharge auto — mais OnFireHeld n'est appelé QUE quand le joueur court
+                // (PlayerController.HandleFire bloque le tir en marche). Donc en pratique :
+                // on ne recharge qu'en COURANT. Sinon (marche) → bonus munitions requis.
+                RefillAmmo();
                 return;
             }
 
-            NextShotAt = Time.time + (1f / _fireRate);
-            CurrentAmmo--;
-            OnAmmoChanged?.Invoke(CurrentAmmo, _magazineSize);
+            NextShotAt = Time.time + (1f / (_fireRate * Mathf.Max(0.1f, FireRateMultiplier)));
+            if (!InfiniteAmmo)
+            {
+                CurrentAmmo--;
+                OnAmmoChanged?.Invoke(CurrentAmmo, _magazineSize);
+            }
             Fire();
+            OnFired?.Invoke();
         }
 
         public virtual void OnFireReleased() { }
@@ -68,9 +90,11 @@ namespace Rocketpi.Gameplay.Weapons
 
         protected abstract void Fire();
 
-        protected virtual void BeginReload()
+        /// <summary>Recharge le chargeur. Appelé UNIQUEMENT par un bonus munitions
+        /// ou un sort de soutien — il n'y a pas de recharge libre au clavier.</summary>
+        public void RefillAmmo()
         {
-            if (IsReloading || CurrentAmmo == _magazineSize) return;
+            if (IsReloading || CurrentAmmo >= _magazineSize) return;
             IsReloading = true;
             OnReloadStarted?.Invoke();
             Invoke(nameof(FinishReload), _reloadTime);

@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &5993536893987202125
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_Name
+      value: EchoBody
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 7232920a091b02d42a9a38fe8bff236e, type: 2}
+    - target: {fileID: 5866666021909216657, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2332458735717748373}
+  m_SourcePrefab: {fileID: 100100000, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+--- !u!95 &164319423737272796 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+  m_PrefabInstance: {fileID: 5993536893987202125}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6911965349256829212 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: a8f475cfe92641f45917c134ec3b9809, type: 3}
+  m_PrefabInstance: {fileID: 5993536893987202125}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2332458735717748373
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6911965349256829212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7f6ff058c07d5048b26e69b9430008b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Rocketpi.Gameplay::Rocketpi.Gameplay.Body.OperatorBody
+  _animator: {fileID: 164319423737272796}
+  _speedDamp: 0.1
+  _walkSpeedRef: 5.5
+  _sprintSpeedRef: 8.5

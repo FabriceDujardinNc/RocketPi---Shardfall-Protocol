@@ -16,15 +16,16 @@ MonoBehaviour:
   DisplayName: Crag
   Faction: 1
   Rarity: 3
+  Role: 3
   BaseHp: 140
   WalkSpeed: 5.5
   SprintSpeed: 8.5
   Portrait: {fileID: 0}
   AccentColor: {r: 0.95, g: 0.55, b: 0.2, a: 1}
-  WeaponPrefab: {fileID: 0}
+  WeaponPrefab: {fileID: 666583289182736706, guid: fc2c67a7a85fde441ad3fb9f21daf3da, type: 3}
   AbilityPrefabs: []
   UltimatePrefab: {fileID: 0}
-  BodyPrefab: {fileID: 4836591740226291990, guid: 038378020aaf0ea4e95f40a6c11f0f1c, type: 3}
+  BodyPrefab: {fileID: 6487540477574550829, guid: 8fa3eedb9b13b184fb91420271c5d053, type: 3}
   BodyHeight: 1.85
   BodyRadius: 0.4
   CameraShoulderHeight: 1.6

@@ -17,11 +17,14 @@ using System.Collections.Generic;
 using System.IO;
 using Rocketpi.Bridge;
 using Rocketpi.Gameplay;
+using Rocketpi.Gameplay.Abilities;
 using Rocketpi.Gameplay.Body;
 using Rocketpi.Gameplay.CameraControl;
 using Rocketpi.Gameplay.Match;
 using Rocketpi.Gameplay.NPC;
 using Rocketpi.Gameplay.Operators;
+using Rocketpi.Gameplay.PowerUps;
+using Rocketpi.Gameplay.UI;
 using Rocketpi.UI;
 using Unity.AI.Navigation;
 using UnityEditor;
@@ -72,19 +75,23 @@ namespace Rocketpi.Editor
         public static void BakeActiveNavMesh()
         {
             var scene = EditorSceneManager.GetActiveScene();
-            var surface = Object.FindFirstObjectByType<NavMeshSurface>();
+            var surface = Object.FindAnyObjectByType<NavMeshSurface>();
             if (surface == null)
             {
                 // Idempotent : crée le NavMeshSurface s'il manque (utile quand on
                 // ajoute les NPCs à une scène custom CastleWalls/Donjon).
                 var go = new GameObject("NavMeshSurface");
                 surface = go.AddComponent<NavMeshSurface>();
-                surface.collectObjects = CollectObjects.All;
-                surface.layerMask = ~0;
-                surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
                 Debug.Log("[RocketPi] NavMeshSurface absent — créé automatiquement.");
             }
+            // RenderMeshes (pas PhysicsColliders) : plus robuste, fonctionne même si
+            // le sol du décor n'a pas de collider — seul le MeshRenderer suffit.
+            surface.collectObjects = CollectObjects.All;
+            surface.layerMask = ~0;
+            surface.useGeometry = NavMeshCollectGeometry.RenderMeshes;
             surface.BuildNavMesh();
+            var tri = NavMesh.CalculateTriangulation();
+            Debug.Log($"[RocketPi] NavMesh baké : {tri.indices.Length / 3} triangles.");
             EditorSceneManager.MarkSceneDirty(scene);
             Debug.Log("[RocketPi] NavMesh bake terminé.");
         }
@@ -97,6 +104,313 @@ namespace Rocketpi.Editor
             var waypoints = FindOrCreateWaypoints(npcRoot.transform.parent);
             CreateNpcs(npcRoot.transform, waypoints);
             EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        // ── Rôles + capacités ──────────────────────────────────────────────
+        [MenuItem("Tools/RocketPi/Setup Roles + Abilities")]
+        public static void SetupRolesAndAbilities()
+        {
+            // Mapping codename → rôle (aligné sur OperatorSeeder Laravel).
+            var roleByCode = new Dictionary<string, OperatorRole>
+            {
+                { "VX-01", OperatorRole.Sniper },
+                { "HL-02", OperatorRole.Healer },
+                { "DR-03", OperatorRole.Scout },
+                { "CR-04", OperatorRole.Tank },
+                { "BK-05", OperatorRole.Explosives },
+                { "IR-06", OperatorRole.Assault },
+                { "WR-07", OperatorRole.Infiltrator },
+                { "EC-08", OperatorRole.Hacker },
+            };
+
+            var assigned = 0;
+            foreach (var g in AssetDatabase.FindAssets("t:OperatorData"))
+            {
+                var op = AssetDatabase.LoadAssetAtPath<OperatorData>(AssetDatabase.GUIDToAssetPath(g));
+                if (op == null || !roleByCode.TryGetValue(op.Codename, out var role)) continue;
+                var so = new SerializedObject(op);
+                so.FindProperty("Role").enumValueIndex = (int)role;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(op);
+                assigned++;
+            }
+            AssetDatabase.SaveAssets();
+
+            var player = GameObject.Find("Player");
+            if (player != null)
+            {
+                var abilities = player.GetComponent<PlayerAbilities>() ?? player.AddComponent<PlayerAbilities>();
+
+                // Réutilise le modèle de bouclier des power-ups pour le mur du Tank/Crag.
+                var shield = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/PowerUps/Shield.glb");
+                if (shield != null)
+                {
+                    var aso = new SerializedObject(abilities);
+                    aso.FindProperty("_shieldModel").objectReferenceValue = shield;
+                    aso.ApplyModifiedPropertiesWithoutUndo();
+                    EditorUtility.SetDirty(abilities);
+                }
+                Debug.Log("[RocketPi] PlayerAbilities prêt (modèle bouclier assigné).");
+            }
+
+            // Overlay d'aide des touches (touche I).
+            if (GameObject.Find("ControlsOverlay") == null)
+            {
+                new GameObject("ControlsOverlay").AddComponent<ControlsOverlay>();
+                Debug.Log("[RocketPi] ControlsOverlay ajouté (touche I).");
+            }
+
+            // HUD jauges de cooldown (F / R) en bas de l'écran.
+            if (GameObject.Find("AbilityHud") == null)
+            {
+                new GameObject("AbilityHud").AddComponent<AbilityHud>();
+                Debug.Log("[RocketPi] AbilityHud ajouté (jauges F / R).");
+            }
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log($"[RocketPi] {assigned} rôles assignés aux opérateurs + capacités prêtes.");
+        }
+
+        // ── Sélection d'opérateur ──────────────────────────────────────────
+        [MenuItem("Tools/RocketPi/Add Operator Selection")]
+        public static void AddOperatorSelection()
+        {
+            var scene = EditorSceneManager.GetActiveScene();
+            var existing = GameObject.Find("OperatorSelection");
+            if (existing != null) Object.DestroyImmediate(existing);
+
+            var go = new GameObject("OperatorSelection");
+            var menu = go.AddComponent<OperatorSelectionMenu>();
+
+            // Tous les OperatorData du projet (ordre stable par codename).
+            var guids = AssetDatabase.FindAssets("t:OperatorData");
+            var ops = new List<OperatorData>();
+            foreach (var g in guids)
+            {
+                var op = AssetDatabase.LoadAssetAtPath<OperatorData>(AssetDatabase.GUIDToAssetPath(g));
+                if (op != null) ops.Add(op);
+            }
+            ops.Sort((a, b) => string.CompareOrdinal(a.Codename, b.Codename));
+
+            var player = Object.FindAnyObjectByType<PlayerController>();
+            var cam    = Object.FindAnyObjectByType<ThirdPersonCamera>();
+
+            var so = new SerializedObject(menu);
+            var arr = so.FindProperty("_operators");
+            arr.arraySize = ops.Count;
+            for (var i = 0; i < ops.Count; i++)
+                arr.GetArrayElementAtIndex(i).objectReferenceValue = ops[i];
+            so.FindProperty("_player").objectReferenceValue = player;
+            so.FindProperty("_camera").objectReferenceValue = cam;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(menu);
+            EditorSceneManager.MarkSceneDirty(scene);
+            Debug.Log($"[RocketPi] Écran de sélection ajouté ({ops.Count} opérateurs).");
+        }
+
+        // ── Power-Ups ──────────────────────────────────────────────────────
+        [MenuItem("Tools/RocketPi/Add PowerUps to Scene")]
+        public static void AddPowerUpsToScene()
+        {
+            var scene = EditorSceneManager.GetActiveScene();
+
+            // 1. Le joueur doit avoir le gestionnaire d'effets.
+            var player = GameObject.Find("Player");
+            if (player != null && player.GetComponent<PlayerPowerUps>() == null)
+            {
+                player.AddComponent<PlayerPowerUps>();
+                Debug.Log("[RocketPi] PlayerPowerUps ajouté au Player.");
+            }
+
+            // 2. (Re)crée le conteneur de pickups + plateformes.
+            var existing = GameObject.Find("PowerUps");
+            if (existing != null) Object.DestroyImmediate(existing);
+            var root = new GameObject("PowerUps");
+            var platforms = new GameObject("Platforms");
+            platforms.transform.SetParent(root.transform);
+
+            var types = (PowerUpType[])System.Enum.GetValues(typeof(PowerUpType));
+            var rockMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Models/Decor/Rock_Mat.mat");
+            var rocks = LoadPlatformRocks();
+
+            // Beaucoup de bonus EN HAUTEUR, éparpillés partout : chacun sur un rocher-
+            // plateforme (à atteindre en sautant). Répartis sur tout le terrain jouable.
+            const int count = 30;
+            int placed = 0;
+            for (var i = 0; i < count; i++)
+            {
+                // Anneau 22..62 : laisse le fort central + sa porte/rampe totalement dégagés
+                // (sinon un rocher peut bloquer la sortie).
+                if (!TryRandomNavPointRing(22f, 62f, out var pos)) continue;
+                var topY = SpawnPlatformRock(platforms.transform, rocks, rockMat, pos, Random.Range(1.0f, 1.8f));
+                CreatePickup(root.transform, types[i % types.Length], new Vector3(pos.x, topY + 0.7f, pos.z));
+                placed++;
+            }
+
+            // Bonus "forts" sur le TOIT du fort (accès par la rampe).
+            CreatePickup(root.transform, PowerUpType.MegaBomb,   new Vector3( 0f, 7.2f,  0f));
+            CreatePickup(root.transform, PowerUpType.QuadDamage, new Vector3( 7f, 7.2f,  7f));
+            CreatePickup(root.transform, PowerUpType.Shield,     new Vector3(-7f, 7.2f, -7f));
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            Debug.Log($"[RocketPi] {placed} bonus sur plateformes + 3 sur le fort.");
+        }
+
+        // Rochers low-poly utilisables comme plateformes (petits/moyens → sautables).
+        private static List<GameObject> LoadPlatformRocks()
+        {
+            var list = new List<GameObject>();
+            const string dir = "Assets/Models/Decor/Nature/FBX";
+            if (!System.IO.Directory.Exists(dir)) return list;
+            foreach (var raw in System.IO.Directory.GetFiles(dir, "rock_*.fbx"))
+            {
+                var n = System.IO.Path.GetFileNameWithoutExtension(raw).ToLowerInvariant();
+                if (n.Contains("small") || n.Contains("medium") || n.Contains("tall"))
+                {
+                    var go = AssetDatabase.LoadAssetAtPath<GameObject>(raw.Replace('\\', '/'));
+                    if (go != null) list.Add(go);
+                }
+            }
+            return list;
+        }
+
+        /// <summary>Pose un rocher-plateforme au sol (base à pos.y), le scale à la hauteur
+        /// cible, lui ajoute un BoxCollider AABB, et renvoie l'altitude de son sommet.</summary>
+        private static float SpawnPlatformRock(Transform parent, List<GameObject> rocks, Material mat,
+            Vector3 groundPos, float targetHeight)
+        {
+            GameObject inst;
+            if (rocks != null && rocks.Count > 0)
+            {
+                inst = (GameObject)PrefabUtility.InstantiatePrefab(rocks[Random.Range(0, rocks.Count)], parent);
+                inst.transform.position = groundPos;
+                inst.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                var b0 = RendBounds(inst);
+                if (b0.size.y > 0.001f) inst.transform.localScale *= targetHeight / b0.size.y;
+                if (mat != null)
+                    foreach (var r in inst.GetComponentsInChildren<Renderer>(true)) r.sharedMaterial = mat;
+            }
+            else
+            {
+                inst = GameObject.CreatePrimitive(PrimitiveType.Cube);   // fallback socle
+                inst.transform.SetParent(parent);
+                inst.transform.position = groundPos;
+                inst.transform.localScale = new Vector3(2.4f, targetHeight, 2.4f);
+                if (mat != null) inst.GetComponent<Renderer>().sharedMaterial = mat;
+            }
+
+            // Cale la base au sol.
+            var b = RendBounds(inst);
+            inst.transform.position += Vector3.up * (groundPos.y - b.min.y);
+
+            // MeshCollider précis (épouse la forme du rocher → pas de mur invisible autour ;
+            // le joueur peut s'approcher et tenir sur le vrai sommet).
+            foreach (var mf in inst.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null || mf.GetComponent<MeshCollider>() != null) continue;
+                mf.gameObject.AddComponent<MeshCollider>().sharedMesh = mf.sharedMesh;
+            }
+            return RendBounds(inst).max.y;
+        }
+
+        private static Bounds RendBounds(GameObject go)
+        {
+            var rs = go.GetComponentsInChildren<Renderer>(true);
+            if (rs.Length == 0) return new Bounds(go.transform.position, Vector3.one);
+            var b = rs[0].bounds;
+            for (var i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+            return b;
+        }
+
+        private static void CreatePickup(Transform parent, PowerUpType type, Vector3 pos)
+        {
+            var go = new GameObject($"PowerUp_{type}");
+            go.transform.SetParent(parent);
+            go.transform.position = pos;
+            var pu = go.AddComponent<PowerUpPickup>();
+            var so = new SerializedObject(pu);
+            so.FindProperty("_type").enumValueIndex = (int)type;
+
+            // Cherche un vrai modèle 3D nommé d'après le type dans Assets/Models/PowerUps/.
+            // Ex : Assets/Models/PowerUps/Shield.glb (ou .fbx / .prefab).
+            var model = FindPowerUpModel(type);
+            if (model != null)
+                so.FindProperty("_model").objectReferenceValue = model;
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(pu);
+        }
+
+        private static GameObject FindPowerUpModel(PowerUpType type)
+        {
+            const string dir = "Assets/Models/PowerUps";
+            foreach (var ext in new[] { "prefab", "glb", "fbx" })
+            {
+                var path = $"{dir}/{type}.{ext}";
+                if (File.Exists(path))
+                {
+                    var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    if (go != null) return go;
+                }
+            }
+            return null;
+        }
+
+        // ── Diagnostic NavMesh ─────────────────────────────────────────────
+        [MenuItem("Tools/RocketPi/Diagnose NavMesh")]
+        public static void DiagnoseNavMesh()
+        {
+            // 1. NavMeshSurface présent ?
+            var surface = Object.FindAnyObjectByType<NavMeshSurface>();
+            Debug.Log($"[Diag] NavMeshSurface présent : {surface != null}");
+            if (surface != null)
+            {
+                Debug.Log($"[Diag]   collectObjects={surface.collectObjects}, useGeometry={surface.useGeometry}, " +
+                          $"size={surface.size}, navMeshData={(surface.navMeshData != null ? "OUI" : "NULL (jamais baké!)")}");
+            }
+
+            // 2. Triangulation globale du NavMesh : combien de triangles ?
+            var tri = NavMesh.CalculateTriangulation();
+            Debug.Log($"[Diag] NavMesh triangulation : {tri.vertices.Length} vertices, {tri.indices.Length / 3} triangles");
+            if (tri.indices.Length == 0)
+                Debug.LogError("[Diag] ⚠️ NAVMESH VIDE — le bake n'a rien généré. Le sol n'est pas collecté " +
+                               "(pas de collider si useGeometry=PhysicsColliders, ou hors du volume size).");
+
+            // 3. Pour chaque NPC, SamplePosition trouve-t-il du sol navigable ?
+            var npcsRoot = GameObject.Find("NPCs");
+            if (npcsRoot != null)
+            {
+                foreach (Transform npc in npcsRoot.transform)
+                {
+                    var found = NavMesh.SamplePosition(npc.position, out var hit, 10f, NavMesh.AllAreas);
+                    if (found)
+                        Debug.Log($"[Diag] {npc.name} @ {npc.position} → navmesh trouvé à {hit.position} " +
+                                  $"(distance {Vector3.Distance(npc.position, hit.position):F2}m)");
+                    else
+                        Debug.LogError($"[Diag] {npc.name} @ {npc.position} → AUCUN navmesh dans un rayon de 10m !");
+                }
+            }
+            else Debug.LogWarning("[Diag] Pas de GameObject 'NPCs' dans la scène.");
+
+            // 4. Le sol : liste les gros meshes/colliders au niveau y≈0
+            Debug.Log("[Diag] Recherche du sol (objets nommés Ground/Sol/Plane/Floor) :");
+            foreach (var go in EditorSceneManager.GetActiveScene().GetRootGameObjects())
+            {
+                ScanForGround(go.transform, 0);
+            }
+        }
+
+        private static void ScanForGround(Transform t, int depth)
+        {
+            var n = t.name.ToLowerInvariant();
+            if (n.Contains("ground") || n.Contains("sol") || n.Contains("plane") || n.Contains("floor") || n.Contains("terrain"))
+            {
+                var hasCol = t.GetComponent<Collider>() != null;
+                var hasRenderer = t.GetComponent<Renderer>() != null;
+                Debug.Log($"[Diag]   '{t.name}' pos={t.position} scale={t.lossyScale} collider={hasCol} renderer={hasRenderer}");
+            }
+            if (depth < 3)
+                foreach (Transform c in t) ScanForGround(c, depth + 1);
         }
 
         // ── Play mode helpers ──────────────────────────────────────────────
@@ -157,10 +471,10 @@ namespace Rocketpi.Editor
                 return;
             }
 
-            // Vue top-down assez haute pour englober les 6 waypoints (rayon 15m) + le château
-            sceneView.LookAtDirect(new Vector3(0f, 0f, 0f), Quaternion.Euler(55f, 35f, 0f), 50f);
+            // Vue large pour englober la map agrandie (≈150) + la ceinture de montagnes.
+            sceneView.LookAtDirect(new Vector3(0f, 0f, 0f), Quaternion.Euler(55f, 35f, 0f), 130f);
             sceneView.Repaint();
-            sceneView.camera.transform.position = new Vector3(35f, 50f, -35f);
+            sceneView.camera.transform.position = new Vector3(105f, 130f, -105f);
             sceneView.camera.transform.LookAt(Vector3.zero);
 
             const int w = 1280;
@@ -218,7 +532,7 @@ namespace Rocketpi.Editor
             }
             else
             {
-                cam = Object.FindFirstObjectByType<Camera>();
+                cam = Object.FindAnyObjectByType<Camera>();
             }
             if (cam == null)
             {
@@ -245,7 +559,7 @@ namespace Rocketpi.Editor
             }
             else
             {
-                var match = Object.FindFirstObjectByType<TrainingMatchManager>();
+                var match = Object.FindAnyObjectByType<TrainingMatchManager>();
                 var so = new SerializedObject(playerController);
                 so.FindProperty("_camera").objectReferenceValue = tpCam;
                 if (match != null) so.FindProperty("_match").objectReferenceValue = match;
@@ -460,13 +774,128 @@ namespace Rocketpi.Editor
                 agent.acceleration = 12f;
                 agent.stoppingDistance = 0.4f;
 
-                npc.AddComponent<HealthSystem>();
+                // Collider pour rendre le NPC touchable par les raycasts d'arme
+                // (HitscanWeapon remonte au HealthSystem via GetComponentInParent).
+                var capsule = npc.AddComponent<CapsuleCollider>();
+                capsule.height = 1.85f;
+                capsule.radius = 0.4f;
+                capsule.center = new Vector3(0f, 0.925f, 0f);
+
+                var health = npc.AddComponent<HealthSystem>();
+                npc.AddComponent<WorldHealthBar>();    // barre de vie flottante
                 var patroller = npc.AddComponent<NavMeshPatroller>();
                 patroller.SetWaypoints(waypoints);
 
                 var npcController = npc.AddComponent<OperatorNpcController>();
                 if (opData != null) npcController.SetOperator(opData);
+
+                // Cibles d'entraînement résistantes : 300 PV pour voir la barre de vie
+                // descendre par paliers (sinon ~5 tirs à 18 dmg = mort en <1s).
+                // SetMaxHealth APRÈS SetOperator (qui aurait remis BaseHp).
+                health.SetMaxHealth(300);
             }
+        }
+
+        // ── Mode Infiltration (Où est Charlie) ────────────────────────────
+        [MenuItem("Tools/RocketPi/Setup Hide & Seek")]
+        public static void SetupHideAndSeek()
+        {
+            const int crowdCount = 48;   // foule de faux opérateurs
+
+            var ops = new List<OperatorData>();
+            foreach (var kv in LoadOperatorsByName())
+                if (kv.Value != null && kv.Value.BodyPrefab != null) ops.Add(kv.Value);
+            if (ops.Count == 0)
+            {
+                EditorUtility.DisplayDialog("Setup Hide & Seek",
+                    "Aucun OperatorData avec BodyPrefab. Lance d'abord 'Build Operator Body Prefabs'.", "OK");
+                return;
+            }
+
+            // Nettoie une foule précédente + les anciens NPC_* (cibles d'entraînement).
+            var oldCrowd = GameObject.Find("Crowd");
+            if (oldCrowd != null) Object.DestroyImmediate(oldCrowd);
+            foreach (var n in new[] { "NPC_Vex", "NPC_Halo", "NPC_Iron", "NPC_Wraith" })
+            {
+                var g = GameObject.Find(n);
+                if (g != null) Object.DestroyImmediate(g);
+            }
+
+            var crowd = new GameObject("Crowd");
+            int impostorIdx = Random.Range(0, crowdCount);
+            int spawned = 0;
+
+            for (var i = 0; i < crowdCount; i++)
+            {
+                if (!TryRandomNavPoint(64f, out var pos)) continue;
+                var op = ops[Random.Range(0, ops.Count)];
+                BuildCrowdNpc(crowd.transform, op, pos, isImpostor: i == impostorIdx);
+                spawned++;
+            }
+
+            // Manager (singleton de scène).
+            if (Object.FindAnyObjectByType<Rocketpi.Gameplay.Match.HideSeekManager>() == null)
+                new GameObject("HideSeekManager").AddComponent<Rocketpi.Gameplay.Match.HideSeekManager>();
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            EditorUtility.DisplayDialog("Setup Hide & Seek",
+                $"✓ Foule de {spawned} opérateurs (dont 1 imposteur)\n" +
+                "✓ Tir + sorts uniquement en courant (PlayerController)\n" +
+                "✓ Tuer un faux op = pénalité de vie ; tuer l'imposteur = score\n\n" +
+                "Lance le Play : marche pour te fondre, repère celui qui court.", "OK");
+        }
+
+        private static bool TryRandomNavPoint(float radius, out Vector3 pos)
+        {
+            for (var i = 0; i < 30; i++)
+            {
+                var rnd = new Vector3(Random.Range(-radius, radius), 0f, Random.Range(-radius, radius));
+                if (NavMesh.SamplePosition(rnd, out var hit, 6f, NavMesh.AllAreas)) { pos = hit.position; return true; }
+            }
+            pos = Vector3.zero;
+            return false;
+        }
+
+        /// <summary>Point NavMesh aléatoire dans un anneau [minR, maxR] autour du centre.</summary>
+        private static bool TryRandomNavPointRing(float minR, float maxR, out Vector3 pos)
+        {
+            for (var i = 0; i < 40; i++)
+            {
+                var rnd = new Vector3(Random.Range(-maxR, maxR), 0f, Random.Range(-maxR, maxR));
+                if (new Vector2(rnd.x, rnd.z).magnitude < minR) continue;
+                if (NavMesh.SamplePosition(rnd, out var hit, 6f, NavMesh.AllAreas)
+                    && new Vector2(hit.position.x, hit.position.z).magnitude >= minR)
+                { pos = hit.position; return true; }
+            }
+            pos = Vector3.zero;
+            return false;
+        }
+
+        private static void BuildCrowdNpc(Transform parent, OperatorData op, Vector3 pos, bool isImpostor)
+        {
+            var npc = new GameObject((isImpostor ? "Impostor_" : "Decoy_") + op.DisplayName);
+            npc.transform.SetParent(parent);
+            npc.transform.position = pos;
+
+            CreateVisualBody(npc.transform, op.DisplayName, op);
+
+            var agent = npc.AddComponent<NavMeshAgent>();
+            agent.height = 1.85f; agent.radius = 0.4f; agent.speed = op.WalkSpeed;
+            agent.angularSpeed = 240f; agent.acceleration = 12f; agent.stoppingDistance = 0.4f;
+
+            var capsule = npc.AddComponent<CapsuleCollider>();
+            capsule.height = 1.85f; capsule.radius = 0.4f; capsule.center = new Vector3(0f, 0.925f, 0f);
+
+            var health = npc.AddComponent<HealthSystem>();
+            npc.AddComponent<WorldHealthBar>();
+            npc.AddComponent<NavMeshPatroller>();          // roam forcé par OperatorNpcController.Awake
+
+            var ctrl = npc.AddComponent<OperatorNpcController>();
+            ctrl.SetOperator(op);
+            ctrl.SetImpostor(isImpostor);
+
+            // Mort rapide (≈ quelques balles) : pas des tanks 300 PV ici.
+            health.SetMaxHealth(isImpostor ? 110 : 70);
         }
 
         private static void CreateVisualBody(Transform parent, string opName, OperatorData opData)
@@ -484,14 +913,19 @@ namespace Rocketpi.Editor
                 bodyInstance.transform.SetParent(parent);
                 bodyInstance.transform.localPosition = Vector3.zero;
                 bodyInstance.transform.localRotation = Quaternion.identity;
-                // Override couleur sur tous les renderers pour distinguer les opérateurs
-                // (Y Bot partagé entre les 4 NPCs → besoin de varier la couleur).
-                foreach (var r in bodyInstance.GetComponentsInChildren<Renderer>(true))
+
+                // Recolorage par faction UNIQUEMENT pour le Y Bot partagé (mannequin
+                // gris). Les vrais persos Mixamo gardent leurs propres textures.
+                var isSharedYBot = opData.BodyPrefab.name.Contains("SharedHumanoid")
+                                 || opData.BodyPrefab.name.Contains("YBot");
+                if (isSharedYBot)
                 {
-                    if (r.sharedMaterial == null) continue;
-                    var coloredMat = new Material(r.sharedMaterial);
-                    coloredMat.color = opData.AccentColor;
-                    r.sharedMaterial = coloredMat;
+                    foreach (var r in bodyInstance.GetComponentsInChildren<Renderer>(true))
+                    {
+                        if (r.sharedMaterial == null) continue;
+                        var coloredMat = new Material(r.sharedMaterial) { color = opData.AccentColor };
+                        r.sharedMaterial = coloredMat;
+                    }
                 }
                 return;
             }

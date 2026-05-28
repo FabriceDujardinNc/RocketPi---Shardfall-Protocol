@@ -45,9 +45,45 @@ namespace Rocketpi.Gameplay.Body
         private bool    _externalSprint;
         private bool    _useExternal;
 
+        private Transform _headBone;
+        private Vector3   _headBoneScale = Vector3.one;
+        private bool      _headResolved;
+
         private void Awake()
         {
             if (_animator == null) _animator = GetComponentInChildren<Animator>();
+        }
+
+        /// <summary>En 1ère personne : on garde le corps visible (on voit ses bras/mains)
+        /// mais on réduit la TÊTE à zéro pour ne pas voir l'intérieur du crâne depuis la
+        /// caméra placée aux yeux.</summary>
+        public void SetFirstPersonView(bool firstPerson)
+        {
+            if (!_headResolved)
+            {
+                _headBone = FindHeadBone();
+                if (_headBone != null) _headBoneScale = _headBone.localScale;
+                _headResolved = true;
+            }
+            if (_headBone != null)
+                _headBone.localScale = firstPerson ? Vector3.one * 0.0001f : _headBoneScale;
+        }
+
+        // Os de tête Humanoid si dispo (fiable), sinon recherche par nom mixamorig:Head.
+        private Transform FindHeadBone()
+        {
+            if (_animator != null && _animator.isHuman)
+            {
+                var h = _animator.GetBoneTransform(HumanBodyBones.Head);
+                if (h != null) return h;
+            }
+            foreach (var t in GetComponentsInChildren<Transform>(true))
+            {
+                var n = t.name;
+                // "mixamorig:Head" mais PAS "mixamorig:HeadTop_End".
+                if (n.EndsWith("Head") || n.EndsWith(":Head")) return t;
+            }
+            return null;
         }
 
         /// <summary>Configure les vitesses référence depuis l'OperatorData.</summary>
@@ -74,9 +110,59 @@ namespace Rocketpi.Gameplay.Body
             if (_animator != null) _animator.SetTrigger(HashDie);
         }
 
-        private void Update()
+        /// <summary>Réinitialise l'Animator (sort de l'état mort) pour un respawn.</summary>
+        public void Revive()
         {
             if (_animator == null) return;
+            _animator.Rebind();    // remet l'Animator à son état par défaut (Locomotion)
+            _animator.Update(0f);
+        }
+
+        private static readonly int HashFire   = Animator.StringToHash("Fire");
+        private static readonly int HashReload = Animator.StringToHash("Reload");
+        private static readonly int HashFlip   = Animator.StringToHash("Flip");
+
+        public void TriggerFire()
+        {
+            if (_animator != null) _animator.SetTrigger(HashFire);
+        }
+
+        /// <summary>Salto (double saut aérien).</summary>
+        public void TriggerFlip()
+        {
+            if (_animator != null) _animator.SetTrigger(HashFlip);
+        }
+
+        public void TriggerReload()
+        {
+            if (_animator != null) _animator.SetTrigger(HashReload);
+        }
+
+        /// <summary>Durée (s) d'un clip de l'Animator par nom (insensible à la casse). 0 si absent.</summary>
+        public float GetClipLength(string clipName)
+        {
+            if (_animator == null || _animator.runtimeAnimatorController == null) return 0f;
+            foreach (var clip in _animator.runtimeAnimatorController.animationClips)
+                if (clip != null && clip.name.IndexOf(clipName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    return clip.length;
+            return 0f;
+        }
+
+        /// <summary>True si l'Animator joue actuellement l'état Reload (layer 0).
+        /// Sert à bloquer le tir tant que l'anim de recharge n'est pas finie.</summary>
+        public bool IsPlayingReload()
+        {
+            if (_animator == null) return false;
+            var st = _animator.GetCurrentAnimatorStateInfo(0);
+            var next = _animator.GetNextAnimatorStateInfo(0);
+            return st.IsName("Reload") || next.IsName("Reload");
+        }
+
+        private void Update()
+        {
+            // Pas de controller assigné → ne pas piloter l'Animator (évite l'erreur
+            // "Animator is not playing an AnimatorController" + le T-pose silencieux).
+            if (_animator == null || _animator.runtimeAnimatorController == null) return;
 
             var v = _useExternal ? _externalVelocity : Vector3.zero;
             var horizontal = new Vector2(v.x, v.z).magnitude;

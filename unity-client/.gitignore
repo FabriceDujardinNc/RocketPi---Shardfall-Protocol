@@ -56,3 +56,20 @@ Assets/Models/Operators/Raw/raw-obj.meta
 # Unity Recovery (auto-créé lors de crash éditeur)
 Assets/_Recovery/
 Assets/_Recovery.meta
+
+# Mixamo character FBX (~286 MB total — Vex/Wraith ≈ 95 MB chacun).
+# Re-télécharger depuis Mixamo "With Skin" et placer dans Assets/Models/Operators/Rigged/,
+# puis Tools > RocketPi > Diagnose & Repair Operator Avatars pour reconfigurer/relink.
+# YBot.fbx (placeholder partagé, 2 MB) reste tracké comme fallback.
+Assets/Models/Operators/Rigged/*.fbx
+Assets/Models/Operators/Rigged/*.fbx.meta
+!Assets/Models/Operators/Rigged/YBot.fbx
+!Assets/Models/Operators/Rigged/YBot.fbx.meta
+
+# Textures + matériaux extraits des FBX Mixamo (263 MB de diffuse/normal).
+# Régénérés par Tools > RocketPi > Extract Operator Textures (URP) après re-download
+# des FBX. Garder Materials/Textures hors git → repo léger.
+Assets/Models/Operators/Rigged/Textures/
+Assets/Models/Operators/Rigged/Textures.meta
+Assets/Models/Operators/Rigged/Materials/
+Assets/Models/Operators/Rigged/Materials.meta

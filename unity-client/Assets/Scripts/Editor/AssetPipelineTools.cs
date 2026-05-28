@@ -35,7 +35,7 @@ namespace Rocketpi.Editor
         // Loop-true par défaut
         private static readonly HashSet<string> NonLoopingAnims = new()
         {
-            "Death", "Jump", "Fire", "Reload"
+            "Death", "Jump", "Fire", "Reload", "Flip", "Rifle-Jump", "RifleJump"
         };
 
         // ─── 1. Configure Operator Imports ─────────────────────────────────
@@ -150,9 +150,12 @@ namespace Rocketpi.Editor
             var sprint    = LoadClipByName("Sprint") ?? run; // fallback
             var death     = LoadClipByName("Death");
             var jump      = LoadClipByName("Jump");
+            var rifleJump = LoadClipByName("Rifle-Jump") ?? LoadClipByName("RifleJump");
+            var flip      = LoadClipByName("Flip");
             var fall      = LoadClipByName("Fall");
             var aimIdle   = LoadClipByName("AimIdle");
             var fire      = LoadClipByName("Fire");
+            var reload    = LoadClipByName("Reload");
 
             if (idle == null || walk == null || run == null)
             {
@@ -173,6 +176,8 @@ namespace Rocketpi.Editor
             controller.AddParameter("Vertical",    AnimatorControllerParameterType.Float);
             controller.AddParameter("Die",         AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Fire",        AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("Reload",      AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("Flip",        AnimatorControllerParameterType.Trigger);
 
             // Force IsGrounded = true par défaut
             var ig = controller.parameters[1]; ig.defaultBool = true; controller.parameters = controller.parameters;
@@ -205,7 +210,20 @@ namespace Rocketpi.Editor
             if (jump != null)
             {
                 var jumpState = sm.AddState("Jump", new Vector3(250, 120, 0));
-                jumpState.motion = jump;
+                // Saut debout (Jump) ou saut en course avec arme (Rifle-Jump) selon Speed.
+                if (rifleJump != null)
+                {
+                    var jumpTree = new BlendTree
+                    {
+                        name = "JumpBlend", blendType = BlendTreeType.Simple1D,
+                        blendParameter = "Speed", hideFlags = HideFlags.HideInHierarchy
+                    };
+                    jumpTree.AddChild(jump,      0f);     // immobile → saut debout
+                    jumpTree.AddChild(rifleJump, 0.5f);   // en mouvement → saut arme
+                    AssetDatabase.AddObjectToAsset(jumpTree, controller);
+                    jumpState.motion = jumpTree;
+                }
+                else jumpState.motion = jump;
 
                 var toJump = sm.AddAnyStateTransition(jumpState);
                 toJump.AddCondition(AnimatorConditionMode.IfNot, 0, "IsGrounded");
@@ -235,6 +253,26 @@ namespace Rocketpi.Editor
                 jumpToLocomotion.duration = 0.2f;
             }
 
+            // ── Flip (salto du double saut, déclenché par le trigger "Flip") ──
+            if (flip != null)
+            {
+                var flipState = sm.AddState("Flip", new Vector3(450, 120, 0));
+                flipState.motion = flip;
+                var toFlip = sm.AddAnyStateTransition(flipState);
+                toFlip.AddCondition(AnimatorConditionMode.If, 0, "Flip");
+                toFlip.duration = 0.05f;
+                toFlip.hasExitTime = false;
+                toFlip.canTransitionToSelf = true;
+
+                // Retour au sol → locomotion ; sécurité : sortie en fin de clip.
+                var flipToLoco = flipState.AddTransition(locomotionState);
+                flipToLoco.AddCondition(AnimatorConditionMode.If, 0, "IsGrounded");
+                flipToLoco.hasExitTime = false;
+                flipToLoco.duration = 0.15f;
+                var flipTimeout = flipState.AddTransition(locomotionState);
+                flipTimeout.hasExitTime = true; flipTimeout.exitTime = 0.95f; flipTimeout.duration = 0.1f;
+            }
+
             // ── Death ────────────────────────────────────────────────────
             if (death != null)
             {
@@ -245,6 +283,26 @@ namespace Rocketpi.Editor
                 toDeath.duration = 0.1f;
                 toDeath.hasExitTime = false;
                 toDeath.canTransitionToSelf = false;
+            }
+
+            // ── Reload ───────────────────────────────────────────────────
+            // Joue l'anim de recharge en entier puis revient à la locomotion.
+            // (Interrompt le bas du corps — acceptable en proto ; un avatar mask
+            // upper-body viendrait plus tard pour recharger en marchant.)
+            if (reload != null)
+            {
+                var reloadState = sm.AddState("Reload", new Vector3(450, 240, 0));
+                reloadState.motion = reload;
+                var toReload = sm.AddAnyStateTransition(reloadState);
+                toReload.AddCondition(AnimatorConditionMode.If, 0, "Reload");
+                toReload.duration = 0.1f;
+                toReload.hasExitTime = false;
+                toReload.canTransitionToSelf = false;
+
+                var reloadToLocomotion = reloadState.AddTransition(locomotionState);
+                reloadToLocomotion.hasExitTime = true;
+                reloadToLocomotion.exitTime = 0.9f;     // 90% du clip
+                reloadToLocomotion.duration = 0.15f;
             }
 
             // ── Layer 1 : Combat (additive) ──────────────────────────────
@@ -287,6 +345,57 @@ namespace Rocketpi.Editor
             AssetDatabase.Refresh();
             EditorUtility.DisplayDialog("Build Locomotion Controller",
                 $"Controller créé : {ControllerPath}", "OK");
+        }
+
+        // ─── Câblage saut/salto (Jump, Rifle-Jump, Flip) ───────────────────
+        // Configure TOUTES les anims Locomotion en Humanoid (sans toucher aux rigs des
+        // opérateurs → ne casse pas Crag), reconstruit le controller (états Jump blend +
+        // Flip), puis relie le controller à tous les body prefabs.
+        [MenuItem("Tools/RocketPi/Wire Jump Animations")]
+        public static void WireJumpAnimations()
+        {
+            // 1. Avatar source Humanoid valide (n'importe quel opérateur déjà riggé).
+            Avatar src = null;
+            foreach (var raw in Directory.GetFiles(RiggedDir, "*.fbx"))
+            {
+                var a = AssetDatabase.LoadAllAssetsAtPath(raw.Replace('\\', '/')).OfType<Avatar>().FirstOrDefault();
+                if (a != null && a.isValid && a.isHuman) { src = a; break; }
+            }
+
+            // 2. Configure toutes les anims locomotion (incl. Jump/Rifle-Jump/Flip).
+            foreach (var raw in Directory.GetFiles(LocomotionDir, "*.fbx"))
+            {
+                var path = raw.Replace('\\', '/');
+                if (AssetImporter.GetAtPath(path) is not ModelImporter imp) continue;
+                imp.animationType = ModelImporterAnimationType.Human;
+                if (src != null) { imp.avatarSetup = ModelImporterAvatarSetup.CopyFromOther; imp.sourceAvatar = src; }
+                imp.optimizeGameObjects = false;
+                imp.useFileScale = true;
+                imp.importAnimation = true;
+
+                var name = Path.GetFileNameWithoutExtension(path);
+                var clips = imp.defaultClipAnimations;
+                if (clips != null && clips.Length > 0)
+                {
+                    var loop = !NonLoopingAnims.Contains(name);
+                    for (var i = 0; i < clips.Length; i++)
+                    {
+                        clips[i].name = name;
+                        clips[i].loopTime = loop;
+                        clips[i].lockRootRotation = true;
+                        clips[i].lockRootHeightY  = true;
+                        clips[i].keepOriginalOrientation = true;
+                        clips[i].keepOriginalPositionY   = true;
+                        clips[i].keepOriginalPositionXZ  = false;
+                    }
+                    imp.clipAnimations = clips;
+                }
+                imp.SaveAndReimport();
+            }
+
+            // 3. Reconstruit le controller (GUID change) puis relie aux bodies.
+            BuildLocomotionController();
+            DiagnoseAndRepairAvatars();
         }
 
         // ─── 3. Build Operator Body Prefabs ────────────────────────────────
@@ -406,10 +515,10 @@ namespace Rocketpi.Editor
 
             var yBotAvatar = AssetDatabase.LoadAllAssetsAtPath(yBotPath).OfType<Avatar>().FirstOrDefault();
 
-            // Configure les 3 anims
-            string[] expectedAnims = { "Idle", "Walk", "Run" };
+            // Validation : Idle/Walk/Run requis. Death/Jump/Fire/etc. optionnels.
+            string[] requiredAnims = { "Idle", "Walk", "Run" };
             var missingAnims = new List<string>();
-            foreach (var n in expectedAnims)
+            foreach (var n in requiredAnims)
             {
                 var p = $"{LocomotionDir}/{n}.fbx";
                 if (!File.Exists(p)) missingAnims.Add(n);
@@ -423,11 +532,17 @@ namespace Rocketpi.Editor
                 return;
             }
 
-            foreach (var n in expectedAnims)
+            // Configure TOUS les .fbx présents dans Locomotion/ (incl. Death/Jump/Fire
+            // s'ils ont été ajoutés). loopTime selon NonLoopingAnims (Death/Jump/Fire
+            // sont one-shot, ne doivent pas boucler).
+            var locFbx = Directory.GetFiles(LocomotionDir, "*.fbx");
+            foreach (var p in locFbx)
             {
-                var p = $"{LocomotionDir}/{n}.fbx";
-                var imp = AssetImporter.GetAtPath(p) as ModelImporter;
+                var imp = AssetImporter.GetAtPath(p.Replace('\\', '/')) as ModelImporter;
                 if (imp == null) continue;
+                var clipName = Path.GetFileNameWithoutExtension(p);
+                var isLooping = !NonLoopingAnims.Contains(clipName);
+
                 imp.animationType = ModelImporterAnimationType.Human;
                 if (yBotAvatar != null)
                 {
@@ -443,7 +558,10 @@ namespace Rocketpi.Editor
                 {
                     for (var i = 0; i < clips.Length; i++)
                     {
-                        clips[i].loopTime = true; // Idle/Walk/Run sont tous loopables
+                        // Renomme le clip au nom du fichier (Mixamo les nomme tous
+                        // "mixamo.com" → impossible de retrouver Reload par nom au runtime).
+                        clips[i].name = clipName;
+                        clips[i].loopTime = isLooping;
                         clips[i].lockRootRotation = true;
                         clips[i].lockRootHeightY  = true;
                         clips[i].keepOriginalOrientation = true;
@@ -502,6 +620,324 @@ namespace Rocketpi.Editor
                 $"✓ Assigné à {assigned} OperatorData\n\n" +
                 "Lance maintenant 'Add NPCs to Current Scene' pour remplacer les capsules par le mesh humanoid.",
                 "OK");
+        }
+
+        // ─── 5. Extract Operator Textures (URP) ────────────────────────────
+        //
+        // Les FBX Mixamo embarquent les textures (diffuse + normal) dans le binaire.
+        // En URP, le matériau généré n'attache PAS la texture → rendu blanc.
+        // Cette commande :
+        //   1. extrait les textures embarquées vers Rigged/Textures/
+        //   2. extrait les matériaux vers Rigged/Materials/
+        //   3. force chaque matériau en URP/Lit + bind BaseMap (diffuse) / BumpMap (normal)
+        //      par convention de nom Mixamo (*_Diffuse, *_Normal), et remappe le FBX dessus.
+
+        [MenuItem("Tools/RocketPi/Extract Operator Textures (URP)")]
+        public static void ExtractOperatorTextures()
+        {
+            var texDir = $"{RiggedDir}/Textures";
+            var matDir = $"{RiggedDir}/Materials";
+            // Repart propre : un run précédent a pu mélanger les textures (dossier partagé).
+            if (AssetDatabase.IsValidFolder(texDir)) AssetDatabase.DeleteAsset(texDir);
+            EnsureFolder(texDir);
+            EnsureFolder(matDir);
+
+            var fbxFiles = Directory.Exists(RiggedDir)
+                ? Directory.GetFiles(RiggedDir, "*.fbx")
+                : System.Array.Empty<string>();
+
+            if (fbxFiles.Length == 0)
+            {
+                EditorUtility.DisplayDialog("Extract Operator Textures",
+                    $"Aucun .fbx dans {RiggedDir}.", "OK");
+                return;
+            }
+
+            // Choisit le shader selon le pipeline ACTIF. Si aucun SRP n'est assigné dans
+            // Graphics/Quality Settings, on est en Built-in RP → les shaders URP rendent
+            // MAGENTA. On prend alors Standard (built-in), comme les murs de la scène.
+            var srpActive = UnityEngine.Rendering.GraphicsSettings.defaultRenderPipeline != null
+                         || UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline != null;
+            var bodyShader = srpActive ? Shader.Find("Universal Render Pipeline/Lit") : null;
+            if (bodyShader == null) bodyShader = Shader.Find("Standard");
+            if (bodyShader == null) bodyShader = Shader.Find("Universal Render Pipeline/Lit");
+            if (bodyShader == null)
+            {
+                EditorUtility.DisplayDialog("Extract Operator Textures",
+                    "Aucun shader Standard ni URP/Lit trouvé.", "OK");
+                return;
+            }
+            var urpLit = bodyShader;   // alias conservé pour le reste de la méthode
+            Debug.Log($"[RocketPi] Pipeline actif: {(srpActive ? "SRP/URP" : "Built-in")} → shader matériaux: {bodyShader.name}");
+
+            var report = new List<string>();
+
+            foreach (var raw in fbxFiles)
+            {
+                var path   = raw.Replace('\\', '/');
+                var opName = Path.GetFileNameWithoutExtension(path);
+                var importer = AssetImporter.GetAtPath(path) as ModelImporter;
+                if (importer == null) continue;
+
+                // 1. Extrait les textures embarquées DANS UN SOUS-DOSSIER PAR PERSO
+                //    (évite la contamination croisée : chaque perso ne voit QUE ses textures).
+                var charTexDir = $"{texDir}/{opName}";
+                EnsureFolder(charTexDir);
+                importer.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
+                importer.ExtractTextures(charTexDir);
+                AssetDatabase.Refresh();
+                importer.SaveAndReimport();
+
+                // 2. Textures de CE personnage uniquement.
+                var allTex = Directory.GetFiles(charTexDir, "*.png")
+                    .Concat(Directory.GetFiles(charTexDir, "*.jpg"))
+                    .Concat(Directory.GetFiles(charTexDir, "*.tga"))
+                    .Select(p => p.Replace('\\', '/')).ToList();
+
+                // 2b. IDEMPOTENCE : si un run précédent a déjà remappé les matériaux vers
+                //     l'externe, le FBX n'a plus de matériaux embarqués → on retire ces
+                //     remaps pour les régénérer et pouvoir les re-binder proprement.
+                foreach (var kvp in importer.GetExternalObjectMap())
+                    if (kvp.Key.type == typeof(Material))
+                        importer.RemoveRemap(kvp.Key);
+                importer.SaveAndReimport();
+
+                // 3. Construit un matériau URP/Lit par matériau embarqué du FBX et le remappe.
+                var embeddedMats = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Material>().ToList();
+                int boundForThis = 0;
+                var urpByName = new Dictionary<string, Material>();   // nom embarqué → URP mat
+
+                foreach (var src in embeddedMats)
+                {
+                    var matPath = $"{matDir}/{opName}_{SanitizeName(src.name)}.mat";
+                    var mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+                    if (mat == null)
+                    {
+                        mat = new Material(urpLit);
+                        AssetDatabase.CreateAsset(mat, matPath);
+                    }
+                    else mat.shader = urpLit;
+
+                    // Diffuse : cherche une texture dont le nom matche le matériau, sinon
+                    // la première *_Diffuse du sous-dossier de CE perso (pas de contamination).
+                    var diffuse = FindTexture(allTex, src.name, "Diffuse", "Albedo", "BaseColor", "_D")
+                                  ?? FindFirstBySuffix(allTex, "Diffuse", "Albedo", "BaseColor");
+                    var normal  = FindTexture(allTex, src.name, "Normal", "_N")
+                                  ?? FindFirstBySuffix(allTex, "Normal");
+
+                    if (diffuse != null)
+                    {
+                        // Bind les deux conventions : _MainTex/_Color (Standard built-in)
+                        // ET _BaseMap/_BaseColor (URP), pour marcher quel que soit le pipeline.
+                        if (mat.HasProperty("_MainTex"))   mat.SetTexture("_MainTex", diffuse);
+                        if (mat.HasProperty("_BaseMap"))   mat.SetTexture("_BaseMap", diffuse);
+                        if (mat.HasProperty("_Color"))     mat.SetColor("_Color", Color.white);
+                        if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", Color.white);
+                        boundForThis++;
+                    }
+                    if (normal != null)
+                    {
+                        ForceNormalMap(normal);
+                        if (mat.HasProperty("_BumpMap")) mat.SetTexture("_BumpMap", normal);
+                        mat.EnableKeyword("_NORMALMAP");
+                    }
+                    EditorUtility.SetDirty(mat);
+
+                    // Remappe le matériau embarqué du FBX vers notre matériau URP.
+                    importer.AddRemap(new AssetImporter.SourceAssetIdentifier(src), mat);
+                    urpByName[src.name] = mat;
+                }
+
+                importer.SaveAndReimport();
+
+                // 4. CRUCIAL : assigne directement les matériaux URP sur les renderers du
+                //    body prefab. Le remap FBX seul ne suffit pas — les renderers du prefab
+                //    peuvent garder les matériaux Standard embarqués (magenta en URP).
+                int slotsFixed = AssignUrpMaterialsToBodyPrefab(opName, urpByName, matDir);
+
+                report.Add($"{opName}: {embeddedMats.Count} mat(s), {boundForThis} diffuse, {slotsFixed} slot(s) prefab.");
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            Debug.Log("[RocketPi] Extract Operator Textures :\n" + string.Join("\n", report) +
+                      "\nLes prefabs body référencent les matériaux du FBX → couleurs appliquées sans rebuild.");
+        }
+
+        /// <summary>
+        /// Assigne les matériaux URP directement sur les renderers du body prefab
+        /// (par correspondance de nom de slot). Retourne le nb de slots corrigés.
+        /// </summary>
+        private static int AssignUrpMaterialsToBodyPrefab(string opName, Dictionary<string, Material> urpByName, string matDir)
+        {
+            var prefabPath = $"{BodyPrefabsDir}/{opName}Body.prefab";
+            if (!File.Exists(prefabPath)) return 0;
+
+            var root = PrefabUtility.LoadPrefabContents(prefabPath);
+            int fixedSlots = 0;
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                var slots = r.sharedMaterials;
+                for (var i = 0; i < slots.Length; i++)
+                {
+                    // Nom du slot courant (sans suffixe " (Instance)").
+                    var slotName = slots[i] != null ? slots[i].name.Replace(" (Instance)", "") : "";
+
+                    Material target = null;
+                    // a) match direct sur le nom embarqué d'origine
+                    if (!string.IsNullOrEmpty(slotName) && urpByName.TryGetValue(slotName, out var byName))
+                        target = byName;
+                    // b) sinon par chemin {opName}_{slotName}.mat
+                    if (target == null && !string.IsNullOrEmpty(slotName))
+                        target = AssetDatabase.LoadAssetAtPath<Material>($"{matDir}/{opName}_{SanitizeName(slotName)}.mat");
+                    // c) dernier recours : 1er matériau URP du perso (corps principal)
+                    if (target == null && urpByName.Count > 0)
+                        target = urpByName.Values.First();
+
+                    if (target != null && slots[i] != target)
+                    {
+                        slots[i] = target;
+                        fixedSlots++;
+                    }
+                }
+                r.sharedMaterials = slots;
+            }
+            PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            PrefabUtility.UnloadPrefabContents(root);
+            return fixedSlots;
+        }
+
+        private static Texture2D FindTexture(List<string> texPaths, string matName, params string[] suffixes)
+        {
+            // Matche d'abord les textures qui partagent un token avec le nom du matériau.
+            foreach (var p in texPaths)
+            {
+                var n = Path.GetFileNameWithoutExtension(p);
+                foreach (var suf in suffixes)
+                {
+                    if (n.IndexOf(suf, System.StringComparison.OrdinalIgnoreCase) >= 0 &&
+                        n.IndexOf(matName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        return AssetDatabase.LoadAssetAtPath<Texture2D>(p);
+                }
+            }
+            return null;
+        }
+
+        private static Texture2D FindFirstBySuffix(List<string> texPaths, params string[] suffixes)
+        {
+            foreach (var p in texPaths)
+            {
+                var n = Path.GetFileNameWithoutExtension(p);
+                foreach (var suf in suffixes)
+                    if (n.IndexOf(suf, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        return AssetDatabase.LoadAssetAtPath<Texture2D>(p);
+            }
+            return null;
+        }
+
+        private static void ForceNormalMap(Texture2D tex)
+        {
+            var p = AssetDatabase.GetAssetPath(tex);
+            if (AssetImporter.GetAtPath(p) is TextureImporter ti && ti.textureType != TextureImporterType.NormalMap)
+            {
+                ti.textureType = TextureImporterType.NormalMap;
+                ti.SaveAndReimport();
+            }
+        }
+
+        private static string SanitizeName(string s)
+        {
+            foreach (var c in Path.GetInvalidFileNameChars()) s = s.Replace(c, '_');
+            return s.Replace(' ', '_');
+        }
+
+        // ─── 6. Diagnose & Repair Operator Avatars ─────────────────────────
+        //
+        // Vérifie que chaque FBX personnage a un avatar Humanoid VALIDE, et
+        // ré-assigne explicitement l'avatar + controller sur chaque body prefab
+        // (un avatar invalide = T-pose au repos car les clips ne se retargettent pas).
+        // Si un avatar est invalide, force un ré-import Humanoid pour le régénérer.
+
+        [MenuItem("Tools/RocketPi/Diagnose & Repair Operator Avatars")]
+        public static void DiagnoseAndRepairAvatars()
+        {
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            var fbxFiles = Directory.Exists(RiggedDir)
+                ? Directory.GetFiles(RiggedDir, "*.fbx")
+                : System.Array.Empty<string>();
+
+            var report = new List<string>();
+            int repaired = 0;
+
+            // Cherche un avatar Humanoid VALIDE à utiliser comme donneur (les persos
+            // Mixamo partagent le skelette "mixamorig:" → le mapping par nom marche).
+            Avatar donor = null;
+            string donorName = null;
+            foreach (var raw in fbxFiles)
+            {
+                var p = raw.Replace('\\', '/');
+                var a = AssetDatabase.LoadAllAssetsAtPath(p).OfType<Avatar>().FirstOrDefault();
+                if (a != null && a.isValid && a.isHuman) { donor = a; donorName = Path.GetFileNameWithoutExtension(p); break; }
+            }
+
+            foreach (var raw in fbxFiles)
+            {
+                var path   = raw.Replace('\\', '/');
+                var opName = Path.GetFileNameWithoutExtension(path);
+                var avatar = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Avatar>().FirstOrDefault();
+
+                bool valid = avatar != null && avatar.isValid && avatar.isHuman;
+                report.Add($"{opName}: avatar={(avatar == null ? "NULL" : avatar.name)} isValid={avatar?.isValid} isHuman={avatar?.isHuman}");
+
+                // Avatar non-Humanoid → l'auto-mapper a échoué (rig asymétrique/incomplet).
+                // On copie le mapping d'un perso valide (par nom de bone mixamorig:*).
+                // CopyFromOther ne génère PAS d'avatar embarqué : le FBX réutilise celui
+                // du donneur. On assigne donc l'avatar DONNEUR au body prefab.
+                if (!valid && donor != null && opName != donorName)
+                {
+                    if (AssetImporter.GetAtPath(path) is ModelImporter imp)
+                    {
+                        imp.animationType = ModelImporterAnimationType.Human;
+                        imp.avatarSetup   = ModelImporterAvatarSetup.CopyFromOther;
+                        imp.sourceAvatar  = donor;
+                        imp.optimizeGameObjects = false;
+                        imp.SaveAndReimport();
+                        avatar = donor;   // le retarget se fera via l'avatar du donneur
+                        valid  = true;
+                        report[^1] += $"  → CopyFromOther({donorName}) : avatar donneur assigné";
+                    }
+                }
+
+                // Ré-assigne explicitement avatar + controller sur le body prefab.
+                var prefabPath = $"{BodyPrefabsDir}/{opName}Body.prefab";
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                if (prefab != null && avatar != null)
+                {
+                    var root = PrefabUtility.LoadPrefabContents(prefabPath);
+                    // NB : ne PAS utiliser `?? AddComponent` — l'opérateur `??` C# ignore
+                    // la surcharge `== null` d'Unity (fake-null) → MissingComponentException.
+                    var anim = root.GetComponent<Animator>();
+                    if (anim == null) anim = root.AddComponent<Animator>();
+                    anim.avatar = avatar;
+                    if (controller != null) anim.runtimeAnimatorController = controller;
+                    anim.applyRootMotion = false;
+                    // Lie l'_animator sérialisé de l'OperatorBody pour éviter tout doute.
+                    var ob = root.GetComponent<OperatorBody>();
+                    if (ob == null) ob = root.AddComponent<OperatorBody>();
+                    var so = new SerializedObject(ob);
+                    so.FindProperty("_animator").objectReferenceValue = anim;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                    PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                    PrefabUtility.UnloadPrefabContents(root);
+                    repaired++;
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            // Pas de DisplayDialog (modal) ici : il bloque l'éditeur pour les commandes MCP.
+            Debug.Log($"[RocketPi] Avatar diagnostic (body prefabs ré-assignés : {repaired}) :\n"
+                      + string.Join("\n", report));
         }
 
         // ─── Helpers ───────────────────────────────────────────────────────

@@ -16,15 +16,16 @@ MonoBehaviour:
   DisplayName: Echo
   Faction: 2
   Rarity: 1
+  Role: 7
   BaseHp: 95
   WalkSpeed: 5.5
   SprintSpeed: 8.5
   Portrait: {fileID: 0}
   AccentColor: {r: 0.55, g: 0.45, b: 0.85, a: 1}
-  WeaponPrefab: {fileID: 0}
+  WeaponPrefab: {fileID: 1931024881155978719, guid: 33dcaff7b5dd8134bb5cf189b5f23f87, type: 3}
   AbilityPrefabs: []
   UltimatePrefab: {fileID: 0}
-  BodyPrefab: {fileID: 4836591740226291990, guid: 038378020aaf0ea4e95f40a6c11f0f1c, type: 3}
+  BodyPrefab: {fileID: 6911965349256829212, guid: 3c0057c9e04cd8f4c85e14a5bc509b40, type: 3}
   BodyHeight: 1.85
   BodyRadius: 0.4
   CameraShoulderHeight: 1.6

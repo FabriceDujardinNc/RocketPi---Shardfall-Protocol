@@ -23,7 +23,7 @@ namespace Rocketpi.Gameplay.Match
     public class TrainingMatchManager : MonoBehaviour
     {
         [Header("Durée")]
-        [SerializeField] private int _matchDurationSeconds = 120;
+        [SerializeField] private int _matchDurationSeconds = 240;   // 4 minutes
         [SerializeField] private int _minDurationForSubmit = 30;     // matche MatchService::MIN_DURATION_SECONDS côté Laravel
 
         [Header("Refs scène")]
@@ -79,6 +79,18 @@ namespace Rocketpi.Gameplay.Match
             if (target == null || _targets.Contains(target)) return;
             _targets.Add(target);
             target.OnDestroyed += HandleTargetDestroyed;
+        }
+
+        /// <summary>
+        /// Enregistre un kill générique (ex. NPC opérateur abattu). Appelé par
+        /// OperatorNpcController.HandleDeath. Compte le kill + ajoute le score même
+        /// hors match formel (entraînement libre).
+        /// </summary>
+        public void RegisterKill(int scoreValue)
+        {
+            CurrentKills++;
+            CurrentScore += scoreValue;
+            OnScoreChanged?.Invoke(CurrentScore);
         }
 
         /// <summary>Annule explicitement la session sans soumission (joueur quitte).</summary>

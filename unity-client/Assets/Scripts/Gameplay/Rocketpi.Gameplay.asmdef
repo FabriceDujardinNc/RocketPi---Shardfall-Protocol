@@ -4,7 +4,8 @@
     "references": [
         "Rocketpi.Bridge",
         "Rocketpi.RestClient",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

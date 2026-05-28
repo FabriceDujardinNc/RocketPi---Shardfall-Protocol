@@ -10,6 +10,9 @@ namespace Rocketpi.Gameplay.Operators
     public enum OperatorFaction { ORBIT, FERRO, VEIL }
     public enum OperatorRarity  { Common, Rare, Epic, Legendary }
 
+    /// <summary>Rôle/classe — détermine la capacité de classe par défaut (touche Q).</summary>
+    public enum OperatorRole { Sniper, Healer, Scout, Tank, Explosives, Assault, Infiltrator, Hacker }
+
     [CreateAssetMenu(menuName = "RocketPi/Operator Data", fileName = "Op_NEW", order = 0)]
     public class OperatorData : ScriptableObject
     {
@@ -19,6 +22,8 @@ namespace Rocketpi.Gameplay.Operators
         public string DisplayName;
         public OperatorFaction Faction;
         public OperatorRarity  Rarity;
+        [Tooltip("Classe : détermine la capacité de base (touche Q).")]
+        public OperatorRole Role;
 
         [Header("Stats locales")]
         [Tooltip("HP de base au level 0. Le serveur ne valide pas ce nombre, c'est juste un défaut.")]

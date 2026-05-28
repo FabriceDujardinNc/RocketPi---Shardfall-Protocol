@@ -68,6 +68,49 @@ const MODE_LABEL: Record<string, string> = {
     training: 'Entraînement',
 };
 
+// ── Contrôles du jeu ────────────────────────────────────────────────────────
+// ⚠️ MAINTENIR À JOUR : chaque fois qu'une nouvelle touche/commande est ajoutée
+// côté Unity (PlayerController, etc.), l'ajouter ici pour que le joueur la voie.
+// Bindings actuels : cf. unity-client/.../PlayerController.cs (Input System).
+const CONTROLS: { key: string; action: string }[] = [
+    { key: 'W A S D', action: 'Se déplacer' },
+    { key: 'Maj. gauche', action: 'Courir (en avançant)' },
+    { key: 'Espace', action: 'Sauter' },
+    { key: 'Souris', action: 'Tourner la caméra / viser' },
+    { key: 'Molette', action: 'Zoom caméra' },
+    { key: 'Clic gauche', action: 'Tirer' },
+    { key: 'Clic droit', action: 'Tir secondaire' },
+    { key: 'F', action: 'Capacité de classe (sort)' },
+    { key: 'R', action: 'Ultime de l\'opérateur' },
+    { key: 'V', action: 'Vue 1ʳᵉ / 3ᵉ personne' },
+    { key: 'Échap', action: 'Libérer la souris' },
+    { key: 'Marcher dessus', action: 'Ramasser un bonus' },
+];
+
+// Capacités de classe (touche Q) — une par rôle. ⚠️ MAINTENIR À JOUR avec
+// PlayerAbilities.cs (UseClassAbility) côté Unity.
+const CLASS_ABILITIES: { role: string; ability: string }[] = [
+    { role: 'Tank', ability: 'Mur de bouclier (2s)' },
+    { role: 'Soigneur', ability: 'Soin +25% PV' },
+    { role: 'Sniper', ability: 'Focus : dégâts ×3 (4s)' },
+    { role: 'Éclaireur', ability: 'Dash en avant' },
+    { role: 'Explosifs', ability: 'Grenade (zone)' },
+    { role: 'Assaut', ability: 'Adrénaline : cadence + vitesse (5s)' },
+    { role: 'Infiltré', ability: 'Camouflage (5s)' },
+    { role: 'Hacker', ability: 'EMP : fige les ennemis (3s)' },
+];
+
+const POWERUPS: { name: string; color: string; effect: string }[] = [
+    { name: 'Bouclier', color: 'bg-shard-400', effect: 'Invulnérable 8s' },
+    { name: 'Méga-bombe', color: 'bg-danger', effect: 'Explosion : tue les ennemis proches' },
+    { name: 'Balles rebondissantes', color: 'bg-warning', effect: 'Ricochets 12s' },
+    { name: 'Tir rapide', color: 'bg-rarity-rare', effect: 'Cadence ×3 (10s)' },
+    { name: 'Quad dégâts', color: 'bg-rarity-epic', effect: 'Dégâts ×4 (12s)' },
+    { name: 'Vitesse', color: 'bg-success', effect: 'Déplacement ×1.7 (12s)' },
+    { name: 'Soin', color: 'bg-text-high', effect: '+100 PV' },
+    { name: 'Onde de choc', color: 'bg-shard-500', effect: 'Repousse tous les ennemis autour' },
+];
+
 function formatDuration(s: number | null): string {
     if (!s) return '—';
     const m = Math.floor(s / 60);
@@ -150,6 +193,61 @@ export default function Play({ rank, daily, history, photonAppId, unityConfig }:
                         <p className="font-body text-sm">Configuration Unity indisponible.</p>
                     </div>
                 )}
+            </section>
+
+            <section className="grid lg:grid-cols-3 gap-4 mb-6">
+                {/* Encart contrôles */}
+                <article className="rounded-lg bg-bg-elev1 border border-border-default p-5">
+                    <h2 className="font-display font-semibold text-sm uppercase tracking-mega text-shard-400 mb-3">
+                        Contrôles
+                    </h2>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                        {CONTROLS.map((c) => (
+                            <li key={c.key} className="flex items-center justify-between gap-2 text-sm">
+                                <span className="font-body text-text-medium">{c.action}</span>
+                                <kbd className="font-mono text-[11px] uppercase tracking-wide text-text-high bg-bg-elev2 border border-border-default rounded px-2 py-0.5 whitespace-nowrap">
+                                    {c.key}
+                                </kbd>
+                            </li>
+                        ))}
+                    </ul>
+                </article>
+
+                {/* Encart sorts par classe */}
+                <article className="rounded-lg bg-bg-elev1 border border-border-default p-5">
+                    <h2 className="font-display font-semibold text-sm uppercase tracking-mega text-shard-400 mb-3">
+                        Sorts par classe <span className="text-text-low normal-case tracking-normal">(touche F)</span>
+                    </h2>
+                    <ul className="space-y-2">
+                        {CLASS_ABILITIES.map((a) => (
+                            <li key={a.role} className="flex items-center gap-2 text-sm">
+                                <span className="font-display text-[11px] uppercase tracking-wide text-text-high bg-bg-elev2 border border-border-default rounded px-2 py-0.5 min-w-[80px] text-center">
+                                    {a.role}
+                                </span>
+                                <span className="font-body text-text-medium text-xs">{a.ability}</span>
+                            </li>
+                        ))}
+                    </ul>
+                    <p className="font-body text-text-low text-[11px] mt-3">
+                        Chaque opérateur a aussi un <span className="text-shard-400">ultime</span> signature (touche R).
+                    </p>
+                </article>
+
+                {/* Encart bonus / power-ups */}
+                <article className="rounded-lg bg-bg-elev1 border border-border-default p-5">
+                    <h2 className="font-display font-semibold text-sm uppercase tracking-mega text-shard-400 mb-3">
+                        Bonus à ramasser
+                    </h2>
+                    <ul className="space-y-2">
+                        {POWERUPS.map((p) => (
+                            <li key={p.name} className="flex items-center gap-3 text-sm">
+                                <span className={`inline-block size-3 rounded-sm ${p.color} shrink-0`} aria-hidden />
+                                <span className="font-body text-text-high font-medium">{p.name}</span>
+                                <span className="font-body text-text-low text-xs ml-auto text-right">{p.effect}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </article>
             </section>
 
             <section>

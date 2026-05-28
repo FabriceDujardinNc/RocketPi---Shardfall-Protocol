@@ -16,15 +16,16 @@ MonoBehaviour:
   DisplayName: Drift
   Faction: 0
   Rarity: 1
+  Role: 2
   BaseHp: 105
   WalkSpeed: 5.5
   SprintSpeed: 8.5
   Portrait: {fileID: 0}
   AccentColor: {r: 0.4, g: 0.65, b: 0.9, a: 1}
-  WeaponPrefab: {fileID: 0}
+  WeaponPrefab: {fileID: 5214344256168942182, guid: ad37f9c1dfe00254380ccfc2b047da15, type: 3}
   AbilityPrefabs: []
   UltimatePrefab: {fileID: 0}
-  BodyPrefab: {fileID: 4836591740226291990, guid: 038378020aaf0ea4e95f40a6c11f0f1c, type: 3}
+  BodyPrefab: {fileID: 3638449045922321239, guid: 4b5c46a4d431e1347a63b7e039e18a2f, type: 3}
   BodyHeight: 1.85
   BodyRadius: 0.4
   CameraShoulderHeight: 1.6
