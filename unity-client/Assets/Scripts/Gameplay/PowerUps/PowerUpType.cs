@@ -12,5 +12,7 @@ namespace Rocketpi.Gameplay.PowerUps
         SpeedBoost,      // 👟 vitesse de déplacement ×1.7
         HealthPack,      // ➕ soin instantané
         Shockwave,       // 🌊 onde de choc : repousse tous les ennemis autour
+        AmmoRefill,      // 🔫 recharge le chargeur (recharge impossible autrement)
+        RevealImpostor,  // 📡 marque la position de l'imposteur pendant 2 s
     }
 }

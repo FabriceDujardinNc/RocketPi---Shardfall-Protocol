@@ -16,15 +16,16 @@ MonoBehaviour:
   DisplayName: Brick
   Faction: 1
   Rarity: 2
+  Role: 4
   BaseHp: 130
   WalkSpeed: 5.5
   SprintSpeed: 8.5
   Portrait: {fileID: 0}
   AccentColor: {r: 0.85, g: 0.5, b: 0.3, a: 1}
-  WeaponPrefab: {fileID: 0}
+  WeaponPrefab: {fileID: 79261409903453440, guid: b7917e2578fc9f943b3defe80b7afe42, type: 3}
   AbilityPrefabs: []
   UltimatePrefab: {fileID: 0}
-  BodyPrefab: {fileID: 5934078318580024641, guid: 038378020aaf0ea4e95f40a6c11f0f1c, type: 3}
+  BodyPrefab: {fileID: 9039099070549062215, guid: 727597a1a87632d4ab613b5fcb743253, type: 3}
   BodyHeight: 1.85
   BodyRadius: 0.4
   CameraShoulderHeight: 1.6

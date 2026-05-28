@@ -52,10 +52,24 @@ namespace Rocketpi.Gameplay.NPC
         [Tooltip("Points accordés au joueur quand ce NPC est abattu.")]
         [SerializeField] private int _scoreOnKill = 100;
 
+        [Header("Infiltration (mode Où est Charlie)")]
+        [Tooltip("Si true, ce NPC est l'IMPOSTEUR (cible) : il marche pour se fondre mais " +
+                 "se trahit en COURANT par moments. Le tuer rapporte gros ; tuer un faux " +
+                 "opérateur (decoy) fait perdre de la vie au joueur.")]
+        [SerializeField] private bool _isImpostor = false;
+        private bool  _running;
+        private float _nextRunToggle;
+
         [Header("Respawn")]
         [Tooltip("Si true, le NPC réapparaît à un waypoint aléatoire après sa mort.")]
         [SerializeField] private bool _respawnEnabled = true;
         [SerializeField] private float _respawnDelay = 3f;
+
+        [Header("Impact mur (onde de choc)")]
+        [Tooltip("Dégâts de base quand le NPC est projeté contre un mur.")]
+        [SerializeField] private int _wallImpactDamageBase = 25;
+        [Tooltip("Dégâts additionnels par mètre de vitesse résiduelle à l'impact.")]
+        [SerializeField] private float _wallImpactDamagePerMeter = 4f;
 
         public State Current { get; private set; } = State.Patrol;
         public Transform CurrentTarget { get; private set; }
@@ -70,6 +84,11 @@ namespace Rocketpi.Gameplay.NPC
         {
             _agent     = GetComponent<NavMeshAgent>();
             _patroller = GetComponent<NavMeshPatroller>();
+            // Errance libre garantie : chaque NPC choisit des destinations aléatoires sur
+            // toute l'arène (centre = origine, rayon 22 m) plutôt que de suivre les mêmes
+            // waypoints dans le même sens. Forcé ici car les NPCs déjà en scène peuvent
+            // avoir _roam=false sérialisé (champ ajouté après leur création).
+            _patroller?.SetRoam(true, Vector3.zero, 70f);
             _health    = GetComponent<HealthSystem>();
             if (_body == null) _body = GetComponentInChildren<OperatorBody>();
             // Réf au match manager pour remonter le score à la mort (une fois, au boot).
@@ -93,7 +112,25 @@ namespace Rocketpi.Gameplay.NPC
             _health.OnDied -= HandleDeath;
         }
 
-        /// <summary>Repousse le NPC loin du point <paramref name="from"/> (onde de choc).</summary>
+        /// <summary>Fige le NPC sur place pendant <paramref name="duration"/> s (EMP / hack).</summary>
+        public void Stun(float duration)
+        {
+            if (Current == State.Dead) return;
+            if (_patroller != null) _patroller.enabled = false;
+            if (_agent != null && _agent.isOnNavMesh) _agent.isStopped = true;
+            CancelInvoke(nameof(EndStun));
+            Invoke(nameof(EndStun), duration);
+        }
+
+        private void EndStun()
+        {
+            if (Current == State.Dead) return;
+            if (_agent != null && _agent.isOnNavMesh) _agent.isStopped = false;
+            if (_patroller != null) { _patroller.enabled = true; _patroller.StartPatrol(); }
+        }
+
+        /// <summary>Repousse le NPC loin du point <paramref name="from"/> (onde de choc).
+        /// S'il percute un mur sur sa trajectoire, il s'écrase dessus et subit des dégâts.</summary>
         public void ApplyKnockback(Vector3 from, float force)
         {
             if (_agent == null || !_agent.enabled || !_agent.isOnNavMesh) return;
@@ -103,10 +140,37 @@ namespace Rocketpi.Gameplay.NPC
                 dir = new Vector3(Random.value - 0.5f, 0f, Random.value - 0.5f);
             dir.Normalize();
 
+            var origin = transform.position + Vector3.up * 1f;
+
+            // Cherche un mur sur la trajectoire (ignore soi-même + autres entités).
+            var hits = Physics.RaycastAll(origin, dir, force, ~0, QueryTriggerInteraction.Ignore);
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            foreach (var h in hits)
+            {
+                if (h.collider.transform == transform || h.collider.transform.IsChildOf(transform)) continue;
+                if (h.collider.GetComponentInParent<HealthSystem>() != null) continue; // un autre NPC/joueur, pas un mur
+
+                // Mur percuté : on s'arrête juste devant + dégâts d'impact
+                // proportionnels à la vitesse (force restante après le trajet).
+                var stop = h.point - dir * 0.5f;
+                if (NavMesh.SamplePosition(stop, out var navStop, 3f, NavMesh.AllAreas))
+                    _agent.Warp(navStop.position);
+
+                var remaining = Mathf.Max(0f, force - h.distance);
+                var impact = Mathf.RoundToInt(_wallImpactDamageBase + remaining * _wallImpactDamagePerMeter);
+                _health.TakeDamage(impact);
+                return;
+            }
+
+            // Pas de mur : projection libre jusqu'à la portée.
             var target = transform.position + dir * force;
             if (NavMesh.SamplePosition(target, out var hit, force + 2f, NavMesh.AllAreas))
                 _agent.Warp(hit.position);
         }
+
+        /// <summary>Désigne ce NPC comme imposteur (cible) ou faux opérateur (decoy).</summary>
+        public void SetImpostor(bool v) => _isImpostor = v;
+        public bool IsImpostor => _isImpostor;
 
         public void SetOperator(OperatorData op)
         {
@@ -131,11 +195,23 @@ namespace Rocketpi.Gameplay.NPC
                 case State.Engage: TickEngage(); break;
             }
 
-            // Pousse la vélocité à l'animator
+            // Imposteur : alterne marche (se fondre) et course (se trahir) → c'est le tell
+            // que le joueur doit repérer. Les decoys gardent leur vitesse de marche.
+            if (_isImpostor && Current == State.Patrol && _operator != null && _agent != null)
+            {
+                if (Time.time >= _nextRunToggle)
+                {
+                    _running = !_running;
+                    _nextRunToggle = Time.time + (_running ? Random.Range(1.5f, 3.5f) : Random.Range(4f, 9f));
+                    _agent.speed = _running ? _operator.SprintSpeed : _operator.WalkSpeed;
+                }
+            }
+
+            // Pousse la vélocité à l'animator (l'anim Run/Walk suit la vitesse réelle).
             if (_body != null)
             {
                 var velocity = _agent.velocity;
-                _body.DriveLocomotion(velocity, isGrounded: true, isSprinting: false);
+                _body.DriveLocomotion(velocity, isGrounded: true, isSprinting: _isImpostor && _running);
             }
         }
 
@@ -241,8 +317,12 @@ namespace Rocketpi.Gameplay.NPC
             if (_agent.isOnNavMesh) _agent.isStopped = true;
             _body?.TriggerDeath();
 
-            // Score : le joueur gagne des points en abattant ce NPC.
-            _matchManager?.RegisterKill(_scoreOnKill);
+            // Mode infiltration prioritaire : l'éliminé est-il l'imposteur (score) ou un
+            // faux opérateur (pénalité de vie) ? Sinon, comportement training classique (score).
+            if (Rocketpi.Gameplay.Match.HideSeekManager.Instance != null)
+                Rocketpi.Gameplay.Match.HideSeekManager.Instance.OnOperatorKilled(_isImpostor);
+            else
+                _matchManager?.RegisterKill(_scoreOnKill);
 
             if (_respawnEnabled)
             {
@@ -272,6 +352,10 @@ namespace Rocketpi.Gameplay.NPC
 
             _health.ResetHealth();        // HP plein → WorldHealthBar se réaffiche
             _body?.Revive();              // sort de l'anim de mort
+            // Réinitialise l'état de course (l'imposteur re-marche pour se re-cacher).
+            _running = false;
+            _nextRunToggle = Time.time + Random.Range(3f, 6f);
+            if (_agent != null && _operator != null) _agent.speed = _operator.WalkSpeed;
             Current = State.Patrol;
             _patroller?.StartPatrol();
         }

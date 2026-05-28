@@ -30,6 +30,7 @@ namespace Rocketpi.Gameplay.Weapons
         public float DamageMultiplier   { get; set; } = 1f;
         public float FireRateMultiplier { get; set; } = 1f;
         public bool  BouncingBullets    { get; set; } = false;
+        public bool  InfiniteAmmo       { get; set; } = false;
         protected int BaseDamage => _baseDamage;
 
         public event Action<int, int> OnAmmoChanged;   // (current, max)
@@ -62,15 +63,21 @@ namespace Rocketpi.Gameplay.Weapons
         {
             if (IsReloading) return;
             if (Time.time < NextShotAt) return;
-            if (CurrentAmmo <= 0)
+            if (!InfiniteAmmo && CurrentAmmo <= 0)
             {
-                BeginReload();
+                // Recharge auto — mais OnFireHeld n'est appelé QUE quand le joueur court
+                // (PlayerController.HandleFire bloque le tir en marche). Donc en pratique :
+                // on ne recharge qu'en COURANT. Sinon (marche) → bonus munitions requis.
+                RefillAmmo();
                 return;
             }
 
             NextShotAt = Time.time + (1f / (_fireRate * Mathf.Max(0.1f, FireRateMultiplier)));
-            CurrentAmmo--;
-            OnAmmoChanged?.Invoke(CurrentAmmo, _magazineSize);
+            if (!InfiniteAmmo)
+            {
+                CurrentAmmo--;
+                OnAmmoChanged?.Invoke(CurrentAmmo, _magazineSize);
+            }
             Fire();
             OnFired?.Invoke();
         }
@@ -83,9 +90,11 @@ namespace Rocketpi.Gameplay.Weapons
 
         protected abstract void Fire();
 
-        protected virtual void BeginReload()
+        /// <summary>Recharge le chargeur. Appelé UNIQUEMENT par un bonus munitions
+        /// ou un sort de soutien — il n'y a pas de recharge libre au clavier.</summary>
+        public void RefillAmmo()
         {
-            if (IsReloading || CurrentAmmo == _magazineSize) return;
+            if (IsReloading || CurrentAmmo >= _magazineSize) return;
             IsReloading = true;
             OnReloadStarted?.Invoke();
             Invoke(nameof(FinishReload), _reloadTime);

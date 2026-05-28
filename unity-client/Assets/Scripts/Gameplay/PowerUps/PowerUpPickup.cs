@@ -13,8 +13,9 @@ namespace Rocketpi.Gameplay.PowerUps
         [SerializeField] private PowerUpType _type = PowerUpType.Shield;
         [Tooltip("Vrai modèle 3D (.glb/.fbx/prefab). Si vide → icône primitive fallback.")]
         [SerializeField] private GameObject _model;
-        [Tooltip("Échelle appliquée au modèle 3D custom (ajuste selon la taille du mesh importé).")]
-        [SerializeField] private float _modelScale = 0.6f;
+        [Tooltip("Hauteur cible (m) : tous les modèles sont mis à cette hauteur, peu " +
+                 "importe leur taille native, pour une apparence uniforme.")]
+        [SerializeField] private float _modelHeight = 0.9f;
         [SerializeField] private float _respawnDelay = 15f;
         [SerializeField] private float _triggerRadius = 1.2f;
 
@@ -49,21 +50,66 @@ namespace Rocketpi.Gameplay.PowerUps
             _visual = holder.transform;
             _visualBaseLocalPos = _visual.localPosition;
 
+            // Faisceau de mise en valeur (pilier de lumière émissif, visible de loin).
+            BuildBeam(ColorFor(_type));
+
             if (_model != null)
             {
-                // Vrai modèle 3D : on l'instancie tel quel (sans colliders).
+                // Vrai modèle 3D : instancié puis normalisé à une hauteur commune.
                 var inst = Instantiate(_model, holder.transform);
                 inst.transform.localPosition = Vector3.zero;
                 inst.transform.localRotation = Quaternion.identity;
-                inst.transform.localScale = Vector3.one * _modelScale;
+                inst.transform.localScale = Vector3.one;
                 foreach (var col in inst.GetComponentsInChildren<Collider>(true))
                     Destroy(col);
+                NormalizeToHeight(inst, holder.transform, _modelHeight);
             }
             else
             {
                 // Fallback : icône composée de primitives.
                 BuildIcon(_type, holder.transform, ColorFor(_type));
             }
+        }
+
+        // Met le modèle à la hauteur cible (uniformise les tailles natives très
+        // variables des modèles poly.pizza) et le recentre sur le holder.
+        private static void NormalizeToHeight(GameObject inst, Transform holder, float targetHeight)
+        {
+            var renderers = inst.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return;
+
+            var b = renderers[0].bounds;
+            for (var i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
+            var h = b.size.y;
+            if (h < 1e-4f) return;
+
+            inst.transform.localScale = Vector3.one * (targetHeight / h);
+
+            // Recentre : le centre du mesh est ramené sur l'origine du holder
+            // → tous les pickups flottent à la même hauteur visuelle.
+            var b2 = renderers[0].bounds;
+            for (var i = 1; i < renderers.Length; i++) b2.Encapsulate(renderers[i].bounds);
+            inst.transform.position += holder.position - b2.center;
+        }
+
+        // Pilier de lumière émissif sous le pickup — repérable de loin sur toute la map.
+        private void BuildBeam(Color c)
+        {
+            var beam = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            var col = beam.GetComponent<Collider>();
+            if (col != null) Destroy(col);
+            beam.name = "Beam";
+            beam.transform.SetParent(transform, false);
+            beam.transform.localPosition = new Vector3(0f, 4f, 0f);
+            beam.transform.localScale = new Vector3(0.18f, 4f, 0.18f);  // fin et haut
+            var r = beam.GetComponent<MeshRenderer>();
+            var mat = new Material(r.sharedMaterial) { color = c };
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", c * 2.2f);
+            mat.SetColor("_BaseColor", c);
+            mat.SetColor("_Color", c);
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
         // Icône 3D composée de primitives, reconnaissable par type.
@@ -141,6 +187,8 @@ namespace Rocketpi.Gameplay.PowerUps
             PowerUpType.SpeedBoost      => new Color(0.30f, 0.95f, 0.45f),  // vert
             PowerUpType.HealthPack      => new Color(0.95f, 0.95f, 0.95f),  // blanc
             PowerUpType.Shockwave       => new Color(0.30f, 0.75f, 1.00f),  // bleu électrique
+            PowerUpType.AmmoRefill      => new Color(1.00f, 0.80f, 0.20f),  // ambre
+            PowerUpType.RevealImpostor  => new Color(1.00f, 0.20f, 0.20f),  // rouge radar
             _                           => Color.white,
         };
 

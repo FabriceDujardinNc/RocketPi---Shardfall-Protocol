@@ -20,31 +20,38 @@ namespace Rocketpi.Gameplay.Weapons
 
         protected override void Fire()
         {
-            // Aim 3rd person : on tire vers le CENTRE de l'écran (réticule), pas selon
-            // Camera.forward. En 3rd person la caméra regarde le dos du joueur, donc
-            // forward ≠ direction visée. ScreenPointToRay(centre) donne le bon rayon.
+            // ── Visée 3ème personne en 2 temps pour aligner la balle sur l'arme ──
+            // 1. La caméra (réticule = centre écran) détermine le POINT visé dans le monde.
+            // 2. La balle part ensuite du CANON (muzzle) vers ce point → le tracer et le
+            //    rayon de dégâts partagent la même ligne, alignée sur l'arme du model.
+            //    (Avant : le rayon partait de la caméra et le tracer du canon → décalage.)
             var cam = (Owner != null && Owner.GetComponentInChildren<Camera>() is Camera ownerCam)
                 ? ownerCam
                 : Camera.main;
 
-            Vector3 originPos, direction;
+            // Origine = canon du model (fallback : transform de l'arme).
+            var from = _muzzle != null ? _muzzle.position : transform.position;
+
+            // Point visé par le réticule.
+            Vector3 aimPoint;
             if (cam != null)
             {
                 var ray = cam.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f, 0f));
-                originPos = ray.origin;
-                direction = ApplySpread(ray.direction);
+                aimPoint = ResolveAimPoint(ray.origin, ray.direction)
+                           ?? ray.origin + ray.direction * _maxRange;
             }
             else
             {
-                originPos = transform.position;
-                direction = ApplySpread(transform.forward);
+                aimPoint = from + transform.forward * _maxRange;
             }
 
+            // Direction réelle de la balle : du canon vers le point visé (+ dispersion).
+            var direction = ApplySpread((aimPoint - from).normalized);
+
             // Points du tracer : muzzle → impacts successifs (rebonds).
-            var from = _muzzle != null ? _muzzle.position : transform.position;
             var tracer = new System.Collections.Generic.List<Vector3> { from };
 
-            var curOrigin = originPos;
+            var curOrigin = from;
             var curDir = direction;
             var maxBounces = BouncingBullets ? 3 : 0;
             var hitSomeone = false;
@@ -92,6 +99,23 @@ namespace Rocketpi.Gameplay.Weapons
             }
 
             SpawnTracer(tracer);
+        }
+
+        /// <summary>Premier point monde touché par le rayon caméra (réticule), en ignorant
+        /// le tireur et les morts. Null si rien → le tir part tout droit jusqu'à la portée.</summary>
+        private Vector3? ResolveAimPoint(Vector3 origin, Vector3 dir)
+        {
+            var hits = Physics.RaycastAll(origin, dir, _maxRange, _hittableLayers);
+            if (hits.Length == 0) return null;
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            foreach (var hit in hits)
+            {
+                var health = hit.collider.GetComponentInParent<HealthSystem>();
+                if (Owner != null && health == Owner.Health) continue; // ignore soi-même
+                if (health != null && health.IsDead) continue;
+                return hit.point;
+            }
+            return null;
         }
 
         private void SpawnTracer(System.Collections.Generic.List<Vector3> points)

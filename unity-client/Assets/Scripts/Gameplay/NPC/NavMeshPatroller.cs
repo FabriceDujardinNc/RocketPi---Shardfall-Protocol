@@ -27,6 +27,16 @@ namespace Rocketpi.Gameplay.NPC
         [SerializeField] private bool _loop = true;
         [SerializeField] private bool _randomOrder = false;
 
+        [Header("Errance libre (roam)")]
+        [Tooltip("Si actif : ignore les waypoints et choisit des destinations ALÉATOIRES " +
+                 "sur le NavMesh dans un rayon autour du centre → chaque NPC erre partout, " +
+                 "indépendamment des autres (plus de file indienne dans le même sens).")]
+        [SerializeField] private bool _roam = true;
+        [Tooltip("Rayon (m) autour du centre dans lequel piocher les points aléatoires.")]
+        [SerializeField] private float _roamRadius = 22f;
+        [Tooltip("Centre de la zone d'errance (monde). Défaut = origine de l'arène.")]
+        [SerializeField] private Vector3 _roamCenter = Vector3.zero;
+
         public bool IsPatrolling { get; private set; }
         public Vector3 CurrentDestination => _agent != null ? _agent.destination : transform.position;
 
@@ -51,14 +61,14 @@ namespace Rocketpi.Gameplay.NPC
                 if (NavMesh.SamplePosition(transform.position, out var navHit, 5f, NavMesh.AllAreas))
                     _agent.Warp(navHit.position);
             }
-            if (_waypoints.Count > 0) StartPatrol();
+            if (_roam || _waypoints.Count > 0) StartPatrol();
         }
 
         private void OnEnable()
         {
             // Démarrage différé géré dans Start() (après le Warp sur le NavMesh).
             // OnEnable ne démarre que sur ré-activation runtime d'un agent déjà posé.
-            if (Application.isPlaying && _agent != null && _agent.isOnNavMesh && _waypoints.Count > 0)
+            if (Application.isPlaying && _agent != null && _agent.isOnNavMesh && (_roam || _waypoints.Count > 0))
                 StartPatrol();
         }
 
@@ -102,9 +112,19 @@ namespace Rocketpi.Gameplay.NPC
             _paused = false;
         }
 
-        /// <summary>Position d'un waypoint aléatoire (pour le respawn d'un NPC abattu).</summary>
+        /// <summary>Configure l'errance libre au runtime (centre + rayon).</summary>
+        public void SetRoam(bool roam, Vector3 center, float radius)
+        {
+            _roam = roam;
+            _roamCenter = center;
+            _roamRadius = radius;
+        }
+
+        /// <summary>Position aléatoire pour le respawn d'un NPC abattu : point NavMesh
+        /// aléatoire en mode roam, sinon un waypoint au hasard.</summary>
         public Vector3 RandomWaypointPosition(Vector3 fallback)
         {
+            if (_roam && TryGetRoamPoint(out var p)) return p;
             if (_waypoints.Count == 0) return fallback;
             var wp = _waypoints[Random.Range(0, _waypoints.Count)];
             return wp != null ? wp.position : fallback;
@@ -112,7 +132,8 @@ namespace Rocketpi.Gameplay.NPC
 
         private void Update()
         {
-            if (!IsPatrolling || _paused || _waypoints.Count == 0) return;
+            if (!IsPatrolling || _paused) return;
+            if (!_roam && _waypoints.Count == 0) return;
             if (!_agent.isOnNavMesh) return;
 
             if (_agent.pathPending) return;
@@ -127,8 +148,17 @@ namespace Rocketpi.Gameplay.NPC
 
         private void GoNext()
         {
-            if (_waypoints.Count == 0) return;
             if (_agent == null || !_agent.isOnNavMesh) return;
+
+            // Errance libre : destination aléatoire sur le NavMesh, indépendante des
+            // autres NPCs → ils se répartissent partout au lieu de suivre la même boucle.
+            if (_roam)
+            {
+                if (TryGetRoamPoint(out var roamPoint)) _agent.SetDestination(roamPoint);
+                return;
+            }
+
+            if (_waypoints.Count == 0) return;
 
             if (_randomOrder)
             {
@@ -147,6 +177,25 @@ namespace Rocketpi.Gameplay.NPC
             var wp = _waypoints[_currentIndex];
             if (wp == null) return;
             _agent.SetDestination(wp.position);
+        }
+
+        /// <summary>Pioche un point NavMesh aléatoire dans un disque autour du centre
+        /// d'errance. Plusieurs essais car un point tiré hors zone navigable échoue.</summary>
+        private bool TryGetRoamPoint(out Vector3 point)
+        {
+            for (var i = 0; i < 16; i++)
+            {
+                var r = _roamRadius * Mathf.Sqrt(Random.value);          // distribution uniforme dans le disque
+                var a = Random.value * Mathf.PI * 2f;
+                var candidate = _roamCenter + new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
+                if (NavMesh.SamplePosition(candidate, out var hit, 4f, NavMesh.AllAreas))
+                {
+                    point = hit.position;
+                    return true;
+                }
+            }
+            point = transform.position;
+            return false;
         }
 
         private void OnDrawGizmosSelected()

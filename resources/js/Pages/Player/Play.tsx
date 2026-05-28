@@ -80,12 +80,24 @@ const CONTROLS: { key: string; action: string }[] = [
     { key: 'Molette', action: 'Zoom caméra' },
     { key: 'Clic gauche', action: 'Tirer' },
     { key: 'Clic droit', action: 'Tir secondaire' },
-    { key: 'Q', action: 'Capacité 1' },
-    { key: 'E', action: 'Capacité 2' },
-    { key: 'R', action: 'Ultime' },
+    { key: 'F', action: 'Capacité de classe (sort)' },
+    { key: 'R', action: 'Ultime de l\'opérateur' },
     { key: 'V', action: 'Vue 1ʳᵉ / 3ᵉ personne' },
     { key: 'Échap', action: 'Libérer la souris' },
     { key: 'Marcher dessus', action: 'Ramasser un bonus' },
+];
+
+// Capacités de classe (touche Q) — une par rôle. ⚠️ MAINTENIR À JOUR avec
+// PlayerAbilities.cs (UseClassAbility) côté Unity.
+const CLASS_ABILITIES: { role: string; ability: string }[] = [
+    { role: 'Tank', ability: 'Mur de bouclier (2s)' },
+    { role: 'Soigneur', ability: 'Soin +25% PV' },
+    { role: 'Sniper', ability: 'Focus : dégâts ×3 (4s)' },
+    { role: 'Éclaireur', ability: 'Dash en avant' },
+    { role: 'Explosifs', ability: 'Grenade (zone)' },
+    { role: 'Assaut', ability: 'Adrénaline : cadence + vitesse (5s)' },
+    { role: 'Infiltré', ability: 'Camouflage (5s)' },
+    { role: 'Hacker', ability: 'EMP : fige les ennemis (3s)' },
 ];
 
 const POWERUPS: { name: string; color: string; effect: string }[] = [
@@ -183,7 +195,7 @@ export default function Play({ rank, daily, history, photonAppId, unityConfig }:
                 )}
             </section>
 
-            <section className="grid lg:grid-cols-2 gap-4 mb-6">
+            <section className="grid lg:grid-cols-3 gap-4 mb-6">
                 {/* Encart contrôles */}
                 <article className="rounded-lg bg-bg-elev1 border border-border-default p-5">
                     <h2 className="font-display font-semibold text-sm uppercase tracking-mega text-shard-400 mb-3">
@@ -199,6 +211,26 @@ export default function Play({ rank, daily, history, photonAppId, unityConfig }:
                             </li>
                         ))}
                     </ul>
+                </article>
+
+                {/* Encart sorts par classe */}
+                <article className="rounded-lg bg-bg-elev1 border border-border-default p-5">
+                    <h2 className="font-display font-semibold text-sm uppercase tracking-mega text-shard-400 mb-3">
+                        Sorts par classe <span className="text-text-low normal-case tracking-normal">(touche F)</span>
+                    </h2>
+                    <ul className="space-y-2">
+                        {CLASS_ABILITIES.map((a) => (
+                            <li key={a.role} className="flex items-center gap-2 text-sm">
+                                <span className="font-display text-[11px] uppercase tracking-wide text-text-high bg-bg-elev2 border border-border-default rounded px-2 py-0.5 min-w-[80px] text-center">
+                                    {a.role}
+                                </span>
+                                <span className="font-body text-text-medium text-xs">{a.ability}</span>
+                            </li>
+                        ))}
+                    </ul>
+                    <p className="font-body text-text-low text-[11px] mt-3">
+                        Chaque opérateur a aussi un <span className="text-shard-400">ultime</span> signature (touche R).
+                    </p>
                 </article>
 
                 {/* Encart bonus / power-ups */}

@@ -32,8 +32,8 @@ namespace Rocketpi.Gameplay.PowerUps
         [SerializeField] private int   _megaBombDamage = 9999;
 
         [Header("Shockwave")]
-        [SerializeField] private float _shockwaveRadius = 14f;
-        [SerializeField] private float _shockwavePush   = 10f;
+        [SerializeField] private float _shockwaveRadius = 28f;
+        [SerializeField] private float _shockwavePush   = 16f;
 
         // État actif courant (pour l'UI éventuelle).
         public PowerUpType? Active { get; private set; }
@@ -95,6 +95,16 @@ namespace Rocketpi.Gameplay.PowerUps
 
                 case PowerUpType.Shockwave:
                     DetonateShockwave();
+                    break;
+
+                case PowerUpType.AmmoRefill:
+                    // Seul moyen de recharger l'arme (avec les sorts de soutien).
+                    _player.Weapon?.RefillAmmo();
+                    break;
+
+                case PowerUpType.RevealImpostor:
+                    // Marque la position de l'imposteur pendant 2 s.
+                    Rocketpi.Gameplay.Match.HideSeekManager.Instance?.RevealImpostors(2f);
                     break;
             }
         }
