@@ -25,10 +25,23 @@ class SitemapController extends Controller
         $base = rtrim(config('app.url'), '/');
         $urls = [
             ['loc' => "{$base}/",      'priority' => '1.0', 'changefreq' => 'weekly'],
-            // TODO Phase 3 : décommenter dès que les pages existent.
-            // ['loc' => "{$base}/dons",  'priority' => '0.8', 'changefreq' => 'monthly'],
-            // ['loc' => "{$base}/idees", 'priority' => '0.7', 'changefreq' => 'weekly'],
+            ['loc' => "{$base}/dons",  'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => "{$base}/idees", 'priority' => '0.7', 'changefreq' => 'weekly'],
         ];
+
+        // Idées individuelles publiées
+        \App\Models\Idea::query()
+            ->orderByDesc('votes_count')
+            ->limit(1000)
+            ->get(['slug', 'updated_at'])
+            ->each(function (\App\Models\Idea $i) use (&$urls, $base) {
+                $urls[] = [
+                    'loc'        => "{$base}/idees/{$i->slug}",
+                    'lastmod'    => optional($i->updated_at)->toAtomString(),
+                    'priority'   => '0.5',
+                    'changefreq' => 'weekly',
+                ];
+            });
 
         return $this->renderXml($urls);
     }

@@ -20,10 +20,9 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
 })->name('home');
 
 // Pages publiques (lecture sans auth) : dons + flux des idées de la communauté.
-// TODO Phase 3 : créer DonationController + IdeaController côté Public.
-// Route::get('/dons',   [\App\Http\Controllers\Public\DonationController::class, 'index'])->name('dons');
-// Route::get('/idees',  [\App\Http\Controllers\Public\IdeaController::class, 'index'])->name('ideas.index');
-// Route::get('/idees/{idea:slug}', [\App\Http\Controllers\Public\IdeaController::class, 'show'])->name('ideas.show');
+Route::get('/dons',              [\App\Http\Controllers\Public\DonationController::class, 'index'])->name('dons');
+Route::get('/idees',             [\App\Http\Controllers\Public\IdeaController::class, 'index'])->name('ideas.index');
+Route::get('/idees/{idea:slug}', [\App\Http\Controllers\Public\IdeaController::class, 'show'])->name('ideas.show');
 
 // Auth
 Route::middleware('guest')->group(function () {
@@ -69,12 +68,12 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
     // Jeu Unity WebGL
     Route::get('/play', [PlayController::class, 'index'])->name('play');
 
-    // Idées de développement — TODO Phase 3
-    // Route::post('/idees',                [\App\Http\Controllers\Player\IdeaController::class, 'store'])->name('ideas.store');
-    // Route::patch('/idees/{idea}',        [\App\Http\Controllers\Player\IdeaController::class, 'update'])->name('ideas.update');
-    // Route::delete('/idees/{idea}',       [\App\Http\Controllers\Player\IdeaController::class, 'destroy'])->name('ideas.destroy');
-    // Route::post('/idees/{idea}/vote',    [\App\Http\Controllers\Player\IdeaController::class, 'vote'])->name('ideas.vote');
-    // Route::delete('/idees/{idea}/vote',  [\App\Http\Controllers\Player\IdeaController::class, 'unvote'])->name('ideas.unvote');
+    // Idées de développement — post + vote (lecture publique, écriture connectés)
+    Route::post('/idees',                       [\App\Http\Controllers\Player\IdeaController::class, 'store'])->name('ideas.store');
+    Route::patch('/idees/{idea:slug}',          [\App\Http\Controllers\Player\IdeaController::class, 'update'])->name('ideas.update');
+    Route::delete('/idees/{idea:slug}',         [\App\Http\Controllers\Player\IdeaController::class, 'destroy'])->name('ideas.destroy');
+    Route::post('/idees/{idea:slug}/vote',      [\App\Http\Controllers\Player\IdeaController::class, 'vote'])->name('ideas.vote');
+    Route::delete('/idees/{idea:slug}/vote',    [\App\Http\Controllers\Player\IdeaController::class, 'unvote'])->name('ideas.unvote');
 });
 
 // ── Admin routes ────────────────────────────────────────────────────
@@ -90,10 +89,10 @@ Route::middleware(['auth', 'admin', '2fa'])->prefix('admin')->name('admin.')->gr
     Route::post('players/{user}/ban',        [AdminPlayerController::class, 'ban'])->name('players.ban');
     Route::post('players/{user}/unban',      [AdminPlayerController::class, 'unban'])->name('players.unban');
 
-    // Modération des idées — TODO Phase 3
-    // Route::get('ideas',                       [\App\Http\Controllers\Admin\AdminIdeaController::class, 'index'])->name('ideas.index');
-    // Route::patch('ideas/{idea}/status',       [\App\Http\Controllers\Admin\AdminIdeaController::class, 'updateStatus'])->name('ideas.status');
-    // Route::delete('ideas/{idea}',             [\App\Http\Controllers\Admin\AdminIdeaController::class, 'destroy'])->name('ideas.destroy');
+    // Modération des idées
+    Route::get('ideas',                       [\App\Http\Controllers\Admin\AdminIdeaController::class, 'index'])->name('ideas.index');
+    Route::patch('ideas/{idea:slug}/status',  [\App\Http\Controllers\Admin\AdminIdeaController::class, 'updateStatus'])->name('ideas.status');
+    Route::delete('ideas/{idea:slug}',        [\App\Http\Controllers\Admin\AdminIdeaController::class, 'destroy'])->name('ideas.destroy');
 
     // Paramètres globaux (PayPal URL, adresse crypto wallet pour les dons)
     Route::get('settings',   [\App\Http\Controllers\Admin\AdminSettingsController::class, 'index'])->name('settings.index');

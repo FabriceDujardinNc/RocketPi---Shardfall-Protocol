@@ -8,6 +8,7 @@ import ThemeToggle from '@ui/ThemeToggle';
 const SECTIONS = [
     { href: '/admin',          label: 'Tableau de bord' },
     { href: '/admin/players',  label: 'Joueurs' },
+    { href: '/admin/ideas',    label: 'Idées' },
     { href: '/admin/settings', label: 'Paramètres' },
 ];
 
