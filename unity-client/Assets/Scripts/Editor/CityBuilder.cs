@@ -32,9 +32,13 @@ namespace Rocketpi.Editor
         // Disposition : anneau de ville autour du fort central (laissé jouable).
         private const float Lot         = 26f;    // pas de la grille (blocs plus grands)
         private const float PlazaRadius = 28f;    // rayon central gardé libre (fort + spawn)
-        private const float CityOuter   = 58f;    // rayon externe (gap avec montagnes @74 → cheminées hors montagnes)
+        private const float CityOuter   = 54f;    // rayon externe (gap +20m avec montagnes @74 → pas de chevauchement)
         private const float GroundScale = 15f;    // Plane 10×10 → 150×150
         private const float MaxBuildingHeight = 30f; // évite les cheminées géantes
+
+        // Emprises XZ des bâtiments placés (centre, rayon) — utilisé par PlaceProps pour
+        // éviter de poser des props dans les murs.
+        private static readonly List<(Vector3 pos, float radius)> _buildingFootprints = new();
 
         [MenuItem("Tools/RocketPi/Build Mini City")]
         public static void BuildMiniCity()
@@ -64,6 +68,9 @@ namespace Rocketpi.Editor
             var root = new GameObject("MiniCity");
             var colRoot = new GameObject("CityColliders");          // AABB sans rotation
             colRoot.transform.SetParent(root.transform, false);
+
+            // Reset des emprises de bâtiments → les props éviteront ces zones.
+            _buildingFootprints.Clear();
 
             var buildings = Directory.GetFiles(CityDir, "*.fbx").Select(Fix).ToList();
             var factory   = Directory.Exists(FactoryDir)  ? Directory.GetFiles(FactoryDir,  "*.fbx").Select(Fix).ToList() : new List<string>();
@@ -101,11 +108,16 @@ namespace Rocketpi.Editor
                 if (inst == null) continue;
 
                 inst.transform.rotation = Quaternion.Euler(0f, Random.Range(0, 4) * 90f, 0f);
-                ScaleToFootprint(inst, Lot * Random.Range(0.7f, 0.85f)); // gros blocs, rues conservées
-                CapHeight(inst, MaxBuildingHeight);                       // cheminées pas géantes
-                var jitter = new Vector3(Random.Range(-2.5f, 2.5f), 0f, Random.Range(-2.5f, 2.5f));
+                ScaleToFootprint(inst, Lot * Random.Range(0.65f, 0.78f)); // un peu plus petit → rues plus larges
+                CapHeight(inst, MaxBuildingHeight);                        // cheminées pas géantes
+                var jitter = new Vector3(Random.Range(-1.2f, 1.2f), 0f, Random.Range(-1.2f, 1.2f)); // jitter réduit
                 GroundAt(inst, pos + jitter);
                 AddBoxCollider(inst, colRoot);
+
+                // Enregistre l'emprise XZ pour que les props l'évitent.
+                var b = WorldBounds(inst);
+                var fpRadius = Mathf.Max(b.size.x, b.size.z) * 0.5f + 1.5f;   // +1.5 m marge
+                _buildingFootprints.Add((new Vector3(b.center.x, 0f, b.center.z), fpRadius));
                 placed++;
             }
             return placed;
@@ -122,21 +134,40 @@ namespace Rocketpi.Editor
                 bool useFactory = factory.Count > 0 && (survival.Count == 0 || Random.value < 0.5f);
                 var list = useFactory ? factory : survival;
                 if (list.Count == 0) continue;
+
+                // Cherche une position libre (loin des bâtiments) en quelques essais.
+                Vector3 pos = Vector3.zero;
+                bool freeSpot = false;
+                for (var t = 0; t < 20; t++)
+                {
+                    var a = Random.value * Mathf.PI * 2f;
+                    var r = Random.Range(PlazaRadius - 6f, CityOuter - 4f);
+                    var candidate = new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
+                    if (!OverlapsBuilding(candidate, 1.2f)) { pos = candidate; freeSpot = true; break; }
+                }
+                if (!freeSpot) continue;   // pas de place libre, skip ce prop
+
                 var path = list[Random.Range(0, list.Count)];
                 var inst = InstantiateDecor(path, root, useFactory ? fMat : sMat);
                 if (inst == null) continue;
 
-                var a = Random.value * Mathf.PI * 2f;
-                var r = Random.Range(PlazaRadius - 6f, CityOuter - 4f); // rues + abords du fort
-                var pos = new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
-
                 inst.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-                ScaleToHeight(inst, Random.Range(1.0f, 2.4f));   // taille de couvert
+                ScaleToHeight(inst, Random.Range(1.4f, 2.4f));   // couvert humain (plus de minuscules)
                 GroundAt(inst, pos);
                 AddBoxCollider(inst, colRoot);
                 placed++;
             }
             return placed;
+        }
+
+        /// <summary>True si la position XZ est dans l'emprise d'un bâtiment placé.
+        /// Public pour que d'autres scripts (AddPowerUps) évitent ces zones.</summary>
+        public static bool OverlapsBuilding(Vector3 worldPos, float propRadius)
+        {
+            var p = new Vector3(worldPos.x, 0f, worldPos.z);
+            foreach (var (bp, br) in _buildingFootprints)
+                if (Vector3.Distance(p, bp) < br + propRadius) return true;
+            return false;
         }
 
         // ── Helpers ────────────────────────────────────────────────────────

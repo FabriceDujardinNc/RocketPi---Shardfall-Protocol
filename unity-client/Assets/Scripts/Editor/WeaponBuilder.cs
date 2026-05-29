@@ -37,26 +37,33 @@ namespace Rocketpi.Editor
             AssetDatabase.ImportAsset(WeaponsDir, ImportAssetOptions.ImportRecursive);
             AssetDatabase.Refresh();
 
-            var fbxFiles = Directory.GetFiles(WeaponsDir, "*.fbx", SearchOption.AllDirectories)
+            // Scan FBX + OBJ (poly.pizza mélange souvent les formats).
+            var modelFiles = Directory.GetFiles(WeaponsDir, "*.fbx", SearchOption.AllDirectories)
+                .Concat(Directory.GetFiles(WeaponsDir, "*.obj", SearchOption.AllDirectories))
                 .Select(p => p.Replace('\\', '/')).ToList();
 
-            var byKey = new Dictionary<string, GameObject>();   // clé normalisée → prefab arme
+            var byKey       = new Dictionary<string, GameObject>(); // armes à distance (clé → prefab)
+            var meleeByKey  = new Dictionary<string, GameObject>(); // armes de mêlée
 
-            foreach (var path in fbxFiles)
+            foreach (var path in modelFiles)
             {
-                var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if (fbx == null) continue;
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (model == null) continue;
 
-                var key  = Normalize(Path.GetFileNameWithoutExtension(path));     // ex: "sniper_rifle"
-                var name = $"Weapon_{ToPrefabName(Path.GetFileNameWithoutExtension(path))}";
+                var key  = KeyForModelPath(path);                                  // ex: "sniper_rifle", "warhammer"
+                var isMelee = path.Contains("/Melee/");
+                var nameTag = isMelee ? "Melee_" : "";
+                var name = $"Weapon_{nameTag}{ToPrefabName(key)}";
                 var prefabPath = $"{PrefabsDir}/{name}.prefab";
 
-                // Racine de l'arme
+                // Racine de l'arme : HitscanWeapon pour les distance, MeleeWeapon pour la mêlée.
                 var weapon = new GameObject(name);
-                var hw = weapon.AddComponent<HitscanWeapon>();
+                var hw = isMelee
+                    ? (WeaponBase)weapon.AddComponent<MeleeWeapon>()
+                    : (WeaponBase)weapon.AddComponent<HitscanWeapon>();
 
-                // Visuel : FBX instancié, colliders retirés, scale normalisé.
-                var visual = (GameObject)PrefabUtility.InstantiatePrefab(fbx, weapon.transform);
+                // Visuel : modèle instancié, colliders retirés, scale normalisé.
+                var visual = (GameObject)PrefabUtility.InstantiatePrefab(model, weapon.transform);
                 visual.name = "Visual";
                 visual.transform.localPosition = Vector3.zero;
                 visual.transform.localRotation = Quaternion.identity;
@@ -64,15 +71,33 @@ namespace Rocketpi.Editor
                     Object.DestroyImmediate(col);
 
                 bool isPistol = key.Contains("pistol");
-                float targetLength = isPistol ? 0.45f : 0.95f;
+                // Tailles cibles : pistolet ~45 cm, fusil ~95 cm, mêlée plus grande
+                // pour être lisible en 3rd person. Warhammer + Mace = grosses armes
+                // imposantes (1.6 m), Dagger/Knife restent petites (0.9 m / 0.5 m).
+                float targetLength;
+                if (isMelee)
+                {
+                    if (key.Contains("warhammer") || key.Contains("mace")) targetLength = 1.6f;
+                    else if (key.Contains("knife"))                          targetLength = 0.5f;
+                    else                                                     targetLength = 0.9f; // dagger/épée
+                }
+                else
+                {
+                    targetLength = isPistol ? 0.45f : 0.95f;
+                }
                 var b = WorldBounds(visual);
                 float longest = Mathf.Max(b.size.x, b.size.y, b.size.z);
                 if (longest > 0.001f) visual.transform.localScale = Vector3.one * (targetLength / longest);
 
-                // Décale le visuel pour que la CROSSE (arrière, axe le plus long) soit au
-                // niveau du socket (épaule) → plus de clipping de l'arrière du fusil dans
-                // l'épaule. La crosse à 0, le canon vers l'avant.
-                ShiftBackToZero(visual);
+                // Pour les armes à distance : décale le visuel pour que la CROSSE (arrière,
+                // axe le plus long) soit au niveau du socket (épaule).
+                // Pour les armes de MÊLÉE : on veut le BOUNDS CENTER à l'origine du prefab.
+                // Comme ça quand on parente à la main et qu'on met localPos=(0,0,0) au runtime,
+                // l'arme apparaît centrée sur la paume (et bouge en cohérence avec l'anim).
+                if (isMelee)
+                    CenterVisualOnOrigin(visual);
+                else
+                    ShiftBackToZero(visual);
 
                 // Muzzle : calé au VRAI bout du canon (calculé depuis les bounds après scaling
                 // ET après le décalage de la crosse).
@@ -87,11 +112,28 @@ namespace Rocketpi.Editor
 
                 var prefab = PrefabUtility.SaveAsPrefabAsset(weapon, prefabPath);
                 Object.DestroyImmediate(weapon);
-                byKey[key] = prefab;
-                Debug.Log($"[RocketPi] Weapon prefab créé : {prefabPath}  (key={key})");
+                if (isMelee) meleeByKey[key] = prefab; else byKey[key] = prefab;
+                Debug.Log($"[RocketPi] Weapon prefab créé : {prefabPath}  (key={key}, melee={isMelee})");
             }
 
-            // Affectation par classe d'opérateur (Role).
+            // Arme de mêlée par défaut pour les opérateurs IsMelee : Warhammer (brutal,
+            // colle aux mutants). Sinon n'importe laquelle dispo.
+            var melee = meleeByKey.TryGetValue("warhammer", out var w) ? w
+                      : meleeByKey.Values.FirstOrDefault();
+
+            // Overrides par DisplayName pour donner une mêlée spécifique à certains
+            // opérateurs. Le user a demandé :
+            //   - Crag   → Warhammer (par défaut, gros marteau)
+            //   - Iron   → Mace (masse)
+            //   - Wraith → Dagger (épée courte)
+            var meleeByOpName = new Dictionary<string, string>
+            {
+                { "Crag",   "warhammer" },
+                { "Iron",   "mace" },
+                { "Wraith", "dagger" },
+            };
+
+            // Affectation par classe d'opérateur (Role). Les IsMelee bypass cette table.
             var roleToKey = new Dictionary<OperatorRole, string>
             {
                 { OperatorRole.Sniper,      "sniper_rifle" },
@@ -104,21 +146,30 @@ namespace Rocketpi.Editor
                 { OperatorRole.Hacker,      "ray_gun" },
             };
 
-            int assigned = 0;
+            int assigned = 0, meleeAssigned = 0;
             foreach (var g in AssetDatabase.FindAssets("t:OperatorData"))
             {
                 var p = AssetDatabase.GUIDToAssetPath(g);
                 var op = AssetDatabase.LoadAssetAtPath<OperatorData>(p);
                 if (op == null) continue;
-                if (!roleToKey.TryGetValue(op.Role, out var key)) continue;
 
-                GameObject chosen = null;
-                if (!byKey.TryGetValue(key, out chosen))
+                GameObject chosen;
+                if (op.IsMelee && meleeByKey.Count > 0)
                 {
-                    // Fallback : sous-chaîne (sniper_rifle → "sniper", etc.).
-                    chosen = byKey.FirstOrDefault(kv => kv.Key.Contains(key)).Value;
+                    // Cherche d'abord un override spécifique par nom (Iron→mace, Wraith→dagger…)
+                    GameObject specific = null;
+                    if (meleeByOpName.TryGetValue(op.DisplayName, out var preferredKey)
+                        && meleeByKey.TryGetValue(preferredKey, out var pf)) specific = pf;
+                    chosen = specific != null ? specific : melee;
+                    meleeAssigned++;
                 }
-                if (chosen == null) continue;
+                else
+                {
+                    if (!roleToKey.TryGetValue(op.Role, out var key)) continue;
+                    if (!byKey.TryGetValue(key, out chosen))
+                        chosen = byKey.FirstOrDefault(kv => kv.Key.Contains(key)).Value;
+                    if (chosen == null) continue;
+                }
 
                 var so = new SerializedObject(op);
                 var prop = so.FindProperty("WeaponPrefab");
@@ -132,8 +183,13 @@ namespace Rocketpi.Editor
 
             EditorUtility.DisplayDialog("Build Weapon Prefabs",
                 $"✓ {byKey.Count} prefabs créés dans {PrefabsDir}/\n" +
-                $"✓ Assignés à {assigned} opérateurs (par classe)", "OK");
+                $"✓ Assignés à {assigned} opérateurs (par classe)\n" +
+                $"✓ {meleeAssigned} non-humains → arme de mêlée", "OK");
         }
+
+        // (CreateMeleeWeaponPrefab supprimé — les prefabs de mêlée sont désormais créés
+        // à partir des modèles 3D dans Assets/Models/Weapons/Melee/ par la boucle
+        // principale de BuildWeaponPrefabs.)
 
         // ── Mix Ishikawa pour les classes "standard" (Pistol/Rifle) ────────
         // Halo/Wraith reçoivent des Pistols Ishikawa (snow/black) et Crag/Iron des
@@ -213,6 +269,21 @@ namespace Rocketpi.Editor
         }
 
         // ── Helpers ────────────────────────────────────────────────────────
+
+        // Clé de stockage d'un modèle : nom de fichier, sauf s'il est trop générique
+        // (ex. "model.obj" dans le pack Warhammer → on prend le dossier "Warhammer").
+        private static string KeyForModelPath(string path)
+        {
+            var file = Path.GetFileNameWithoutExtension(path);
+            var lower = file.ToLowerInvariant();
+            if (lower == "model" || lower == "mesh" || lower == "scene")
+            {
+                var folder = Path.GetFileName(Path.GetDirectoryName(path) ?? "");
+                if (!string.IsNullOrEmpty(folder)) return Normalize(folder);
+            }
+            return Normalize(file);
+        }
+
         private static string Normalize(string s)
         {
             var b = new System.Text.StringBuilder();
@@ -275,6 +346,20 @@ namespace Rocketpi.Editor
         { var p = so.FindProperty(name); if (p != null) p.floatValue = v; }
         private static void Set(SerializedObject so, string name, int v)
         { var p = so.FindProperty(name); if (p != null) p.intValue = v; }
+
+        /// <summary>Centre le visuel sur l'origine du parent : le BOUNDS CENTER (calculé
+        /// sur tous les Renderers enfants) tombe à (0,0,0). Utilisé pour les armes de
+        /// mêlée — comme ça à l'instantiation et après parenting à la main, l'arme est
+        /// dans la paume sans dépendre des offsets bizarres du modèle source.</summary>
+        private static void CenterVisualOnOrigin(GameObject visual)
+        {
+            var b = WorldBounds(visual);
+            // Déplace le visuel pour que son centre de bounds soit à l'origine du parent.
+            var delta = visual.transform.parent != null
+                      ? visual.transform.parent.position - b.center
+                      : -b.center;
+            visual.transform.position += delta;
+        }
 
         /// <summary>Décalage PARTIEL (50%) de l'arme vers l'avant : la crosse reste un peu
         /// derrière le socket (épaule) sans plus clipper trop loin dans le model, et

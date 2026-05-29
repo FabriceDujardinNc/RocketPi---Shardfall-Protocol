@@ -22,9 +22,10 @@ MonoBehaviour:
   SprintSpeed: 8.5
   Portrait: {fileID: 0}
   AccentColor: {r: 0.7, g: 0.55, b: 0.45, a: 1}
-  WeaponPrefab: {fileID: 918884085010605138, guid: 9689b95f1c567df48b3f98c7ccc0aa2c, type: 3}
+  WeaponPrefab: {fileID: 8622601458396380591, guid: 5a879ee38d31d3d42b9364a38305f9b8, type: 3}
   AbilityPrefabs: []
   UltimatePrefab: {fileID: 0}
+  IsMelee: 1
   BodyPrefab: {fileID: 8733778034735326663, guid: 03d72ff8b1744984c9284813472f0911, type: 3}
   BodyHeight: 1.85
   BodyRadius: 0.4

@@ -39,6 +39,9 @@ namespace Rocketpi.Gameplay.Operators
         public GameObject WeaponPrefab;          // doit avoir un WeaponBase
         public GameObject[] AbilityPrefabs;      // ex. [DashAbility, ShieldAbility]
         public GameObject UltimatePrefab;        // facultatif
+        [Tooltip("Si true (non-humain / créature), reçoit une arme de mêlée par défaut " +
+                 "au lieu d'une arme à distance lors du Build Weapon Prefabs.")]
+        public bool IsMelee = false;
 
         [Header("Body 3D (Mixamo Humanoid)")]
         [Tooltip("Prefab visuel : root vide + SkinnedMeshRenderer enfant + Animator (controller locomotion) + collider capsule." +

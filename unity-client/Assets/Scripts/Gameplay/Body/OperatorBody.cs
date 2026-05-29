@@ -118,9 +118,11 @@ namespace Rocketpi.Gameplay.Body
             _animator.Update(0f);
         }
 
-        private static readonly int HashFire   = Animator.StringToHash("Fire");
-        private static readonly int HashReload = Animator.StringToHash("Reload");
-        private static readonly int HashFlip   = Animator.StringToHash("Flip");
+        private static readonly int HashFire        = Animator.StringToHash("Fire");
+        private static readonly int HashReload      = Animator.StringToHash("Reload");
+        private static readonly int HashFlip        = Animator.StringToHash("Flip");
+        private static readonly int HashMeleeAttack = Animator.StringToHash("MeleeAttack");
+        private static readonly int HashBattlecry   = Animator.StringToHash("Battlecry");
 
         public void TriggerFire()
         {
@@ -138,6 +140,30 @@ namespace Rocketpi.Gameplay.Body
             if (_animator != null) _animator.SetTrigger(HashReload);
         }
 
+        /// <summary>Lance l'anim Melee-Combo-Attack (utilisé à la place de Fire pour les
+        /// armes de mêlée — pas de muzzle flash ni de trace).</summary>
+        public void TriggerMeleeAttack()
+        {
+            if (_animator != null) _animator.SetTrigger(HashMeleeAttack);
+        }
+
+        /// <summary>Lance l'anim Standing Taunt Battlecry (intro de buff pour les non-humains
+        /// qui passent walk→run). Bloque la locomotion pendant la durée de l'anim, après quoi
+        /// le PlayerController applique le multiplicateur de vitesse.</summary>
+        public void TriggerBattlecry()
+        {
+            if (_animator != null) _animator.SetTrigger(HashBattlecry);
+        }
+
+        /// <summary>True si l'Animator joue actuellement l'état Battlecry (layer 0).</summary>
+        public bool IsPlayingBattlecry()
+        {
+            if (_animator == null || _animator.runtimeAnimatorController == null) return false;
+            var st = _animator.GetCurrentAnimatorStateInfo(0);
+            var next = _animator.GetNextAnimatorStateInfo(0);
+            return st.IsName("Battlecry") || next.IsName("Battlecry");
+        }
+
         /// <summary>Durée (s) d'un clip de l'Animator par nom (insensible à la casse). 0 si absent.</summary>
         public float GetClipLength(string clipName)
         {
@@ -152,7 +178,11 @@ namespace Rocketpi.Gameplay.Body
         /// Sert à bloquer le tir tant que l'anim de recharge n'est pas finie.</summary>
         public bool IsPlayingReload()
         {
-            if (_animator == null) return false;
+            // Garde sur runtimeAnimatorController : sinon Animator.GetCurrentAnimatorStateInfo
+            // crache "Animator is not playing an AnimatorController" en boucle (chaque frame
+            // de HandleFire) tant qu'un controller n'est pas branché — typique quand le
+            // controller a été régénéré et le prefab pas réimporté en mémoire.
+            if (_animator == null || _animator.runtimeAnimatorController == null) return false;
             var st = _animator.GetCurrentAnimatorStateInfo(0);
             var next = _animator.GetNextAnimatorStateInfo(0);
             return st.IsName("Reload") || next.IsName("Reload");

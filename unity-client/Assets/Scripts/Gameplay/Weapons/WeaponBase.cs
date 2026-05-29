@@ -19,6 +19,15 @@ namespace Rocketpi.Gameplay.Weapons
         [Header("Refs visuelles (optionnel)")]
         [SerializeField] protected Transform _muzzle;
 
+        [Header("Placement dans la main droite (par arme)")]
+        [Tooltip("Offset position de l'arme dans le repère du bone main droite.")]
+        [SerializeField] private Vector3 _handOffset = new Vector3(0.05f, 0f, 0.05f);
+        [Tooltip("Rotation Euler de l'arme dans le repère du bone main droite.")]
+        [SerializeField] private Vector3 _handEuler  = new Vector3(170f, 100f, 180f);
+
+        public Vector3 HandOffset => _handOffset;
+        public Vector3 HandEuler  => _handEuler;
+
         public int   CurrentAmmo { get; protected set; }
         public int   MagazineSize => _magazineSize;
         public bool  IsReloading  { get; protected set; }

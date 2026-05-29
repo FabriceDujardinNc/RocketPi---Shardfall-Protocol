@@ -1,8 +1,8 @@
 {
   "version": "0.1.0",
-  "buildGuid": "2ffc5b10d6c14a5aa22937d8624b514e",
-  "builtAt": "2026-05-28T04:48:20.1416835Z",
-  "sizeBytes": 183886406,
+  "buildGuid": "0e05850f5b424ba8a668675063e02966",
+  "builtAt": "2026-05-28T05:04:22.1398079Z",
+  "sizeBytes": 183886757,
   "isDevelopmentBuild": true,
   "urls": {
     "loader": "Build/unity.loader.js",

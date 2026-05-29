@@ -57,6 +57,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: e760444ac9de3b44292b6a4f1a5be2e1, type: 2}
     - target: {fileID: 5866666021909216657, guid: 88ddfdd22820be0408a326563bfd223b, type: 3}
+      propertyPath: m_Avatar
+      value: 
+      objectReference: {fileID: 9000000, guid: b02ac20c8ff29aa44911a60a1a202f45, type: 3}
+    - target: {fileID: 5866666021909216657, guid: 88ddfdd22820be0408a326563bfd223b, type: 3}
       propertyPath: m_Controller
       value: 
       objectReference: {fileID: 9100000, guid: 7232920a091b02d42a9a38fe8bff236e, type: 2}

@@ -25,6 +25,7 @@ MonoBehaviour:
   WeaponPrefab: {fileID: 5214344256168942182, guid: ad37f9c1dfe00254380ccfc2b047da15, type: 3}
   AbilityPrefabs: []
   UltimatePrefab: {fileID: 0}
+  IsMelee: 0
   BodyPrefab: {fileID: 3638449045922321239, guid: 4b5c46a4d431e1347a63b7e039e18a2f, type: 3}
   BodyHeight: 1.85
   BodyRadius: 0.4

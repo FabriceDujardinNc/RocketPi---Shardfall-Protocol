@@ -239,9 +239,18 @@ namespace Rocketpi.Editor
             int placed = 0;
             for (var i = 0; i < count; i++)
             {
-                // Anneau 22..62 : laisse le fort central + sa porte/rampe totalement dégagés
-                // (sinon un rocher peut bloquer la sortie).
-                if (!TryRandomNavPointRing(22f, 62f, out var pos)) continue;
+                // Anneau 22..62 : laisse le fort central + sa porte/rampe totalement
+                // dégagés. ET retry si la position tombe dans l'emprise d'un bâtiment
+                // (sinon le bonus est caché par la maison).
+                Vector3 pos = Vector3.zero;
+                bool freeSpot = false;
+                for (var t = 0; t < 25; t++)
+                {
+                    if (!TryRandomNavPointRing(22f, 62f, out pos)) continue;
+                    if (!Rocketpi.Editor.CityBuilder.OverlapsBuilding(pos, 2f)) { freeSpot = true; break; }
+                }
+                if (!freeSpot) continue;
+
                 var topY = SpawnPlatformRock(platforms.transform, rocks, rockMat, pos, Random.Range(1.0f, 1.8f));
                 CreatePickup(root.transform, types[i % types.Length], new Vector3(pos.x, topY + 0.7f, pos.z));
                 placed++;

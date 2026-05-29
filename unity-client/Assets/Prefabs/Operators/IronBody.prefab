@@ -53,6 +53,10 @@ PrefabInstance:
       value: IronBody
       objectReference: {fileID: 0}
     - target: {fileID: 5866666021909216657, guid: c929da040ecc763498785fb919c163af, type: 3}
+      propertyPath: m_Avatar
+      value: 
+      objectReference: {fileID: 9000000, guid: b02ac20c8ff29aa44911a60a1a202f45, type: 3}
+    - target: {fileID: 5866666021909216657, guid: c929da040ecc763498785fb919c163af, type: 3}
       propertyPath: m_Controller
       value: 
       objectReference: {fileID: 9100000, guid: 7232920a091b02d42a9a38fe8bff236e, type: 2}

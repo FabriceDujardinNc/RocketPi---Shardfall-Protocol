@@ -32,10 +32,13 @@ namespace Rocketpi.Editor
         private const string ControllerPath  = "Assets/Animations/OperatorLocomotion.controller";
         private const string SharedHumanoidPath = "Assets/Prefabs/Operators/SharedHumanoidBody.prefab";
 
-        // Loop-true par défaut
+        // Loop-true par défaut. Les anims one-shot (one play, then exit) listées ici sont
+        // forcées en loopTime=false à l'import.
         private static readonly HashSet<string> NonLoopingAnims = new()
         {
-            "Death", "Jump", "Fire", "Reload", "Flip", "Rifle-Jump", "RifleJump"
+            "Death", "Jump", "Fire", "Reload", "Flip", "Rifle-Jump", "RifleJump",
+            "Melee-Combo-Attack", "MeleeComboAttack",
+            "Standing Taunt Battlecry", "StandingTauntBattlecry", "Battlecry",
         };
 
         // ─── 1. Configure Operator Imports ─────────────────────────────────
@@ -156,6 +159,8 @@ namespace Rocketpi.Editor
             var aimIdle   = LoadClipByName("AimIdle");
             var fire      = LoadClipByName("Fire");
             var reload    = LoadClipByName("Reload");
+            var meleeAtk  = LoadClipByName("Melee-Combo-Attack") ?? LoadClipByName("MeleeComboAttack");
+            var battlecry = LoadClipByName("Standing Taunt Battlecry") ?? LoadClipByName("StandingTauntBattlecry") ?? LoadClipByName("Battlecry");
 
             if (idle == null || walk == null || run == null)
             {
@@ -178,6 +183,8 @@ namespace Rocketpi.Editor
             controller.AddParameter("Fire",        AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Reload",      AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Flip",        AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("MeleeAttack", AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("Battlecry",   AnimatorControllerParameterType.Trigger);
 
             // Force IsGrounded = true par défaut
             var ig = controller.parameters[1]; ig.defaultBool = true; controller.parameters = controller.parameters;
@@ -303,6 +310,44 @@ namespace Rocketpi.Editor
                 reloadToLocomotion.hasExitTime = true;
                 reloadToLocomotion.exitTime = 0.9f;     // 90% du clip
                 reloadToLocomotion.duration = 0.15f;
+            }
+
+            // ── Melee combo attack (swing pour les armes de mêlée) ───────
+            // Joué à la place de Fire quand l'arme courante est MeleeWeapon.
+            // Pas de tracer / muzzle, juste le clip à corps entier.
+            if (meleeAtk != null)
+            {
+                var meleeState = sm.AddState("MeleeAttack", new Vector3(650, 240, 0));
+                meleeState.motion = meleeAtk;
+                var toMelee = sm.AddAnyStateTransition(meleeState);
+                toMelee.AddCondition(AnimatorConditionMode.If, 0, "MeleeAttack");
+                toMelee.duration = 0.05f;
+                toMelee.hasExitTime = false;
+                toMelee.canTransitionToSelf = true;
+
+                var meleeToLoco = meleeState.AddTransition(locomotionState);
+                meleeToLoco.hasExitTime = true;
+                meleeToLoco.exitTime = 0.85f;
+                meleeToLoco.duration = 0.15f;
+            }
+
+            // ── Battlecry (intro de buff sur transition walk→run pour IsMelee) ──
+            // Pendant l'anim, PlayerController.LockMovement = true (le joueur ne peut
+            // pas bouger), puis on applique le multiplicateur de vitesse 15s.
+            if (battlecry != null)
+            {
+                var crState = sm.AddState("Battlecry", new Vector3(850, 240, 0));
+                crState.motion = battlecry;
+                var toCr = sm.AddAnyStateTransition(crState);
+                toCr.AddCondition(AnimatorConditionMode.If, 0, "Battlecry");
+                toCr.duration = 0.05f;
+                toCr.hasExitTime = false;
+                toCr.canTransitionToSelf = false;
+
+                var crToLoco = crState.AddTransition(locomotionState);
+                crToLoco.hasExitTime = true;
+                crToLoco.exitTime = 0.95f;
+                crToLoco.duration = 0.15f;
             }
 
             // ── Layer 1 : Combat (additive) ──────────────────────────────
@@ -938,6 +983,372 @@ namespace Rocketpi.Editor
             // Pas de DisplayDialog (modal) ici : il bloque l'éditeur pour les commandes MCP.
             Debug.Log($"[RocketPi] Avatar diagnostic (body prefabs ré-assignés : {repaired}) :\n"
                       + string.Join("\n", report));
+        }
+
+        // ─── Force CopyFromOther(Brick) on a single rig ────────────────────
+        //
+        // Quand un opérateur reste en T-pose même après Force All Bodies (cas observé sur
+        // Halo : avatar isValid=True mais retarget T-pose au runtime), on re-importe son
+        // FBX avec CopyFromOther(donneur). Ça remappe le skinning du mesh sur l'avatar
+        // du donneur → comportement identique à Crag (donor-bound).
+        [MenuItem("Tools/RocketPi/Force CopyFromOther on Halo")]
+        public static void ForceCopyFromOtherOnHalo() => ForceCopyFromOtherOnRig("Halo");
+
+        // Restaure l'avatar Humanoid intrinsèque d'un opérateur (CreateFromThisModel)
+        // et l'assigne à son body prefab. Utile quand un CopyFromOther(donneur) a cassé
+        // le retargeting pour cet opérateur (cas observé sur Halo : son mesh préfère
+        // son propre avatar). Le body conserve le controller global.
+        [MenuItem("Tools/RocketPi/Restore Own Avatar on Halo")]
+        public static void RestoreOwnAvatarOnHalo() => RestoreOwnAvatarOnRig("Halo");
+
+        private static void RestoreOwnAvatarOnRig(string opName)
+        {
+            var path = $"{RiggedDir}/{opName}.fbx";
+            if (!File.Exists(path)) { Debug.LogError($"[RocketPi] Rig introuvable : {path}"); return; }
+
+            // Re-importe le FBX en CreateFromThisModel → régénère l'avatar embarqué.
+            if (AssetImporter.GetAtPath(path) is ModelImporter imp)
+            {
+                imp.animationType = ModelImporterAnimationType.Human;
+                imp.avatarSetup   = ModelImporterAvatarSetup.CreateFromThisModel;
+                imp.sourceAvatar  = null;
+                imp.optimizeGameObjects = false;
+                imp.SaveAndReimport();
+            }
+
+            var avatar = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Avatar>().FirstOrDefault();
+            if (avatar == null || !avatar.isValid || !avatar.isHuman)
+            {
+                Debug.LogError($"[RocketPi] {opName} : avatar régénéré invalide. Annulation.");
+                return;
+            }
+
+            // Re-câble l'Animator du body prefab vers cet avatar.
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            var prefabPath = $"{BodyPrefabsDir}/{opName}Body.prefab";
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab != null)
+            {
+                var root = PrefabUtility.LoadPrefabContents(prefabPath);
+                var anim = root.GetComponent<Animator>();
+                if (anim == null) anim = root.AddComponent<Animator>();
+                var animSo = new SerializedObject(anim);
+                animSo.FindProperty("m_Avatar").objectReferenceValue = null;
+                animSo.ApplyModifiedPropertiesWithoutUndo();
+                animSo.FindProperty("m_Avatar").objectReferenceValue = avatar;
+                if (controller != null) animSo.FindProperty("m_Controller").objectReferenceValue = controller;
+                animSo.FindProperty("m_ApplyRootMotion").boolValue = false;
+                animSo.ApplyModifiedPropertiesWithoutUndo();
+
+                var ob = root.GetComponent<OperatorBody>();
+                if (ob == null) ob = root.AddComponent<OperatorBody>();
+                var so = new SerializedObject(ob);
+                so.FindProperty("_animator").objectReferenceValue = anim;
+                so.ApplyModifiedPropertiesWithoutUndo();
+
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                PrefabUtility.UnloadPrefabContents(root);
+                Debug.Log($"[RocketPi] {opName}Body.prefab : avatar {avatar.name} restauré + controller relié.");
+            }
+            AssetDatabase.SaveAssets();
+        }
+
+        // Reconstruit complètement un body prefab depuis son FBX (mesh + Animator +
+        // OperatorBody) puis le ré-assigne au OperatorData correspondant. Utile quand
+        // un prefab existant a des refs cassées (SkinnedMesh bones obsolètes après
+        // re-import). Variante ciblée de BuildOperatorBodyPrefabs.
+        [MenuItem("Tools/RocketPi/Rebuild Halo Body Prefab")]
+        public static void RebuildHaloBodyPrefab() => RebuildSingleBodyPrefab("Halo");
+
+        private static void RebuildSingleBodyPrefab(string opName)
+        {
+            var fbxPath = $"{RiggedDir}/{opName}.fbx";
+            if (!File.Exists(fbxPath))
+            {
+                Debug.LogError($"[RocketPi] FBX introuvable : {fbxPath}");
+                return;
+            }
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            if (controller == null) { Debug.LogError("[RocketPi] Controller introuvable."); return; }
+
+            var fbxModel = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
+            if (fbxModel == null) { Debug.LogError($"[RocketPi] FBX non chargeable : {fbxPath}"); return; }
+
+            // Donor avatar (premier valide ≠ opName)
+            Avatar donor = null;
+            foreach (var raw in Directory.GetFiles(RiggedDir, "*.fbx"))
+            {
+                var p = raw.Replace('\\', '/');
+                if (Path.GetFileNameWithoutExtension(p) == opName) continue;
+                var a = AssetDatabase.LoadAllAssetsAtPath(p).OfType<Avatar>().FirstOrDefault();
+                if (a != null && a.isValid && a.isHuman) { donor = a; break; }
+            }
+
+            EnsureFolder(BodyPrefabsDir);
+            var prefabPath = $"{BodyPrefabsDir}/{opName}Body.prefab";
+            if (File.Exists(prefabPath)) AssetDatabase.DeleteAsset(prefabPath);
+
+            // Instancie depuis le FBX puis re-bake en nouveau prefab indépendant.
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(fbxModel);
+            instance.name = $"{opName}Body";
+
+            var animator = instance.GetComponent<Animator>() ?? instance.AddComponent<Animator>();
+            animator.runtimeAnimatorController = controller;
+            animator.applyRootMotion = false;
+            animator.avatar = donor;   // donor avatar pour retarget fiable
+
+            if (instance.GetComponent<OperatorBody>() == null) instance.AddComponent<OperatorBody>();
+
+            var prefab = PrefabUtility.SaveAsPrefabAsset(instance, prefabPath);
+            Object.DestroyImmediate(instance);
+
+            // Re-assigne sur l'OperatorData
+            var ops = LoadOperatorsByName();
+            if (ops.TryGetValue(opName, out var opData))
+            {
+                var so = new SerializedObject(opData);
+                so.FindProperty("BodyPrefab").objectReferenceValue = prefab;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(opData);
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[RocketPi] {opName}Body.prefab reconstruit + ré-assigné à OperatorData '{opName}'.");
+        }
+
+        private static void ForceCopyFromOtherOnRig(string opName)
+        {
+            var path = $"{RiggedDir}/{opName}.fbx";
+            if (!File.Exists(path))
+            {
+                Debug.LogError($"[RocketPi] Rig introuvable : {path}");
+                return;
+            }
+
+            // Cherche un avatar Humanoid VALIDE ≠ opName (donneur).
+            Avatar donor = null;
+            string donorName = null;
+            foreach (var raw in Directory.GetFiles(RiggedDir, "*.fbx"))
+            {
+                var p = raw.Replace('\\', '/');
+                if (Path.GetFileNameWithoutExtension(p) == opName) continue;
+                var a = AssetDatabase.LoadAllAssetsAtPath(p).OfType<Avatar>().FirstOrDefault();
+                if (a != null && a.isValid && a.isHuman) { donor = a; donorName = Path.GetFileNameWithoutExtension(p); break; }
+            }
+            if (donor == null)
+            {
+                Debug.LogError("[RocketPi] Pas de donneur Humanoid valide.");
+                return;
+            }
+
+            if (AssetImporter.GetAtPath(path) is ModelImporter imp)
+            {
+                imp.animationType = ModelImporterAnimationType.Human;
+                imp.avatarSetup   = ModelImporterAvatarSetup.CopyFromOther;
+                imp.sourceAvatar  = donor;
+                imp.optimizeGameObjects = false;
+                imp.SaveAndReimport();
+                Debug.Log($"[RocketPi] {opName}.fbx ré-importé en CopyFromOther({donorName}).");
+            }
+
+            // Ré-assigne avatar + controller sur le body prefab.
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            var prefabPath = $"{BodyPrefabsDir}/{opName}Body.prefab";
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab != null)
+            {
+                var root = PrefabUtility.LoadPrefabContents(prefabPath);
+                var anim = root.GetComponent<Animator>();
+                if (anim == null) anim = root.AddComponent<Animator>();
+                var animSo = new SerializedObject(anim);
+                animSo.FindProperty("m_Avatar").objectReferenceValue = null;
+                animSo.ApplyModifiedPropertiesWithoutUndo();
+                animSo.FindProperty("m_Avatar").objectReferenceValue = donor;
+                if (controller != null) animSo.FindProperty("m_Controller").objectReferenceValue = controller;
+                animSo.FindProperty("m_ApplyRootMotion").boolValue = false;
+                animSo.ApplyModifiedPropertiesWithoutUndo();
+
+                var ob = root.GetComponent<OperatorBody>();
+                if (ob == null) ob = root.AddComponent<OperatorBody>();
+                var so = new SerializedObject(ob);
+                so.FindProperty("_animator").objectReferenceValue = anim;
+                so.ApplyModifiedPropertiesWithoutUndo();
+
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                PrefabUtility.UnloadPrefabContents(root);
+                Debug.Log($"[RocketPi] {opName}Body.prefab ré-câblé (donor avatar + controller).");
+            }
+            AssetDatabase.SaveAssets();
+        }
+
+        // ─── Build Melee Locomotion Override Controller ────────────────────
+        //
+        // Crée un AnimatorOverrideController dans Resources/ qui remplace le clip "Run"
+        // par "Unarmed Run Forward" — utilisé par PlayerController quand l'opérateur est
+        // IsMelee. Les IsMelee n'ont pas d'arme à feu en main → l'anim de course avec
+        // mains levées est cohérente avec celle des civils (foule infiltration) et avec
+        // l'arme de mêlée tenue.
+        //
+        // Resources/ → loadable au runtime via Resources.Load (compatible WebGL).
+        [MenuItem("Tools/RocketPi/Build Melee Locomotion Override")]
+        public static void BuildMeleeLocomotionOverride()
+        {
+            const string OutDir  = "Assets/Resources/Animations";
+            const string OutPath = OutDir + "/MeleeLocomotionOverride.overrideController";
+            EnsureFolder(OutDir);
+
+            var baseController = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            if (baseController == null)
+            {
+                Debug.LogError("[RocketPi] BuildMeleeLocomotionOverride : controller de base introuvable. Lance d'abord Wire Jump Animations.");
+                return;
+            }
+
+            // 1. Configure le clip Unarmed Run Forward en Humanoid + CopyFromOther(Brick).
+            var unarmedPath = $"{LocomotionDir}/Unarmed Run Forward.fbx";
+            if (!File.Exists(unarmedPath))
+            {
+                EditorUtility.DisplayDialog("Build Melee Override",
+                    $"Fichier introuvable : {unarmedPath}\n\nTélécharge l'anim Mixamo \"Unarmed Run Forward\" " +
+                    "(In Place + Without Skin) et place-la dans Assets/Animations/Locomotion/.", "OK");
+                return;
+            }
+
+            Avatar donor = null;
+            foreach (var raw in Directory.GetFiles(RiggedDir, "*.fbx"))
+            {
+                var a = AssetDatabase.LoadAllAssetsAtPath(raw.Replace('\\', '/')).OfType<Avatar>().FirstOrDefault();
+                if (a != null && a.isValid && a.isHuman) { donor = a; break; }
+            }
+
+            if (AssetImporter.GetAtPath(unarmedPath) is ModelImporter imp)
+            {
+                imp.animationType = ModelImporterAnimationType.Human;
+                if (donor != null) { imp.avatarSetup = ModelImporterAvatarSetup.CopyFromOther; imp.sourceAvatar = donor; }
+                imp.optimizeGameObjects = false;
+                imp.useFileScale = true;
+                imp.importAnimation = true;
+
+                var clips = imp.defaultClipAnimations;
+                if (clips != null && clips.Length > 0)
+                {
+                    for (var i = 0; i < clips.Length; i++)
+                    {
+                        clips[i].name = "Unarmed Run Forward";
+                        clips[i].loopTime = true;
+                        clips[i].lockRootRotation = true;
+                        clips[i].lockRootHeightY  = true;
+                        clips[i].keepOriginalOrientation = true;
+                        clips[i].keepOriginalPositionY   = true;
+                        clips[i].keepOriginalPositionXZ  = false;
+                    }
+                    imp.clipAnimations = clips;
+                }
+                imp.SaveAndReimport();
+            }
+
+            var unarmedClip = AssetDatabase.LoadAllAssetsAtPath(unarmedPath).OfType<AnimationClip>()
+                .FirstOrDefault(c => !c.name.StartsWith("__preview__"));
+            if (unarmedClip == null)
+            {
+                Debug.LogError("[RocketPi] Impossible de charger le clip Unarmed Run Forward après re-import.");
+                return;
+            }
+
+            // 2. Crée / réutilise l'override controller.
+            var ov = AssetDatabase.LoadAssetAtPath<AnimatorOverrideController>(OutPath);
+            if (ov == null)
+            {
+                ov = new AnimatorOverrideController { name = "MeleeLocomotionOverride" };
+                AssetDatabase.CreateAsset(ov, OutPath);
+            }
+            ov.runtimeAnimatorController = baseController;
+
+            // 3. Map "Run" → Unarmed Run Forward. ApplyOverrides remplace seulement les
+            //    clips listés ; les autres états (Idle, Walk, Jump, Melee, Battlecry…)
+            //    restent leurs originaux.
+            var overrides = new List<KeyValuePair<AnimationClip, AnimationClip>>();
+            ov.GetOverrides(overrides);
+            for (var i = 0; i < overrides.Count; i++)
+            {
+                if (overrides[i].Key != null && overrides[i].Key.name == "Run")
+                    overrides[i] = new KeyValuePair<AnimationClip, AnimationClip>(overrides[i].Key, unarmedClip);
+            }
+            ov.ApplyOverrides(overrides);
+            EditorUtility.SetDirty(ov);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"[RocketPi] MeleeLocomotionOverride créé : {OutPath} (Run → Unarmed Run Forward).");
+        }
+
+        // ─── Force All Bodies To Use Donor Avatar ──────────────────────────
+        //
+        // Diagnostic empirique : après un Wire Jump Animations, certains opérateurs (tous
+        // sauf Crag dans le cas observé) tombent en T-pose au runtime, même quand leur
+        // avatar individuel est marqué isValid=True. Crag fonctionne car CopyFromOther(Brick)
+        // lui assigne BrickAvatar.
+        //
+        // Workaround robuste : tous les body prefabs utilisent l'avatar DU DONNEUR (Brick).
+        // Les rigs Mixamo partagent les bones mixamorig:* → retargeting Humanoid identique.
+        [MenuItem("Tools/RocketPi/Force All Bodies To Use Donor Avatar")]
+        public static void ForceAllBodiesToUseDonorAvatar()
+        {
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            var fbxFiles = Directory.Exists(RiggedDir)
+                ? Directory.GetFiles(RiggedDir, "*.fbx")
+                : System.Array.Empty<string>();
+
+            Avatar donor = null;
+            string donorName = null;
+            foreach (var raw in fbxFiles)
+            {
+                var p = raw.Replace('\\', '/');
+                var a = AssetDatabase.LoadAllAssetsAtPath(p).OfType<Avatar>().FirstOrDefault();
+                if (a != null && a.isValid && a.isHuman) { donor = a; donorName = Path.GetFileNameWithoutExtension(p); break; }
+            }
+            if (donor == null)
+            {
+                Debug.LogError("[RocketPi] Force Donor Avatar : aucun avatar Humanoid valide trouvé dans " + RiggedDir);
+                return;
+            }
+
+            int rewired = 0;
+            foreach (var raw in fbxFiles)
+            {
+                var opName = Path.GetFileNameWithoutExtension(raw);
+                var prefabPath = $"{BodyPrefabsDir}/{opName}Body.prefab";
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                if (prefab == null) continue;
+
+                var root = PrefabUtility.LoadPrefabContents(prefabPath);
+                var anim = root.GetComponent<Animator>();
+                if (anim == null) anim = root.AddComponent<Animator>();
+                // Force un override d'avatar même quand la valeur courante est identique
+                // (cas du donneur lui-même : Brick, dont l'Animator inherite BrickAvatar du
+                // FBX sans override → on a observé qu'au runtime ça donnait quand même T-pose).
+                // En passant par SerializedObject on garantit l'override.
+                var animSo = new SerializedObject(anim);
+                animSo.FindProperty("m_Avatar").objectReferenceValue = null;
+                animSo.ApplyModifiedPropertiesWithoutUndo();
+                animSo.FindProperty("m_Avatar").objectReferenceValue = donor;
+                if (controller != null)
+                    animSo.FindProperty("m_Controller").objectReferenceValue = controller;
+                animSo.FindProperty("m_ApplyRootMotion").boolValue = false;
+                animSo.ApplyModifiedPropertiesWithoutUndo();
+
+                var ob = root.GetComponent<OperatorBody>();
+                if (ob == null) ob = root.AddComponent<OperatorBody>();
+                var so = new SerializedObject(ob);
+                so.FindProperty("_animator").objectReferenceValue = anim;
+                so.ApplyModifiedPropertiesWithoutUndo();
+
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                PrefabUtility.UnloadPrefabContents(root);
+                rewired++;
+            }
+
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[RocketPi] Force Donor Avatar : {rewired} body prefabs ré-assignés à l'avatar donneur '{donorName}'. " +
+                      "Tous les rigs Mixamo partagent mixamorig:* → retarget Humanoid identique.");
         }
 
         // ─── Helpers ───────────────────────────────────────────────────────

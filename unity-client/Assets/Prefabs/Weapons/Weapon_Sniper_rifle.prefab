@@ -42,7 +42,7 @@ GameObject:
   - component: {fileID: 4716097729785429753}
   - component: {fileID: 788009593552739649}
   m_Layer: 0
-  m_Name: Weapon_Sniper_rifle
+  m_Name: Weapon_sniper_rifle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

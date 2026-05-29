@@ -43,6 +43,10 @@ namespace Rocketpi.Gameplay
         [SerializeField] private OperatorData _operator;
         [SerializeField] private Transform _weaponSocket;
 
+        // Les offsets de placement dans la main sont maintenant PAR ARME (sur WeaponBase).
+        // Voir le prefab de chaque arme (Sniper, Pistol, Warhammer…) section "Placement
+        // dans la main droite" pour les ajuster individuellement.
+
         [Header("Refs")]
         [SerializeField] private ThirdPersonCamera _camera;
         [SerializeField] private Transform _bodyAnchor;       // où instancier le BodyPrefab (par défaut = transform)
@@ -53,8 +57,12 @@ namespace Rocketpi.Gameplay
         public WeaponBase   Weapon { get; private set; }
         public OperatorBody Body   { get; private set; }
 
-        /// <summary>Multiplicateur de vitesse (power-up SpeedBoost). 1 = normal.</summary>
+        /// <summary>Multiplicateur de vitesse (power-up SpeedBoost ou Battlecry buff). 1 = normal.</summary>
         public float SpeedMultiplier { get; set; } = 1f;
+
+        /// <summary>True = locomotion entièrement freezée (anim Battlecry en cours, etc.).
+        /// Les inputs sont quand même lus mais aucun déplacement n'est appliqué.</summary>
+        public bool LockMovement { get; set; }
 
         /// <summary>False pendant l'écran de sélection d'opérateur : gèle le joueur.</summary>
         public bool CanPlay { get; private set; } = true;
@@ -79,10 +87,14 @@ namespace Rocketpi.Gameplay
         private Vector3 _velocity;
         private PlayerAbilities _abilities;
 
+        private Vector3 _spawnPosition;
+
         private void Awake()
         {
             _cc = GetComponent<CharacterController>();
             Health = GetComponent<HealthSystem>();
+            Health.OnDied += HandlePlayerDeath;
+            _spawnPosition = transform.position;
             _abilities = GetComponent<PlayerAbilities>();
             if (_camera == null) _camera = FindAnyObjectByType<ThirdPersonCamera>();
             if (_match == null)  _match  = FindAnyObjectByType<TrainingMatchManager>();
@@ -133,6 +145,8 @@ namespace Rocketpi.Gameplay
 
         private void OnDisable()
         {
+            if (Health != null) Health.OnDied -= HandlePlayerDeath;
+            CancelInvoke(nameof(Respawn));
             _moveAction.Disable();
             _jumpAction.Disable();
             _sprintAction.Disable();
@@ -163,6 +177,17 @@ namespace Rocketpi.Gameplay
             SpawnOperatorBody();
             EquipOperatorWeapon();
             BindCameraToBody();
+            EnsureMeleeBuffController();
+        }
+
+        /// <summary>Pose un MeleeBuffController sur le joueur SI l'opérateur courant est
+        /// IsMelee, sinon le retire. Idempotent — appelé à chaque SetOperator.</summary>
+        private void EnsureMeleeBuffController()
+        {
+            var existing = GetComponent<MeleeBuffController>();
+            bool wantBuff = _operator != null && _operator.IsMelee;
+            if (wantBuff && existing == null) gameObject.AddComponent<MeleeBuffController>();
+            else if (!wantBuff && existing != null) Destroy(existing);
         }
 
         // ── Curseur ────────────────────────────────────────────────────────
@@ -221,6 +246,34 @@ namespace Rocketpi.Gameplay
             UpdateWeaponVisibility();
         }
 
+        // ── Mort & respawn ────────────────────────────────────────────────
+        private const float RespawnDelay = 3f;
+
+        private void HandlePlayerDeath()
+        {
+            // Joue l'anim Death du body (même que les NPCs) + gèle les entrées.
+            Body?.TriggerDeath();
+            SetMatchReady(false);
+            _velocity = Vector3.zero;
+            // Respawn après 3 s à la position initiale (centre de la plaza).
+            CancelInvoke(nameof(Respawn));
+            Invoke(nameof(Respawn), RespawnDelay);
+        }
+
+        private void Respawn()
+        {
+            // Téléporte au spawn + reset vie + sort de l'anim Death.
+            if (_cc != null)
+            {
+                _cc.enabled = false;
+                transform.position = _spawnPosition;
+                _cc.enabled = true;
+            }
+            Health?.ResetHealth();
+            Body?.Revive();
+            SetMatchReady(true);
+        }
+
         /// <summary>Mode infiltration : l'arme n'est VISIBLE qu'en courant. En marchant,
         /// le joueur ressemble aux faux opérateurs (civils sans arme apparente).</summary>
         private void UpdateWeaponVisibility()
@@ -229,6 +282,27 @@ namespace Rocketpi.Gameplay
             var show = IsRunning();
             foreach (var r in _weaponRenderers)
                 if (r != null) r.enabled = show;
+        }
+
+        // Suivi manuel de l'arme : la main Mixamo a un scale dynamique baked par l'Animator
+        // qui shrink TOUT enfant (cube de probe vu à 1 cm au lieu de 70 cm). Workaround : on
+        // garde l'arme en SCENE ROOT et on la repositionne chaque LateUpdate (après que
+        // l'Animator ait mis les bones à jour) à la position/rotation du bone main.
+        [System.NonSerialized] public Transform _weaponHandBone;
+        [System.NonSerialized] public Transform _weaponAttached;
+        [System.NonSerialized] public Vector3 _weaponLocalOffset;
+        [System.NonSerialized] public Quaternion _weaponLocalRotation = Quaternion.identity;
+
+        private void LateUpdate()
+        {
+            if (_weaponAttached == null || _weaponHandBone == null || Weapon == null) return;
+            // Recalcule chaque frame depuis l'arme — modifier les valeurs sur le prefab
+            // d'arme en Play mode met à jour le placement instantanément.
+            var off = Weapon.HandOffset;
+            var rot = Quaternion.Euler(Weapon.HandEuler);
+            _weaponAttached.position = _weaponHandBone.position
+                                     + _weaponHandBone.rotation * off;
+            _weaponAttached.rotation = _weaponHandBone.rotation * rot;
         }
 
         // ── Vue 1ère / 3ème personne ───────────────────────────────────────
@@ -260,6 +334,7 @@ namespace Rocketpi.Gameplay
             SpawnOperatorBody();
             EquipOperatorWeapon();
             BindCameraToBody();
+            EnsureMeleeBuffController();
         }
 
         private void ApplyOperatorStats()
@@ -310,12 +385,34 @@ namespace Rocketpi.Gameplay
             Body = _bodyInstance.GetComponent<OperatorBody>() ?? _bodyInstance.GetComponentInChildren<OperatorBody>();
             Body?.Configure(_walkSpeed, _sprintSpeed);
 
+            // Pour les opérateurs IsMelee (créatures sans arme à feu), on remplace l'anim Run
+            // par "Unarmed Run Forward" (mains levées / posture sans arme épaulée). Le clip
+            // override est dans Resources/Animations/MeleeLocomotionOverride.overrideController
+            // (asset construit via Tools > RocketPi > Build Melee Locomotion Override).
+            if (_operator.IsMelee && _bodyInstance != null)
+            {
+                var anim = _bodyInstance.GetComponentInChildren<Animator>();
+                if (anim != null)
+                {
+                    var ov = Resources.Load<AnimatorOverrideController>("Animations/MeleeLocomotionOverride");
+                    if (ov != null) anim.runtimeAnimatorController = ov;
+                    else Debug.LogWarning("[PlayerController] MeleeLocomotionOverride introuvable dans Resources/Animations/. " +
+                                         "Lance Tools > RocketPi > Build Melee Locomotion Override.");
+                }
+            }
+
             // Mémorise les renderers pour les masquer en 1ère personne.
             _bodyRenderers = _bodyInstance.GetComponentsInChildren<Renderer>(true);
             ApplyViewMode();
         }
 
-        private void HandleWeaponFired()    => Body?.TriggerFire();
+        private void HandleWeaponFired()
+        {
+            // Armes de mêlée → anim de swing (Melee-Combo-Attack), pas le trigger Fire
+            // qui jouerait un muzzle flash / recul d'arme à feu.
+            if (Weapon is MeleeWeapon) Body?.TriggerMeleeAttack();
+            else                       Body?.TriggerFire();
+        }
         private void HandleWeaponReload()   => Body?.TriggerReload();
 
         /// <summary>Affiche/masque le mesh du joueur (camouflage / invisibilité).</summary>
@@ -342,10 +439,41 @@ namespace Rocketpi.Gameplay
             _weaponSocket.localRotation = Quaternion.identity;
         }
 
+        /// <summary>Cherche un bone par suffixe de nom dans le body instancié (ex. "RightHand"
+        /// matche "mixamorig:RightHand"). Retourne null si le body n'est pas spawn ou si
+        /// l'opérateur n'a pas ce bone.</summary>
+        private Transform FindBoneOnBody(string boneSuffix)
+        {
+            if (_bodyInstance == null) return null;
+            foreach (var t in _bodyInstance.GetComponentsInChildren<Transform>(true))
+            {
+                var n = t.name;
+                // "mixamorig:RightHand" mais PAS "mixamorig:RightHandThumb1".
+                if (n.EndsWith(boneSuffix) || n.EndsWith(":" + boneSuffix)) return t;
+            }
+            return null;
+        }
+
         private void EquipOperatorWeapon()
         {
             EnsureWeaponSocketOnPlayer();
-            if (_operator == null || _operator.WeaponPrefab == null || _weaponSocket == null) return;
+            // Crée un socket à la volée si l'inspecteur n'en a pas → évite que l'arme
+            // soit silencieusement non-spawned quand un user clique "play" sur une scène
+            // mal câblée (cas observé sur Vex après changement de body prefab).
+            if (_weaponSocket == null)
+            {
+                var go = new GameObject("WeaponSocket");
+                _weaponSocket = go.transform;
+                _weaponSocket.SetParent(transform, false);
+                _weaponSocket.localPosition = new Vector3(0.25f, 1.4f, 0.45f);
+                Debug.LogWarning("[PlayerController] WeaponSocket auto-créé (référence Inspector manquante).");
+            }
+            if (_operator == null) { Debug.LogWarning("[PlayerController] EquipOperatorWeapon: _operator null."); return; }
+            if (_operator.WeaponPrefab == null)
+            {
+                Debug.LogWarning($"[PlayerController] EquipOperatorWeapon: WeaponPrefab null sur {_operator.DisplayName}.");
+                return;
+            }
 
             if (Weapon != null)
             {
@@ -354,9 +482,53 @@ namespace Rocketpi.Gameplay
                 Destroy(Weapon.gameObject);
             }
 
-            var instance = Instantiate(_operator.WeaponPrefab, _weaponSocket);
+            // Le bone main Mixamo a un scale dynamique qui shrink ses enfants à 1 % au
+            // runtime. Workaround : on garde l'arme en SCENE ROOT (pas de parent) et on
+            // la track manuellement en LateUpdate à la position/rotation du bone.
+            var hand = FindBoneOnBody("RightHand");
+            bool meleeWeapon = _operator.IsMelee || _operator.WeaponPrefab.GetComponent<MeleeWeapon>() != null;
+            var instance = Instantiate(_operator.WeaponPrefab);
             instance.transform.localPosition = Vector3.zero;
             instance.transform.localRotation = Quaternion.identity;
+            instance.transform.localScale    = Vector3.one;
+            Transform parent = hand != null ? hand : _weaponSocket;
+
+            // Rescale via bounds (taille cible 1.2 m mêlée / 0.7 m distance).
+            var renderers = instance.GetComponentsInChildren<Renderer>(true);
+            if (renderers.Length > 0)
+            {
+                var b = renderers[0].bounds;
+                for (int i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
+                float currentLongest = Mathf.Max(b.size.x, b.size.y, b.size.z);
+                float target = meleeWeapon ? 1.2f : 0.7f;
+                if (currentLongest > 0.0001f && currentLongest < target * 0.5f)
+                {
+                    instance.transform.localScale *= target / currentLongest;
+                }
+            }
+
+            // Tracking manuel : LateUpdate de PlayerController repositionne l'arme à
+            // la position/rotation du bone main (offset + rotation locale lus depuis l'arme).
+            // Pas de parent → pas de transmission du scale dynamique de l'Animator.
+            if (hand != null)
+            {
+                _weaponHandBone = hand;
+                _weaponAttached = instance.transform;
+                // Lecture initiale depuis l'arme (utilisée pour placement immédiat avant
+                // le 1er LateUpdate). Le LateUpdate relit chaque frame, donc tweakable live.
+                var w = instance.GetComponent<WeaponBase>();
+                _weaponLocalOffset   = w != null ? w.HandOffset : Vector3.zero;
+                _weaponLocalRotation = w != null ? Quaternion.Euler(w.HandEuler) : Quaternion.identity;
+                instance.transform.position = hand.position + hand.rotation * _weaponLocalOffset;
+                instance.transform.rotation = hand.rotation * _weaponLocalRotation;
+            }
+            else
+            {
+                // Fallback : pas de bone main → parente au socket classique
+                instance.transform.SetParent(_weaponSocket, false);
+                _weaponHandBone = null;
+                _weaponAttached = null;
+            }
             Weapon = instance.GetComponent<WeaponBase>();
             Weapon?.Initialize(this);
 
@@ -403,9 +575,19 @@ namespace Rocketpi.Gameplay
             var speed = (sprint ? _sprintSpeed : _walkSpeed) * SpeedMultiplier;
             var groundControl = _cc.isGrounded ? 1f : _airControl;
 
-            var horizontal = wishDir * (speed * groundControl);
-            _velocity.x = horizontal.x;
-            _velocity.z = horizontal.z;
+            // Locked = on bloque le déplacement (anim Battlecry en cours sur Crag/Iron/Wraith).
+            if (LockMovement)
+            {
+                wishDir = Vector3.zero;
+                _velocity.x = 0f;
+                _velocity.z = 0f;
+            }
+            else
+            {
+                var horizontal = wishDir * (speed * groundControl);
+                _velocity.x = horizontal.x;
+                _velocity.z = horizontal.z;
+            }
 
             if (_cc.isGrounded)
             {
@@ -419,7 +601,8 @@ namespace Rocketpi.Gameplay
 
             // Saut : au sol OU en l'air tant qu'il reste des sauts (double saut pour
             // certaines classes). Hauteur modulée par le multiplicateur d'opérateur.
-            if (_jumpAction.WasPressedThisFrame() && _jumpsUsed < _maxJumps)
+            // Pas de saut quand locké en Battlecry — il faut finir l'anim.
+            if (!LockMovement && _jumpAction.WasPressedThisFrame() && _jumpsUsed < _maxJumps)
             {
                 var airJump = !_cc.isGrounded;   // 2ᵉ saut en l'air → salto
                 _velocity.y = _jumpVelocity * _jumpMultiplier;
