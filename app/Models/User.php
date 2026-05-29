@@ -153,12 +153,4 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(self::class, 'referred_by_user_id');
     }
 
-    /**
-     * Faction d'allégeance du joueur (choisie à l'inscription, immuable).
-     * Renvoie null pour les rares cas legacy non backfilled.
-     */
-    public function faction(): BelongsTo
-    {
-        return $this->belongsTo(Faction::class, 'faction', 'slug');
-    }
 }

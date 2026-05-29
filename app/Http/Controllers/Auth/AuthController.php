@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\ReferralService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
@@ -18,8 +17,6 @@ use Inertia\Response;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly ReferralService $referrals) {}
-
     // ── Login ───────────────────────────────────────────────────────────
 
     public function showLogin(): Response
@@ -113,16 +110,7 @@ class AuthController extends Controller
 
     public function showRegister(Request $request): Response
     {
-        // Catalogue des factions pour l'étape "choix d'allégeance" du formulaire.
-        // Chargé depuis la BDD (FactionSeeder garantit la présence des 3).
-        $factions = \App\Models\Faction::query()
-            ->orderBy('slug')
-            ->get(['slug', 'name', 'tagline', 'lore', 'color_hue', 'accent_class']);
-
-        return Inertia::render('Auth/Register', [
-            'referralCode' => $request->session()->get('referral_code'),
-            'factions'     => $factions,
-        ]);
+        return Inertia::render('Auth/Register');
     }
 
     public function register(Request $request): RedirectResponse
@@ -131,45 +119,19 @@ class AuthController extends Controller
             'name'     => 'required|string|max:80|unique:users,name',
             'email'    => 'required|string|email|max:255|unique:users,email',
             'password' => ['required', 'confirmed', PasswordRule::defaults()],
-            // Allégeance unique et permanente — choisie ici, jamais modifiable.
-            'faction'  => ['required', 'string', 'in:' . implode(',', User::FACTIONS)],
-            'referral_code' => 'nullable|string|max:32',
         ], [
-            'name.unique'      => 'Ce pseudo est déjà pris, choisis-en un autre.',
-            'email.unique'     => 'Un compte existe déjà avec cet email.',
-            'faction.required' => 'Choisis ton allégeance — ce choix est définitif.',
-            'faction.in'       => 'Faction invalide.',
+            'name.unique'  => 'Ce pseudo est déjà pris, choisis-en un autre.',
+            'email.unique' => 'Un compte existe déjà avec cet email.',
         ]);
-
-        $referrer = ! empty($validated['referral_code'])
-            ? User::where('referral_code', $validated['referral_code'])->first()
-            : null;
 
         $user = User::create([
             'name'     => $validated['name'],
             'email'    => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'faction'  => $validated['faction'],
-            'referred_by_user_id' => $referrer?->id,
         ]);
-
-        if ($referrer) {
-            try {
-                $this->referrals->createForNewUser(
-                    referrer: $referrer,
-                    referee: $user,
-                    ip: $request->ip(),
-                    fingerprint: $request->header('X-Device-Fingerprint'),
-                );
-            } catch (\RuntimeException $e) {
-                \Log::info("Referral creation skipped for user {$user->id}: {$e->getMessage()}");
-            }
-        }
 
         event(new Registered($user));
         Auth::login($user);
-
-        $request->session()->forget('referral_code');
 
         return redirect()->route('verification.notice');
     }
@@ -234,12 +196,7 @@ class AuthController extends Controller
     public function verifyEmail(EmailVerificationRequest $request): RedirectResponse
     {
         $request->fulfill();
-
-        if ($user = $request->user()) {
-            $this->referrals->validateOnEmailVerified($user);
-        }
-
-        return redirect()->route('dashboard');
+        return redirect()->route('play');
     }
 
     public function resendVerification(Request $request): RedirectResponse

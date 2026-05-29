@@ -12,15 +12,13 @@ class MatchResult extends Model
     protected function casts(): array
     {
         return [
-            'score'              => 'integer',
-            'kills'              => 'integer',
-            'deaths'             => 'integer',
-            'assists'            => 'integer',
-            'won'                => 'boolean',
-            'is_mvp'             => 'boolean',
-            'rank_points_delta'  => 'integer',
-            'rank_points_after'  => 'integer',
-            'validated_at'       => 'datetime',
+            'score'        => 'integer',
+            'kills'        => 'integer',
+            'deaths'       => 'integer',
+            'assists'      => 'integer',
+            'won'          => 'boolean',
+            'is_mvp'       => 'boolean',
+            'validated_at' => 'datetime',
         ];
     }
 

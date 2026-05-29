@@ -2,36 +2,10 @@
 
 namespace App\Providers;
 
-use App\Models\Achievement;
-use App\Models\Banner;
-use App\Models\BattlePass;
-use App\Models\Cosmetic;
-use App\Models\DailyLoginReward;
-use App\Models\Event;
-use App\Models\Faction;
-use App\Models\LeaderboardSeason;
-use App\Models\Mission;
-use App\Models\Operator;
-use App\Models\ReferralReward;
 use App\Models\Setting;
 use App\Models\User;
-use App\Policies\AchievementPolicy;
-use App\Policies\BannerPolicy;
-use App\Policies\BattlePassPolicy;
-use App\Policies\CosmeticPolicy;
-use App\Policies\DailyLoginRewardPolicy;
-use App\Policies\EventPolicy;
-use App\Policies\FactionPolicy;
-use App\Policies\LeaderboardSeasonPolicy;
-use App\Policies\MissionPolicy;
-use App\Policies\OperatorPolicy;
-use App\Policies\ReferralRewardPolicy;
 use App\Policies\SettingPolicy;
 use App\Policies\UserPolicy;
-use App\Services\Meshy\Contracts\MeshyClientInterface;
-use App\Services\Meshy\FakeMeshyClient;
-use App\Services\Meshy\MeshyHttpClient;
-use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -39,42 +13,15 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Bind MeshyClientInterface en fonction de la config :
-        //  - MESHY_FAKE=true OU pas de clé API → FakeMeshyClient (placeholders)
-        //  - sinon → MeshyHttpClient (vrai API)
-        // FakeMeshyClient est en singleton pour permettre forceFailure()/forcePending()
-        // depuis les tests sans avoir à le re-binder.
-        $this->app->singleton(MeshyClientInterface::class, function ($app) {
-            $cfg = $app['config']->get('services.meshy', []);
-            $useFake = ($cfg['fake'] ?? false) || empty($cfg['api_key']);
-
-            if ($useFake) {
-                return new FakeMeshyClient();
-            }
-
-            return new MeshyHttpClient(
-                http: $app->make(HttpFactory::class),
-                apiKey: (string) $cfg['api_key'],
-                baseUrl: (string) ($cfg['base_url'] ?? 'https://api.meshy.ai'),
-            );
-        });
+        // No-op : tous les bindings métier ont été retirés avec la refonte
+        // « site simplifié ». Le générateur 3D Meshy et les services gacha
+        // ne sont plus nécessaires.
     }
 
     public function boot(): void
     {
         Gate::policy(User::class, UserPolicy::class);
-        Gate::policy(ReferralReward::class, ReferralRewardPolicy::class);
-        Gate::policy(Operator::class, OperatorPolicy::class);
-        Gate::policy(Banner::class, BannerPolicy::class);
-        Gate::policy(Mission::class, MissionPolicy::class);
-        Gate::policy(BattlePass::class, BattlePassPolicy::class);
-        Gate::policy(DailyLoginReward::class, DailyLoginRewardPolicy::class);
-        Gate::policy(Faction::class, FactionPolicy::class);
-        Gate::policy(Achievement::class, AchievementPolicy::class);
-        Gate::policy(Event::class, EventPolicy::class);
-        Gate::policy(LeaderboardSeason::class, LeaderboardSeasonPolicy::class);
         Gate::policy(Setting::class, SettingPolicy::class);
-        Gate::policy(Cosmetic::class, CosmeticPolicy::class);
 
         // Le super_admin contourne toutes les vérifications applicatives.
         // Les Policies/Gates "ban" et "promote" gardent leurs propres règles
@@ -86,11 +33,7 @@ class AppServiceProvider extends ServiceProvider
             return null;
         });
 
-        Gate::define('access-admin',       fn (User $user) => $user->isAdmin());
-        Gate::define('manage-content',     fn (User $user) => $user->isAdmin());   // operators, banners, missions
-        Gate::define('view-gacha-logs',    fn (User $user) => $user->isAdmin());
-        Gate::define('flag-referrals',     fn (User $user) => $user->isAdmin());
-        Gate::define('reset-leaderboards', fn (User $user) => $user->isAdmin());
-        Gate::define('change-roles',       fn (User $user) => $user->isSuperAdmin());
+        Gate::define('access-admin', fn (User $user) => $user->isAdmin());
+        Gate::define('change-roles', fn (User $user) => $user->isSuperAdmin());
     }
 }

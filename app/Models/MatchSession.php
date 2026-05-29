@@ -28,11 +28,6 @@ class MatchSession extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function operator(): BelongsTo
-    {
-        return $this->belongsTo(Operator::class, 'operator_used_id');
-    }
-
     public function results(): HasMany
     {
         return $this->hasMany(MatchResult::class);
