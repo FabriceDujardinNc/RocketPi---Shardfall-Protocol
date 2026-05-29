@@ -71,7 +71,7 @@ export default function TwoFactorRecovery({ codes }: Props) {
                     </Button>
                 )}
                 <Link
-                    href="/dashboard"
+                    href="/play"
                     className="inline-flex items-center justify-center font-display font-semibold text-sm tracking-wide uppercase h-10 px-6 bg-gradient-to-b from-shard-400 to-shard-600 text-text-on-shard border border-shard-300 rounded-md hover:brightness-110 transition-all w-full sm:w-auto sm:flex-1"
                 >
                     Continuer

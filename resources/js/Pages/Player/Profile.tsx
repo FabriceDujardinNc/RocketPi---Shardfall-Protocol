@@ -11,16 +11,13 @@ interface Props {
         display_name: string | null;
         slug: string | null;
         avatar_url: string | null;
-        account_level: number;
-        account_xp: number;
-        referral_code: string;
     };
 }
 
 export default function Profile({ user }: Props) {
     const { data, setData, patch, processing, errors } = useForm({
         display_name: user.display_name ?? '',
-        avatar_url: user.avatar_url ?? '',
+        avatar_url:   user.avatar_url ?? '',
     });
     const [copied, setCopied] = useState(false);
 
@@ -49,9 +46,7 @@ export default function Profile({ user }: Props) {
                 <p className="font-display text-xs uppercase tracking-wide text-text-low">Identifiants</p>
                 <dl className="mt-4 grid grid-cols-2 gap-4 font-mono text-sm">
                     <dt className="text-text-low">Email</dt><dd className="text-text-high">{user.email}</dd>
-                    <dt className="text-text-low">Niveau</dt><dd className="text-text-high">{user.account_level}</dd>
-                    <dt className="text-text-low">XP</dt><dd className="text-text-high">{user.account_xp}</dd>
-                    <dt className="text-text-low">Code parrainage</dt><dd className="text-shard-400">{user.referral_code}</dd>
+                    <dt className="text-text-low">Pseudo (login)</dt><dd className="text-text-high">{user.name}</dd>
                 </dl>
             </section>
 

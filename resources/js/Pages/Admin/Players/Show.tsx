@@ -7,13 +7,11 @@ interface Props {
         name: string;
         email: string;
         role: string;
-        account_level: number;
         is_banned: boolean;
         ban_reason: string | null;
         banned_at: string | null;
         created_at: string;
         last_active_at: string | null;
-        referral_code: string;
     };
 }
 
@@ -28,8 +26,6 @@ export default function AdminPlayerShow({ user }: Props) {
                     <dt className="text-text-low">ID</dt><dd className="text-text-high">{user.id}</dd>
                     <dt className="text-text-low">Email</dt><dd className="text-text-high">{user.email}</dd>
                     <dt className="text-text-low">Rôle</dt><dd className="text-text-high">{user.role}</dd>
-                    <dt className="text-text-low">Niveau</dt><dd className="text-text-high">{user.account_level}</dd>
-                    <dt className="text-text-low">Code parrainage</dt><dd className="text-shard-400">{user.referral_code}</dd>
                     <dt className="text-text-low">Inscrit le</dt><dd className="text-text-high">{user.created_at}</dd>
                     <dt className="text-text-low">Dernière activité</dt><dd className="text-text-high">{user.last_active_at ?? '—'}</dd>
                     <dt className="text-text-low">Statut</dt>

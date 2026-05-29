@@ -3,25 +3,12 @@ import { type PropsWithChildren, useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import ThemeToggle from '@ui/ThemeToggle';
 
+// Site simplifié : admin = juste gestion utilisateurs + paramètres globaux
+// (PayPal / wallet crypto pour la page Dons). Modération des Idées en phase 3.
 const SECTIONS = [
-    { href: '/admin',              label: 'Tableau de bord' },
-    { href: '/admin/operators',    label: 'Opérateurs' },
-    { href: '/admin/skins',        label: 'Skins 3D' },
-    { href: '/admin/accessories',  label: 'Accessoires 3D' },
-    { href: '/admin/factions',     label: 'Factions' },
-    { href: '/admin/banners',      label: 'Bannières' },
-    { href: '/admin/players',      label: 'Joueurs' },
-    { href: '/admin/moderation',   label: 'Modération' },
-    { href: '/admin/gacha-logs',   label: 'Logs Gacha' },
-    { href: '/admin/referrals',    label: 'Parrainages' },
-    { href: '/admin/leaderboards', label: 'Classements' },
-    { href: '/admin/missions',             label: 'Missions' },
-    { href: '/admin/battle-passes',        label: 'Battle Pass' },
-    { href: '/admin/achievements',         label: 'Achievements' },
-    { href: '/admin/events',               label: 'Événements' },
-    { href: '/admin/cosmetics',            label: 'Cosmétiques' },
-    { href: '/admin/daily-login-rewards',  label: 'Daily login' },
-    { href: '/admin/settings',             label: 'Paramètres' },
+    { href: '/admin',          label: 'Tableau de bord' },
+    { href: '/admin/players',  label: 'Joueurs' },
+    { href: '/admin/settings', label: 'Paramètres' },
 ];
 
 export default function AdminLayout({ children }: PropsWithChildren) {
@@ -58,10 +45,10 @@ export default function AdminLayout({ children }: PropsWithChildren) {
             </nav>
             <div className="mt-8 pt-4 border-t border-border-default flex items-center justify-between">
                 <Link
-                    href="/dashboard"
+                    href="/play"
                     className="text-xs font-display uppercase tracking-wide text-text-low hover:text-text-medium"
                 >
-                    ← Retour côté joueur
+                    ← Retour au jeu
                 </Link>
                 <ThemeToggle />
             </div>

@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { useState } from 'react';
 
-interface Player { id: number; name: string; email: string; is_banned: boolean; account_level: number }
+interface Player { id: number; name: string; email: string; is_banned: boolean }
 interface Props {
     players: { data: Player[]; links: { url: string | null; label: string; active: boolean }[] };
     q: string;
@@ -38,13 +38,12 @@ export default function AdminPlayersIndex({ players, q }: Props) {
                             <th className="px-4 py-3 text-left">ID</th>
                             <th className="px-4 py-3 text-left">Pseudo</th>
                             <th className="px-4 py-3 text-left">Email</th>
-                            <th className="px-4 py-3 text-left">Niveau</th>
                             <th className="px-4 py-3 text-left">Statut</th>
                         </tr>
                     </thead>
                     <tbody>
                         {players.data.length === 0 ? (
-                            <tr><td colSpan={5} className="px-4 py-12 text-center text-text-medium">Aucun joueur.</td></tr>
+                            <tr><td colSpan={4} className="px-4 py-12 text-center text-text-medium">Aucun joueur.</td></tr>
                         ) : players.data.map(p => (
                             <tr key={p.id} className="border-t border-border-default hover:bg-bg-elev2/50">
                                 <td className="px-4 py-3 font-mono text-text-low">{p.id}</td>
@@ -54,7 +53,6 @@ export default function AdminPlayersIndex({ players, q }: Props) {
                                     </Link>
                                 </td>
                                 <td className="px-4 py-3 font-mono text-text-medium">{p.email}</td>
-                                <td className="px-4 py-3">{p.account_level}</td>
                                 <td className="px-4 py-3">
                                     {p.is_banned
                                         ? <span className="text-danger font-display text-xs uppercase tracking-wide">Banni</span>
