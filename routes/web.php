@@ -19,6 +19,10 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
     return inertia('Public/Landing');
 })->name('home');
 
+// Jeu Unity WebGL — accessible sans connexion. La connexion reste optionnelle
+// (elle débloque la sauvegarde de progression via le token Sanctum côté Unity).
+Route::get('/play', [PlayController::class, 'index'])->name('play');
+
 // Pages publiques (lecture sans auth) : dons + flux des idées de la communauté.
 Route::get('/dons',              [\App\Http\Controllers\Public\DonationController::class, 'index'])->name('dons');
 Route::get('/idees',             [\App\Http\Controllers\Public\IdeaController::class, 'index'])->name('ideas.index');
@@ -64,9 +68,6 @@ Route::middleware(['auth', 'verified', 'not.banned'])->group(function () {
     Route::get('/profile',              [ProfileController::class, 'index'])->name('profile');
     Route::get('/profile/{user:slug}',  [ProfileController::class, 'show'])->name('profile.show');
     Route::patch('/profile',            [ProfileController::class, 'update'])->name('profile.update');
-
-    // Jeu Unity WebGL
-    Route::get('/play', [PlayController::class, 'index'])->name('play');
 
     // Idées de développement — post + vote (lecture publique, écriture connectés)
     Route::post('/idees',                       [\App\Http\Controllers\Player\IdeaController::class, 'store'])->name('ideas.store');

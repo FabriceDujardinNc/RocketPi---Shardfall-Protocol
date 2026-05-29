@@ -76,22 +76,22 @@ export default function Landing() {
                     </p>
                     <div className="mt-8 flex flex-wrap gap-3">
                         <Link
-                            href="/register"
+                            href="/play"
                             className="inline-flex items-center justify-center font-display font-semibold text-sm tracking-wide uppercase h-12 px-6 bg-gradient-to-b from-shard-400 to-shard-600 text-text-on-shard border border-shard-300 rounded-md hover:brightness-110 transition-all"
+                        >
+                            Jouer maintenant
+                        </Link>
+                        <Link
+                            href="/register"
+                            className="inline-flex items-center justify-center font-display font-semibold text-sm tracking-wide uppercase h-12 px-6 bg-bg-elev2 text-text-high border border-border-default rounded-md hover:bg-bg-elev3 transition-all"
                         >
                             Créer un compte
                         </Link>
                         <Link
                             href="/login"
-                            className="inline-flex items-center justify-center font-display font-semibold text-sm tracking-wide uppercase h-12 px-6 bg-bg-elev2 text-text-high border border-border-default rounded-md hover:bg-bg-elev3 transition-all"
-                        >
-                            Connexion
-                        </Link>
-                        <Link
-                            href="/idees"
                             className="inline-flex items-center justify-center font-display font-semibold text-sm tracking-wide uppercase h-12 px-6 text-text-medium border border-border-default rounded-md hover:text-text-high transition-all"
                         >
-                            Voir les idées
+                            Connexion
                         </Link>
                     </div>
                 </section>
@@ -121,14 +121,15 @@ export default function Landing() {
                         Prêt à tester ?
                     </h2>
                     <p className="font-body text-text-medium mt-3">
-                        Création de compte gratuite, jeu directement dans le navigateur.
+                        Jeu directement dans le navigateur, sans inscription. Crée un compte
+                        pour sauvegarder ta progression.
                     </p>
                     <div className="flex flex-wrap justify-center gap-3 mt-6">
                         <Link
-                            href="/register"
+                            href="/play"
                             className="inline-flex items-center justify-center font-display font-semibold text-sm tracking-wide uppercase h-12 px-8 bg-gradient-to-b from-shard-400 to-shard-600 text-text-on-shard border border-shard-300 rounded-md hover:brightness-110 transition-all"
                         >
-                            Créer un compte
+                            Jouer maintenant
                         </Link>
                         <Link
                             href="/dons"

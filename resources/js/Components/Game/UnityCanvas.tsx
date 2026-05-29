@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Maximize } from 'lucide-react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { installBridge, type MatchResultPayload } from '@/lib/rocketpi-bridge';
 
@@ -20,6 +21,8 @@ type WrapperProps = VariantProps<typeof wrapperStyles>;
 
 interface UnityInstance {
     SendMessage(gameObject: string, methodName: string, value?: string): void;
+    /** Fourni par le loader Unity WebGL : 1 = plein écran, 0 = fenêtré. */
+    SetFullscreen?(fullscreen: number): void;
     Quit(): Promise<void>;
 }
 
@@ -85,8 +88,21 @@ export default function UnityCanvas({
     onRequestReload,
 }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
     const instanceRef = useRef<UnityInstance | null>(null);
     const [status, setStatus] = useState<Status>({ kind: 'loading', progress: 0 });
+
+    // Bascule plein écran : on privilégie le SetFullscreen natif d'Unity (gère
+    // aussi la résolution du framebuffer), avec repli sur l'API Fullscreen du
+    // navigateur sur le wrapper. Doit être déclenché par un geste utilisateur.
+    const enterFullscreen = () => {
+        const instance = instanceRef.current;
+        if (instance?.SetFullscreen) {
+            instance.SetFullscreen(1);
+            return;
+        }
+        wrapperRef.current?.requestFullscreen?.().catch(() => { /* refusé par le navigateur */ });
+    };
 
     // Installer/désinstaller window.rocketpi.* au montage du composant.
     useEffect(() => {
@@ -196,13 +212,24 @@ export default function UnityCanvas({
     }, [buildPath]);
 
     return (
-        <div className={wrapperStyles({ ratio })} data-status={status.kind}>
+        <div ref={wrapperRef} className={wrapperStyles({ ratio })} data-status={status.kind}>
             <canvas
                 ref={canvasRef}
                 id="unity-canvas"
                 className="w-full h-full block"
                 aria-label="Canvas de jeu Unity"
             />
+            {status.kind === 'ready' && (
+                <button
+                    type="button"
+                    onClick={enterFullscreen}
+                    className="absolute top-3 right-3 z-overlay inline-flex items-center gap-1.5 rounded-md bg-bg-base/70 backdrop-blur-sm border border-border-default px-3 py-1.5 font-display text-xs uppercase tracking-wide text-text-high hover:bg-bg-elev2 hover:text-shard-400 transition-colors"
+                    aria-label="Passer en plein écran"
+                >
+                    <Maximize size={14} />
+                    Plein écran
+                </button>
+            )}
             {status.kind === 'loading' && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-bg-base/80 backdrop-blur-sm pointer-events-none">
                     <p className="font-display text-xs uppercase tracking-mega text-shard-400 mb-3">

@@ -5,17 +5,19 @@ import ThemeToggle from '@ui/ThemeToggle';
 
 interface NavLeaf { href: string; label: string }
 
-// Site simplifié : navigation minimaliste (Jouer, Idées, Dons, Profil).
-const NAV: NavLeaf[] = [
-    { href: '/play',    label: 'Jouer'   },
-    { href: '/idees',   label: 'Idées'   },
-    { href: '/dons',    label: 'Dons'    },
-    { href: '/profile', label: 'Profil'  },
+// Site simplifié : navigation minimaliste. « Profil » n'apparaît que pour les
+// utilisateurs connectés (la page exige une auth) ; le reste est public.
+const NAV_PUBLIC: NavLeaf[] = [
+    { href: '/play',  label: 'Jouer' },
+    { href: '/idees', label: 'Idées' },
+    { href: '/dons',  label: 'Dons'  },
 ];
+const NAV_PROFILE: NavLeaf = { href: '/profile', label: 'Profil' };
 
 export default function PlayerLayout({ children }: PropsWithChildren) {
     const { url, props } = usePage<{ auth?: { user?: { display_name?: string; name?: string } } }>();
     const user = props.auth?.user;
+    const NAV = user ? [...NAV_PUBLIC, NAV_PROFILE] : NAV_PUBLIC;
     const [open, setOpen] = useState(false);
 
     useEffect(() => { setOpen(false); }, [url]);
@@ -63,22 +65,33 @@ export default function PlayerLayout({ children }: PropsWithChildren) {
 
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                         <ThemeToggle />
-                        <Link
-                            href="/profile"
-                            className="text-sm font-display tracking-wide text-text-medium hover:text-text-high flex items-center gap-2 min-w-0"
-                        >
-                            <span className="truncate max-w-[120px] sm:max-w-none">
-                                {user?.display_name ?? user?.name ?? 'Joueur'}
-                            </span>
-                        </Link>
-                        <Link
-                            href="/logout"
-                            method="post"
-                            as="button"
-                            className="hidden sm:inline text-xs font-display uppercase tracking-wide text-text-low hover:text-danger"
-                        >
-                            Déconnexion
-                        </Link>
+                        {user ? (
+                            <>
+                                <Link
+                                    href="/profile"
+                                    className="text-sm font-display tracking-wide text-text-medium hover:text-text-high flex items-center gap-2 min-w-0"
+                                >
+                                    <span className="truncate max-w-[120px] sm:max-w-none">
+                                        {user.display_name ?? user.name ?? 'Joueur'}
+                                    </span>
+                                </Link>
+                                <Link
+                                    href="/logout"
+                                    method="post"
+                                    as="button"
+                                    className="hidden sm:inline text-xs font-display uppercase tracking-wide text-text-low hover:text-danger"
+                                >
+                                    Déconnexion
+                                </Link>
+                            </>
+                        ) : (
+                            <Link
+                                href="/login"
+                                className="text-sm font-display uppercase tracking-wide text-shard-400 hover:text-shard-300"
+                            >
+                                Connexion
+                            </Link>
+                        )}
                     </div>
                 </div>
             </header>
@@ -114,14 +127,23 @@ export default function PlayerLayout({ children }: PropsWithChildren) {
                         </nav>
 
                         <div className="mt-6 pt-4 border-t border-border-default">
-                            <Link
-                                href="/logout"
-                                method="post"
-                                as="button"
-                                className="text-left font-display text-sm uppercase tracking-wide text-danger hover:text-danger/80"
-                            >
-                                Déconnexion
-                            </Link>
+                            {user ? (
+                                <Link
+                                    href="/logout"
+                                    method="post"
+                                    as="button"
+                                    className="text-left font-display text-sm uppercase tracking-wide text-danger hover:text-danger/80"
+                                >
+                                    Déconnexion
+                                </Link>
+                            ) : (
+                                <Link
+                                    href="/login"
+                                    className="text-left font-display text-sm uppercase tracking-wide text-shard-400 hover:text-shard-300"
+                                >
+                                    Connexion
+                                </Link>
+                            )}
                         </div>
                     </aside>
                 </div>

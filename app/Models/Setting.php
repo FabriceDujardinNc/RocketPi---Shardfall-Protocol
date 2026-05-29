@@ -15,7 +15,11 @@ class Setting extends Model
 
     public const TYPES = ['bool', 'string', 'int', 'json'];
 
-    private const CACHE_KEY = 'app:settings:all';
+    // `:v2` — on ne cache plus des modèles Eloquent (sérialisés, ils peuvent
+    // revenir en __PHP_Incomplete_Class à la désérialisation Redis) mais un
+    // simple tableau de primitives. Le suffixe versionné fait ignorer toute
+    // ancienne entrée corrompue, qui expire ensuite d'elle-même.
+    private const CACHE_KEY = 'app:settings:all:v2';
     private const CACHE_TTL = 600; // 10 min — suffisant, invalidate sur save
 
     protected static function booted(): void
@@ -26,17 +30,19 @@ class Setting extends Model
 
     /**
      * Lit une valeur typée. Mis en cache pour éviter un hit DB par requête.
+     * Le cache ne contient que des primitives : `[key => ['value','type']]`.
      */
     public static function value(string $key, mixed $default = null): mixed
     {
-        $all = Cache::remember(self::CACHE_KEY, self::CACHE_TTL,
-            fn () => self::all()->keyBy('key')->all());
+        $all = Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => self::all()
+            ->mapWithKeys(fn (self $s) => [$s->key => ['value' => $s->value, 'type' => $s->type]])
+            ->all());
 
         if (! isset($all[$key])) {
             return $default;
         }
 
-        return self::decode($all[$key]->value, $all[$key]->type);
+        return self::decode($all[$key]['value'], $all[$key]['type']);
     }
 
     /**
