@@ -1,0 +1,80 @@
+# ── Laravel ─────────────────────────────────────────────────────────
+/vendor/
+/node_modules/
+/public/build/
+/public/hot
+/public/storage
+/storage/*.key
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+/database/database.sqlite
+.env
+.env.backup
+.env.production
+.env.testing
+
+# ── PHP ──────────────────────────────────────────────────────────────
+*.log
+*.cache
+
+# ── OS ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDEs ─────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*.code-workspace
+
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
+unity-client/.claude/
+unity-client/.mcp.json
+
+# Unity AI Assistant local instructions + MCP Unity local settings
+unity-client/Assets/AssistantCustomInstructions.txt
+unity-client/Assets/AssistantCustomInstructions.txt.meta
+unity-client/ProjectSettings/McpUnitySettings.json
+
+# Unity Performance Test runner locals
+unity-client/Assets/Resources/PerformanceTestRunInfo.json
+unity-client/Assets/Resources/PerformanceTestRunInfo.json.meta
+unity-client/Assets/Resources/PerformanceTestRunSettings.json
+unity-client/Assets/Resources/PerformanceTestRunSettings.json.meta
+
+# ── Docker ───────────────────────────────────────────────────────────
+# docker-compose.override.yml EST committé : c'est le compose dev standard
+# (auto-mergé par `docker compose up`). Ne pas l'ignorer.
+.docker-secrets/
+
+# ── Build outputs ────────────────────────────────────────────────────
+# Unity WebGL build : binaires trop volumineux pour GitHub (unity.wasm > 100 Mo).
+# Déploiement via scp direct vers /root/RocketPi-Shardfall-Protocol/public/unity/.
+# Seul public/unity/manifest.json reste tracké (léger, sert au cache-busting React).
+public/unity/Build/
+public/unity/TemplateData/
+public/unity/index.html
+
+# ── Tests ────────────────────────────────────────────────────────────
+.phpunit.result.cache
+/coverage/
+/storybook-static/
+# Storage::fake() artifacts générés par les tests — ne doivent jamais être trackés.
+/storage/framework/testing/disks/
+
+# ── Temp ─────────────────────────────────────────────────────────────
+*.tmp
+*.temp
+/tmp/
+
+# ── Secrets ──────────────────────────────────────────────────────────
+*.pem
+*.key
+*.cert
+*.p12
+secrets.json

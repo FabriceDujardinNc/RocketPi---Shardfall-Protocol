@@ -1,0 +1,168 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5452122183962268792
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8080771442361312821}
+  m_Layer: 0
+  m_Name: Muzzle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8080771442361312821
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5452122183962268792}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.8, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3681970863207967526}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6885026576776628207
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3681970863207967526}
+  - component: {fileID: 5032718445999055849}
+  m_Layer: 0
+  m_Name: Weapon_Melee_warhammer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3681970863207967526
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6885026576776628207}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 2816632042044525506}
+  - {fileID: 8080771442361312821}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5032718445999055849
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6885026576776628207}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9cfb7a5919b7a44dbc52d114adbac1e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Rocketpi.Gameplay::Rocketpi.Gameplay.Weapons.MeleeWeapon
+  _magazineSize: 30
+  _fireRate: 8
+  _reloadTime: 2
+  _baseDamage: 18
+  _muzzle: {fileID: 8080771442361312821}
+  _meleeRange: 2.8
+  _hitRadius: 1.4
+  _hittableLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  _comboDuration: 0
+  _hitTimings:
+  - 0.2
+  - 0.5
+  - 0.8
+--- !u!1001 &2349777940015836201
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 3681970863207967526}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.9940701
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.9940701
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.9940701
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.0010974506
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.4747319
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.0022150467
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+      propertyPath: m_Name
+      value: Visual
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+--- !u!4 &2816632042044525506 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: c95047a024d4b174e886859c1c1370ce, type: 3}
+  m_PrefabInstance: {fileID: 2349777940015836201}
+  m_PrefabAsset: {fileID: 0}

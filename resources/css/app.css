@@ -1,0 +1,313 @@
+/* RocketPi — Shardfall Protocol · Main CSS
+ * Tailwind v4 consumes this file. The @theme block below is the
+ * single place where tokens from tokens.json are exposed as Tailwind
+ * utility classes. No arbitrary values allowed anywhere else.
+ */
+
+@import "tailwindcss";
+
+/* ── Google Fonts ─────────────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+/* ── Design Tokens → Tailwind 4 Theme ────────────────────────────── */
+@theme {
+  /* ── Brand / Shard ─────────────────────────────────────────────── */
+  --color-shard-50:  oklch(0.97 0.04 188);
+  --color-shard-100: oklch(0.93 0.08 188);
+  --color-shard-200: oklch(0.88 0.12 188);
+  --color-shard-300: oklch(0.82 0.15 188);
+  --color-shard-400: oklch(0.76 0.17 188);
+  --color-shard-500: oklch(0.70 0.18 188);
+  --color-shard-600: oklch(0.62 0.17 188);
+  --color-shard-700: oklch(0.52 0.14 188);
+  --color-shard-800: oklch(0.40 0.10 188);
+  --color-shard-900: oklch(0.28 0.07 188);
+  --color-shard-950: oklch(0.18 0.04 188);
+
+  /* ── Factions ───────────────────────────────────────────────────── */
+  --color-orbit-100: oklch(0.92 0.06 220);
+  --color-orbit-300: oklch(0.78 0.13 220);
+  --color-orbit-500: oklch(0.62 0.18 220);
+  --color-orbit-700: oklch(0.42 0.14 220);
+  --color-orbit-900: oklch(0.24 0.08 220);
+
+  --color-ferro-100: oklch(0.92 0.05 32);
+  --color-ferro-300: oklch(0.78 0.13 32);
+  --color-ferro-500: oklch(0.66 0.18 32);
+  --color-ferro-700: oklch(0.50 0.16 32);
+  --color-ferro-900: oklch(0.28 0.09 32);
+
+  --color-veil-100: oklch(0.92 0.05 290);
+  --color-veil-300: oklch(0.74 0.14 290);
+  --color-veil-500: oklch(0.56 0.20 290);
+  --color-veil-700: oklch(0.38 0.16 290);
+  --color-veil-900: oklch(0.22 0.10 290);
+  --color-veil-acid: oklch(0.82 0.22 140);
+
+  /* ── Rarities ───────────────────────────────────────────────────── */
+  --color-rarity-common:     oklch(0.72 0.01 250);
+  --color-rarity-common-bg:  oklch(0.30 0.01 250);
+  --color-rarity-rare:       oklch(0.72 0.16 235);
+  --color-rarity-rare-bg:    oklch(0.32 0.12 235);
+  --color-rarity-epic:       oklch(0.68 0.22 305);
+  --color-rarity-epic-bg:    oklch(0.30 0.16 305);
+  --color-rarity-legendary:  oklch(0.82 0.16 85);
+  --color-rarity-legendary-bg: oklch(0.36 0.10 75);
+
+  /* ── Semantic ───────────────────────────────────────────────────── */
+  --color-success: oklch(0.72 0.18 155);
+  --color-warning: oklch(0.78 0.17 78);
+  --color-danger:  oklch(0.66 0.22 25);
+  --color-info:    oklch(0.68 0.16 235);
+
+  /* ── UI Backgrounds ─────────────────────────────────────────────── */
+  --color-bg-base:  oklch(0.13 0.018 245);
+  --color-bg-elev1: oklch(0.17 0.020 245);
+  --color-bg-elev2: oklch(0.21 0.022 245);
+  --color-bg-elev3: oklch(0.26 0.024 245);
+
+  /* ── Text ───────────────────────────────────────────────────────── */
+  --color-text-high:   oklch(0.97 0.01 235);
+  --color-text-medium: oklch(0.78 0.02 235);
+  --color-text-low:    oklch(0.58 0.02 235);
+  --color-text-dim:    oklch(0.40 0.02 235);
+  --color-text-on-shard: oklch(0.13 0.02 245);
+
+  /* ── Borders ────────────────────────────────────────────────────── */
+  --color-border-subtle:  oklch(0.30 0.02 245 / 0.5);
+  --color-border-default: oklch(0.42 0.03 245 / 0.7);
+  --color-border-strong:  oklch(0.62 0.05 245);
+  --color-border-shard:   oklch(0.70 0.18 188 / 0.7);
+
+  /* ── Typography ─────────────────────────────────────────────────── */
+  --font-family-display: "Chakra Petch", "Rajdhani", system-ui, sans-serif;
+  --font-family-body:    "Inter", system-ui, -apple-system, sans-serif;
+  --font-family-mono:    "JetBrains Mono", ui-monospace, monospace;
+
+  --font-size-xs:      0.6875rem;   /* 11px */
+  --font-size-sm:      0.8125rem;   /* 13px */
+  --font-size-base:    0.9375rem;   /* 15px */
+  --font-size-md:      1.0625rem;   /* 17px */
+  --font-size-lg:      1.25rem;     /* 20px */
+  --font-size-xl:      1.5rem;      /* 24px */
+  --font-size-2xl:     2rem;        /* 32px */
+  --font-size-3xl:     2.75rem;     /* 44px */
+  --font-size-display: 4rem;        /* 64px */
+
+  --font-weight-regular:  400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+
+  --line-height-tight:   1.1;
+  --line-height-snug:    1.25;
+  --line-height-normal:  1.5;
+  --line-height-relaxed: 1.7;
+
+  --letter-spacing-tight:  -0.02em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide:   0.04em;
+  --letter-spacing-mega:   0.16em;
+
+  /* ── Spacing (4px base) ─────────────────────────────────────────── */
+  --spacing-0:  0;
+  --spacing-1:  0.25rem;
+  --spacing-2:  0.5rem;
+  --spacing-3:  0.75rem;
+  --spacing-4:  1rem;
+  --spacing-5:  1.25rem;
+  --spacing-6:  1.5rem;
+  --spacing-8:  2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+  --spacing-20: 5rem;
+  --spacing-24: 6rem;
+  --spacing-32: 8rem;
+  --spacing-40: 10rem;
+  --spacing-48: 12rem;
+  --spacing-64: 16rem;
+
+  /* ── Border Radius ──────────────────────────────────────────────── */
+  --radius-sm:   0.1875rem;
+  --radius-md:   0.375rem;
+  --radius-lg:   0.625rem;
+  --radius-xl:   1rem;
+  --radius-full: 999px;
+
+  /* ── Box Shadows (Elevation) ────────────────────────────────────── */
+  --shadow-el1: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 1px 2px oklch(0 0 0 / 0.40);
+  --shadow-el2: 0 1px 0 oklch(1 0 0 / 0.05) inset, 0 4px 12px oklch(0 0 0 / 0.45);
+  --shadow-el3: 0 1px 0 oklch(1 0 0 / 0.06) inset, 0 12px 28px oklch(0 0 0 / 0.55);
+  --shadow-el4: 0 1px 0 oklch(1 0 0 / 0.07) inset, 0 24px 56px oklch(0 0 0 / 0.60);
+
+  --shadow-glow-shard:  0 0 20px oklch(0.70 0.18 188 / 0.55);
+  --shadow-glow-rare:   0 0 16px oklch(0.72 0.16 235 / 0.55);
+  --shadow-glow-epic:   0 0 20px oklch(0.68 0.22 305 / 0.60);
+  --shadow-glow-legend: 0 0 28px oklch(0.82 0.16 85  / 0.70);
+
+  /* ── Animations ─────────────────────────────────────────────────── */
+  --duration-fast:      120ms;
+  --duration-normal:    220ms;
+  --duration-slow:      400ms;
+  --duration-cinematic: 1200ms;
+
+  --ease-out:    cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-in:     cubic-bezier(0.5, 0, 0.95, 0.5);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  /* ── Z-Index ────────────────────────────────────────────────────── */
+  --z-dropdown: 100;
+  --z-sticky:   200;
+  --z-overlay:  400;
+  --z-modal:    500;
+  --z-toast:    600;
+  --z-tooltip:  700;
+}
+
+/* ── Mode clair (override tokens via .theme-light sur <html>) ──────
+ * Le mode sombre reste le défaut (cohérent avec l'identité Shardfall).
+ * Le mode clair inverse uniquement les surfaces UI + textes — les
+ * couleurs de marque (shard/factions/raretés) restent identiques pour
+ * préserver l'identité visuelle dans les deux thèmes.
+ */
+html.theme-light {
+  /* Surfaces : blanc cassé légèrement teinté shard */
+  --color-bg-base:  oklch(0.98 0.005 245);
+  --color-bg-elev1: oklch(0.96 0.008 245);
+  --color-bg-elev2: oklch(0.92 0.010 245);
+  --color-bg-elev3: oklch(0.88 0.012 245);
+
+  /* Textes : sombre vers clair */
+  --color-text-high:   oklch(0.20 0.02 245);
+  --color-text-medium: oklch(0.40 0.02 245);
+  --color-text-low:    oklch(0.55 0.02 245);
+  --color-text-dim:    oklch(0.70 0.02 245);
+  --color-text-on-shard: oklch(0.98 0 0);
+
+  /* Bordures plus marquées en clair pour visibilité */
+  --color-border-subtle:  oklch(0.85 0.01 245 / 0.7);
+  --color-border-default: oklch(0.75 0.02 245 / 0.8);
+  --color-border-strong:  oklch(0.55 0.04 245);
+  --color-border-shard:   oklch(0.62 0.17 188 / 0.6);
+}
+
+/* ── Global reset & base styles ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-high);
+  font-family: var(--font-family-body);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── CSS Custom Properties exposed at :root (for JS access) ─────── */
+:root {
+  --shard-hue: 188;
+  --glow-mult: 1;
+
+  /* Mirror brand tokens as bare vars for prototype-compatible code */
+  --shard-300: oklch(0.82 0.15 var(--shard-hue));
+  --shard-400: oklch(0.76 0.17 var(--shard-hue));
+  --shard-500: oklch(0.70 0.18 var(--shard-hue));
+  --shard-600: oklch(0.62 0.17 var(--shard-hue));
+  --shard-700: oklch(0.52 0.14 var(--shard-hue));
+
+  --orbit-500: oklch(0.62 0.18 220);
+  --orbit-900: oklch(0.24 0.08 220);
+  --ferro-500: oklch(0.66 0.18 32);
+  --ferro-900: oklch(0.28 0.09 32);
+  --veil-500:  oklch(0.56 0.20 290);
+  --veil-900:  oklch(0.22 0.10 290);
+  --veil-acid: oklch(0.82 0.22 140);
+
+  --rarity-common:     oklch(0.72 0.01 250);
+  --rarity-common-bg:  oklch(0.30 0.01 250);
+  --rarity-rare:       oklch(0.72 0.16 235);
+  --rarity-rare-bg:    oklch(0.32 0.12 235);
+  --rarity-epic:       oklch(0.68 0.22 305);
+  --rarity-epic-bg:    oklch(0.30 0.16 305);
+  --rarity-legend:     oklch(0.82 0.16 85);
+  --rarity-legend-bg:  oklch(0.36 0.10 75);
+
+  --success: oklch(0.72 0.18 155);
+  --warning: oklch(0.78 0.17 78);
+  --danger:  oklch(0.66 0.22 25);
+  --info:    oklch(0.68 0.16 235);
+
+  --bg-base:   oklch(0.13 0.018 245);
+  --bg-elev-1: oklch(0.17 0.020 245);
+  --bg-elev-2: oklch(0.21 0.022 245);
+  --bg-elev-3: oklch(0.26 0.024 245);
+
+  --text-hi: oklch(0.97 0.01 235);
+  --text-md: oklch(0.78 0.02 235);
+  --text-lo: oklch(0.58 0.02 235);
+  --text-dim: oklch(0.40 0.02 235);
+  --text-on-shard: oklch(0.13 0.02 245);
+
+  --border-subtle:  oklch(0.30 0.02 245 / 0.5);
+  --border-default: oklch(0.42 0.03 245 / 0.7);
+  --border-strong:  oklch(0.62 0.05 245);
+  --border-shard:   oklch(0.70 0.18 var(--shard-hue) / 0.7);
+
+  --font-display: "Chakra Petch", "Rajdhani", system-ui, sans-serif;
+  --font-body:    "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+
+  --fs-xs: 0.6875rem; --fs-sm: 0.8125rem; --fs-base: 0.9375rem;
+  --fs-md: 1.0625rem; --fs-lg: 1.25rem;   --fs-xl: 1.5rem;
+  --fs-2xl: 2rem;     --fs-3xl: 2.75rem;  --fs-display: 4rem;
+
+  --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700;
+  --lh-tight: 1.1;   --lh-snug: 1.25;  --lh-normal: 1.5;  --lh-relaxed: 1.7;
+  --ls-tight: -0.02em; --ls-normal: 0; --ls-wide: 0.04em; --ls-mega: 0.16em;
+
+  --r-sm: 0.1875rem; --r-md: 0.375rem; --r-lg: 0.625rem;
+  --r-xl: 1rem;      --r-full: 999px;
+
+  --el-1: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 1px 2px oklch(0 0 0 / 0.40);
+  --el-2: 0 1px 0 oklch(1 0 0 / 0.05) inset, 0 4px 12px oklch(0 0 0 / 0.45);
+  --el-3: 0 1px 0 oklch(1 0 0 / 0.06) inset, 0 12px 28px oklch(0 0 0 / 0.55);
+  --el-4: 0 1px 0 oklch(1 0 0 / 0.07) inset, 0 24px 56px oklch(0 0 0 / 0.60);
+
+  --glow-shard:  0 0 calc(20px * var(--glow-mult)) oklch(0.70 0.18 var(--shard-hue) / 0.55);
+  --glow-rare:   0 0 calc(16px * var(--glow-mult)) oklch(0.72 0.16 235 / 0.55);
+  --glow-epic:   0 0 calc(20px * var(--glow-mult)) oklch(0.68 0.22 305 / 0.60);
+  --glow-legend: 0 0 calc(28px * var(--glow-mult)) oklch(0.82 0.16 85 / 0.70);
+
+  --dur-fast: 120ms; --dur-normal: 220ms; --dur-slow: 400ms; --dur-cinematic: 1200ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-in:  cubic-bezier(0.5, 0, 0.95, 0.5);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  --z-dropdown: 100; --z-sticky: 200; --z-overlay: 400;
+  --z-modal: 500;    --z-toast: 600;  --z-tooltip: 700;
+}
+
+/* ── Shared keyframes ────────────────────────────────────────────── */
+@keyframes rp-fade-in   { from { opacity: 0 } to { opacity: 1 } }
+@keyframes rp-scale-in  { from { opacity: 0; transform: scale(.96) } to { opacity: 1; transform: scale(1) } }
+@keyframes rp-spin      { to { transform: rotate(360deg) } }
+@keyframes rp-glow-pulse {
+  0%, 100% { filter: brightness(1); box-shadow: var(--glow-shard); }
+  50%      { filter: brightness(1.15); }
+}
+@keyframes rp-legend-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+@keyframes rp-particle-float {
+  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx, 0), var(--dy, -60px)) scale(0); opacity: 0; }
+}
+@keyframes rp-glitch {
+  0%, 92%, 100% { transform: translate(0); }
+  93%           { transform: translate(-1px, 1px); }
+  94%           { transform: translate(1px, -1px); }
+  95%           { transform: translate(-1px, 0); }
+}

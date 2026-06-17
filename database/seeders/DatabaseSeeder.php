@@ -1,0 +1,28 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $this->call([
+            AdminUserSeeder::class,
+            FactionSeeder::class,
+            OperatorSeeder::class,
+            OperatorSkinSeeder::class,
+            AccessorySeeder::class,
+            BannerSeeder::class,
+            MissionSeeder::class,
+            LeaderboardSeasonSeeder::class,
+            LeaderboardRewardSeeder::class,
+            BattlePassSeeder::class,
+            AchievementSeeder::class,
+            DailyLoginRewardSeeder::class,
+            SettingSeeder::class,
+            CosmeticSeeder::class,
+        ]);
+    }
+}

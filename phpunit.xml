@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <!--
+        Les overrides d'environnement (DB_CONNECTION=sqlite, DB_DATABASE=:memory:, etc.)
+        sont définis dans tests/bootstrap.php. Sans ça, docker-compose injecte DB_*
+        dans $_SERVER et Laravel les lit en priorité — les tests wipent alors la dev MySQL.
+    -->
+</phpunit>

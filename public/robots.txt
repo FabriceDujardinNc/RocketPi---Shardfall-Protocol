@@ -1,0 +1,42 @@
+# robots.txt — RocketPi: Shardfall Protocol
+# Pages publiques indexables : home, lore, factions, opérateurs (vitrines),
+# classements top, profils joueurs partagés.
+# Pages privées exclues : dashboard joueur, admin, comptes utilisateurs, gacha,
+# routes d'action (verbes write), etc.
+
+User-agent: *
+Allow: /
+Allow: /lore
+Allow: /factions
+Allow: /operators
+Allow: /top
+Allow: /profile/
+
+# Authentification & onboarding (indexable mais marqué noindex côté HTML)
+Allow: /login
+Allow: /register
+
+# Privé / interne
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /admin/
+Disallow: /gacha
+Disallow: /gacha/
+Disallow: /missions
+Disallow: /achievements
+Disallow: /battlepass
+Disallow: /collection
+Disallow: /cosmetics
+Disallow: /shop
+Disallow: /referral
+Disallow: /play
+Disallow: /api/
+Disallow: /up
+
+# Profil édition (la vitrine /profile/{slug} est OK)
+Disallow: /profile/edit
+
+# Pas de spam d'URLs avec query strings (filtres, paginations privées)
+Disallow: /*?*
+
+Sitemap: https://rocketpi.pro/sitemap.xml

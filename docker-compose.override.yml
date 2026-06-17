@@ -1,0 +1,203 @@
+# Dev overrides — auto-merged by: docker compose up
+# Code monté en volume, Mailpit, Vite HMR, ports DB/Redis exposés localement.
+#
+# Au premier démarrage, le service `installer` lance composer install + npm install
+# + APP_KEY + migrate. Les autres services attendent qu'il finisse.
+
+services:
+
+  # ── Installer (one-shot) ─────────────────────────────────────────
+  # Tourne une fois, fait l'install des deps si manquantes, puis exit.
+  # Les autres services attendent `service_completed_successfully`.
+  installer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.laravel.dev
+    command: >
+      sh -c "
+        set -e;
+        cd /var/www/html;
+        echo '═══ RocketPi installer ═══';
+        echo '→ ensure storage/ and bootstrap/cache/ are writable';
+        mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache;
+        chmod -R 777 storage bootstrap/cache;
+        if [ ! -d vendor ]; then
+          echo '→ vendor/ absent — composer install...';
+          composer install --no-interaction --prefer-dist;
+        else
+          echo '✓ vendor/ déjà présent';
+        fi;
+        if [ ! -f .env ] && [ -f .env.example ]; then
+          echo '→ .env absent — copie depuis .env.example';
+          cp .env.example .env;
+        fi;
+        if ! grep -qE '^APP_KEY=.+' .env 2>/dev/null; then
+          echo '→ APP_KEY absent — génération';
+          php artisan key:generate --no-interaction;
+        else
+          echo '✓ APP_KEY déjà défini';
+        fi;
+        # On teste VIDE (pas seulement existant) car le named volume Docker
+        # crée toujours le dossier — `[ ! -d ]` serait toujours faux.
+        if [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
+          echo '→ node_modules/ vide — npm install...';
+          # --legacy-peer-deps : Storybook 9 déclare peer vite ^5||^6||^7
+          # alors qu'on est sur Vite 8 (cf. CLAUDE.md + PROJECT_CHECKLIST.md).
+          npm install --no-audit --no-fund --legacy-peer-deps;
+        else
+          echo '✓ node_modules/ déjà peuplé';
+        fi;
+        echo '→ migrate (idempotent)';
+        php artisan migrate --force --no-interaction;
+        echo '✓ Installer terminé. Pour seed les données démo :';
+        echo '  docker compose exec laravel-app php artisan db:seed';
+      "
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - .:/var/www/html:delegated
+      # node_modules dans un volume Docker (pas un bind mount) pour
+      # contourner le bug Docker Desktop Windows + WSL2 sur les symlinks npm
+      # (.bin/vite, .bin/tsc, etc. n'apparaissent pas côté hôte NTFS).
+      - node_modules_data:/var/www/html/node_modules
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${MYSQL_DATABASE:-rocketpi}
+      DB_USERNAME: ${MYSQL_USER:-rocketpi}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-secret}
+    networks:
+      - internal
+    restart: "no"
+
+  laravel-app:
+    build:
+      dockerfile: docker/Dockerfile.laravel.dev
+    depends_on:
+      installer:
+        condition: service_completed_successfully
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      MAIL_ENCRYPTION: "null"
+      MAIL_FROM_ADDRESS: "noreply@rocketpi.local"
+    volumes:
+      - .:/var/www/html:delegated
+      - ./storage:/var/www/html/storage
+      - ./bootstrap/cache:/var/www/html/bootstrap/cache
+      # Override opcache settings : sans ça php-fpm cache les classes en mémoire
+      # avec validate_timestamps=0 → toute édition de controller exige un restart.
+      # `zz-` lexicalement après `rocketpi` → ce fichier gagne.
+      - ./docker/php.dev.ini:/usr/local/etc/php/conf.d/zz-rocketpi-dev.ini:ro
+
+  nginx:
+    volumes:
+      - ./docker/nginx/laravel.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./storage:/var/www/html/storage:ro
+      - ./public:/var/www/html/public:ro
+    ports:
+      - "127.0.0.1:8000:80"
+
+  mysql:
+    ports:
+      - "127.0.0.1:3307:3306"
+
+  redis:
+    ports:
+      - "127.0.0.1:6380:6379"
+
+  queue-worker:
+    build:
+      dockerfile: docker/Dockerfile.laravel.dev
+    depends_on:
+      installer:
+        condition: service_completed_successfully
+      laravel-app:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+    volumes:
+      - .:/var/www/html:delegated
+      # Override le named volume app_storage du base compose : sans ce mount,
+      # Horizon écrit dans le volume Docker (invisible côté host & nginx) →
+      # les .glb téléchargés par PollMeshyTaskJob renvoient 404 en HTTP.
+      - ./storage:/var/www/html/storage
+      - ./docker/php.dev.ini:/usr/local/etc/php/conf.d/zz-rocketpi-dev.ini:ro
+
+  scheduler:
+    build:
+      dockerfile: docker/Dockerfile.laravel.dev
+    depends_on:
+      installer:
+        condition: service_completed_successfully
+      laravel-app:
+        condition: service_started
+    environment:
+      APP_ENV: local
+    volumes:
+      - .:/var/www/html:delegated
+      - ./storage:/var/www/html/storage
+      - ./docker/php.dev.ini:/usr/local/etc/php/conf.d/zz-rocketpi-dev.ini:ro
+
+  # ── Vite HMR server ──────────────────────────────────────────────
+  # Hot Module Replacement pour React + Tailwind.
+  # La directive @vite() lit public/hot pour l'URL du dev server.
+  # Le navigateur se connecte directement à localhost:5173.
+  vite:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.laravel.dev
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    depends_on:
+      installer:
+        condition: service_completed_successfully
+    volumes:
+      - .:/var/www/html:delegated
+      # cf. installer : node_modules en named volume (bug symlinks Windows)
+      - node_modules_data:/var/www/html/node_modules
+    ports:
+      - "127.0.0.1:5173:5173"
+    networks:
+      - internal
+
+  # ── Mailpit — capture d'emails en dev ────────────────────────────
+  # UI web : http://localhost:8025
+  # SMTP : localhost:1025 (ou mailpit:1025 depuis les conteneurs)
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+    expose:
+      - "1025"
+    networks:
+      - internal
+      - proxy
+
+# ── Réseau dev — accès internet activé ────────────────────────────
+# La prod garde `internal: true` (sécurité). En dev on doit pouvoir
+# télécharger les packages composer/npm.
+networks:
+  internal:
+    driver: bridge
+    internal: false
+
+# Volume nommé pour node_modules — contournement bug Docker Desktop
+# Windows/WSL2 sur les symlinks (.bin/vite, .bin/tsc ne sortent pas vers
+# le host NTFS). Géré par Docker, partagé entre installer + vite.
+# Pour reset propre : `docker compose down -v` (efface aussi mysql, redis).
+volumes:
+  node_modules_data:

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: MeleeLocomotionOverride
+  m_Controller: {fileID: 9100000, guid: 7232920a091b02d42a9a38fe8bff236e, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: -203655887218126122, guid: 542b35b0433e77e4c9bd7d9799ee61a7, type: 3}
+    m_OverrideClip: {fileID: 0}
+  - m_OriginalClip: {fileID: -203655887218126122, guid: 56cdd15fb006c794ea762746ddf11cc7, type: 3}
+    m_OverrideClip: {fileID: 0}
+  - m_OriginalClip: {fileID: -203655887218126122, guid: bd3d77487c2038f4c9cdc8c9afd7adda, type: 3}
+    m_OverrideClip: {fileID: -203655887218126122, guid: 752cdd6fee1b0f94f8419fcb0da867a8, type: 3}
+  - m_OriginalClip: {fileID: -203655887218126122, guid: b19579cd4ecede5489e9fdbfd2051caf, type: 3}
+    m_OverrideClip: {fileID: 0}
+  - m_OriginalClip: {fileID: -203655887218126122, guid: 915c781c381ae8e479043cf2c2e9be3b, type: 3}
+    m_OverrideClip: {fileID: 0}
+  - m_OriginalClip: {fileID: -203655887218126122, guid: bc98e010cbd6bc24ba6111b225c910b5, type: 3}
+    m_OverrideClip: {fileID: 0}
+  - m_OriginalClip: {fileID: -203655887218126122, guid: 49de904f1b0a3af4d979acc73d1130fa, type: 3}
+    m_OverrideClip: {fileID: 0}
+  - m_OriginalClip: {fileID: -203655887218126122, guid: 3c1d158dcac9fbc4699e2a6d76b88822, type: 3}
+    m_OverrideClip: {fileID: 0}
+  - m_OriginalClip: {fileID: -203655887218126122, guid: ca86404eda9d3e440a28f5bebd908350, type: 3}
+    m_OverrideClip: {fileID: 0}
+  - m_OriginalClip: {fileID: -203655887218126122, guid: 4de96e9cf83b9bb45809de636cb98f8f, type: 3}
+    m_OverrideClip: {fileID: 0}

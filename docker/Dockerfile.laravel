@@ -1,0 +1,82 @@
+FROM php:8.5-fpm-alpine
+
+# install-php-extensions — résolution automatique des dépendances système
+# et gestion robuste des cas limites (opcache, pcntl, etc.).
+COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
+
+# ── System dependencies ────────────────────────────────────────────
+RUN apk add --no-cache \
+    bash \
+    curl \
+    git \
+    zip \
+    unzip \
+    supervisor \
+    # Node.js 22 LTS for Vite build
+    nodejs \
+    npm
+
+# ── PHP extensions ─────────────────────────────────────────────────
+# pdo_mysql  : connexion MySQL 8.4
+# redis      : cache, sessions, queues, leaderboards
+# intl       : internationalisation (formats dates/nombres)
+# gd         : manipulation d'images (avatars, portraits)
+# opcache    : cache bytecode PHP (performance critique)
+# zip        : exports, archives
+# bcmath     : calculs monétaires précis (monnaie in-game)
+# mbstring   : gestion chaînes UTF-8 (noms internationaux)
+# pcntl      : forking pour Horizon
+RUN install-php-extensions \
+    pdo_mysql \
+    redis \
+    intl \
+    gd \
+    zip \
+    bcmath \
+    mbstring \
+    opcache \
+    pcntl
+
+# ── Composer ───────────────────────────────────────────────────────
+COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
+
+# ── PHP configuration ──────────────────────────────────────────────
+COPY docker/php.ini /usr/local/etc/php/conf.d/rocketpi.ini
+
+# ── Supervisor (queue worker + scheduler) ─────────────────────────
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+RUN mkdir -p /var/log/supervisor && chown www-data:www-data /var/log/supervisor
+
+# ── Application ────────────────────────────────────────────────────
+WORKDIR /var/www/html
+
+# Install PHP deps first (better Docker layer caching)
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
+# Install Node deps & build assets
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
+
+COPY . .
+
+# Build Vite assets (Tailwind 4 + React + TypeScript)
+RUN npm run build
+
+# Laravel setup
+RUN composer run-script post-autoload-dump --no-interaction \
+    && php artisan package:discover --ansi \
+    && php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache
+
+# Correct permissions for Laravel storage & cache
+RUN chown -R www-data:www-data /var/www/html/storage \
+    && chown -R www-data:www-data /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
+
+EXPOSE 9000
+
+# Start PHP-FPM (supervisor manages queue-worker & scheduler in overlay containers)
+CMD ["php-fpm"]

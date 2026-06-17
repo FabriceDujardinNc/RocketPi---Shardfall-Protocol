@@ -1,0 +1,20 @@
+{
+    "name": "Rocketpi.UI",
+    "rootNamespace": "Rocketpi.UI",
+    "references": [
+        "Rocketpi.Bridge",
+        "Rocketpi.Gameplay",
+        "Rocketpi.RestClient",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

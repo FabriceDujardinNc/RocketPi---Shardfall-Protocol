@@ -1,0 +1,47 @@
+FROM php:8.5-fpm-alpine
+
+# install-php-extensions — résolution automatique des dépendances système
+# (libpng, freetype, libzip, icu, etc.) et gestion robuste des cas limites
+# (opcache built-in vs shared, pcntl, etc.). Évite les erreurs
+# "cp: can't stat 'modules/*'" sur les bulk install.
+COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
+
+# ── System tooling ─────────────────────────────────────────────────
+RUN apk add --no-cache \
+    bash \
+    curl \
+    git \
+    zip \
+    unzip \
+    supervisor \
+    nodejs \
+    npm
+
+# ── PHP extensions (mêmes que prod) ────────────────────────────────
+# install-php-extensions sait quoi faire pour chaque extension :
+#   shared vs built-in, deps système (libpng, freetype, icu...), etc.
+RUN install-php-extensions \
+    pdo_mysql \
+    redis \
+    intl \
+    gd \
+    zip \
+    bcmath \
+    mbstring \
+    opcache \
+    pcntl
+
+# ── Composer ───────────────────────────────────────────────────────
+COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
+
+# ── PHP configuration ──────────────────────────────────────────────
+COPY docker/php.ini /usr/local/etc/php/conf.d/rocketpi.ini
+
+WORKDIR /var/www/html
+
+# Code is bind-mounted at runtime — no COPY, no npm build, no artisan cache.
+# composer install / npm install run via the `installer` service in
+# docker-compose.override.yml on first boot.
+
+EXPOSE 9000
+CMD ["php-fpm"]
